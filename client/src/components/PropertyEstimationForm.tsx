@@ -1,0 +1,357 @@
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
+import { ArrowRight, ArrowLeft, Home, Building } from "lucide-react";
+
+interface FormData {
+  propertyType: "house" | "apartment";
+  address: string;
+  city: string;
+  postalCode: string;
+  surface: string;
+  rooms: string;
+  bedrooms: string;
+  bathrooms: string;
+  constructionYear: string;
+  hasGarden: boolean;
+  hasParking: boolean;
+  hasBalcony: boolean;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+}
+
+const INITIAL_FORM_DATA: FormData = {
+  propertyType: "house",
+  address: "",
+  city: "",
+  postalCode: "",
+  surface: "",
+  rooms: "",
+  bedrooms: "",
+  bathrooms: "",
+  constructionYear: "",
+  hasGarden: false,
+  hasParking: false,
+  hasBalcony: false,
+  firstName: "",
+  lastName: "",
+  email: "",
+  phone: "",
+};
+
+export default function PropertyEstimationForm() {
+  const [step, setStep] = useState(1);
+  const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const totalSteps = 4;
+  const progress = (step / totalSteps) * 100;
+
+  const updateFormData = (field: keyof FormData, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const nextStep = () => {
+    if (step < totalSteps) {
+      setStep(step + 1);
+    }
+  };
+
+  const prevStep = () => {
+    if (step > 1) {
+      setStep(step - 1);
+    }
+  };
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    // TODO: Replace with actual API call
+    console.log("Form submitted:", formData);
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    setIsSubmitting(false);
+    // TODO: Navigate to results page
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto px-4 py-8">
+      <Card className="p-6">
+        {/* Progress Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold">Estimation de votre bien</h2>
+            <span className="text-sm text-muted-foreground">
+              Étape {step} sur {totalSteps}
+            </span>
+          </div>
+          <Progress value={progress} className="h-2" />
+        </div>
+
+        {/* Step 1: Property Type */}
+        {step === 1 && (
+          <div className="space-y-6">
+            <h3 className="text-xl font-semibold">Type de bien</h3>
+            <RadioGroup
+              value={formData.propertyType}
+              onValueChange={(value) => updateFormData("propertyType", value)}
+              className="grid grid-cols-1 md:grid-cols-2 gap-4"
+            >
+              <div className="flex items-center space-x-2 p-4 border border-border rounded-lg hover-elevate cursor-pointer">
+                <RadioGroupItem value="house" id="house" data-testid="radio-house" />
+                <Label htmlFor="house" className="flex items-center space-x-3 cursor-pointer">
+                  <Home className="h-8 w-8 text-primary" />
+                  <div>
+                    <p className="font-medium">Maison</p>
+                    <p className="text-sm text-muted-foreground">Villa, pavillon, maison de ville</p>
+                  </div>
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2 p-4 border border-border rounded-lg hover-elevate cursor-pointer">
+                <RadioGroupItem value="apartment" id="apartment" data-testid="radio-apartment" />
+                <Label htmlFor="apartment" className="flex items-center space-x-3 cursor-pointer">
+                  <Building className="h-8 w-8 text-primary" />
+                  <div>
+                    <p className="font-medium">Appartement</p>
+                    <p className="text-sm text-muted-foreground">Studio, T1, T2, T3...</p>
+                  </div>
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+        )}
+
+        {/* Step 2: Location */}
+        {step === 2 && (
+          <div className="space-y-6">
+            <h3 className="text-xl font-semibold">Localisation</h3>
+            <div className="grid gap-4">
+              <div>
+                <Label htmlFor="address">Adresse</Label>
+                <Input
+                  id="address"
+                  value={formData.address}
+                  onChange={(e) => updateFormData("address", e.target.value)}
+                  placeholder="Ex: 123 rue de la Paix"
+                  data-testid="input-address"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="city">Ville</Label>
+                  <Input
+                    id="city"
+                    value={formData.city}
+                    onChange={(e) => updateFormData("city", e.target.value)}
+                    placeholder="Ex: Bordeaux"
+                    data-testid="input-city-form"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="postalCode">Code postal</Label>
+                  <Input
+                    id="postalCode"
+                    value={formData.postalCode}
+                    onChange={(e) => updateFormData("postalCode", e.target.value)}
+                    placeholder="Ex: 33000"
+                    data-testid="input-postal-code"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Property Details */}
+        {step === 3 && (
+          <div className="space-y-6">
+            <h3 className="text-xl font-semibold">Caractéristiques</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <Label htmlFor="surface">Surface (m²)</Label>
+                <Input
+                  id="surface"
+                  type="number"
+                  value={formData.surface}
+                  onChange={(e) => updateFormData("surface", e.target.value)}
+                  placeholder="Ex: 85"
+                  data-testid="input-surface-form"
+                />
+              </div>
+              <div>
+                <Label htmlFor="rooms">Pièces</Label>
+                <Input
+                  id="rooms"
+                  type="number"
+                  value={formData.rooms}
+                  onChange={(e) => updateFormData("rooms", e.target.value)}
+                  placeholder="Ex: 4"
+                  data-testid="input-rooms"
+                />
+              </div>
+              <div>
+                <Label htmlFor="bedrooms">Chambres</Label>
+                <Input
+                  id="bedrooms"
+                  type="number"
+                  value={formData.bedrooms}
+                  onChange={(e) => updateFormData("bedrooms", e.target.value)}
+                  placeholder="Ex: 2"
+                  data-testid="input-bedrooms"
+                />
+              </div>
+              <div>
+                <Label htmlFor="bathrooms">Salles de bain</Label>
+                <Input
+                  id="bathrooms"
+                  type="number"
+                  value={formData.bathrooms}
+                  onChange={(e) => updateFormData("bathrooms", e.target.value)}
+                  placeholder="Ex: 1"
+                  data-testid="input-bathrooms"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="constructionYear">Année de construction</Label>
+              <Input
+                id="constructionYear"
+                type="number"
+                value={formData.constructionYear}
+                onChange={(e) => updateFormData("constructionYear", e.target.value)}
+                placeholder="Ex: 1985"
+                data-testid="input-construction-year"
+              />
+            </div>
+
+            <div className="space-y-4">
+              <Label>Options et équipements</Label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="hasGarden"
+                    checked={formData.hasGarden}
+                    onCheckedChange={(checked) => updateFormData("hasGarden", checked)}
+                    data-testid="checkbox-garden"
+                  />
+                  <Label htmlFor="hasGarden">Jardin</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="hasParking"
+                    checked={formData.hasParking}
+                    onCheckedChange={(checked) => updateFormData("hasParking", checked)}
+                    data-testid="checkbox-parking"
+                  />
+                  <Label htmlFor="hasParking">Parking</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="hasBalcony"
+                    checked={formData.hasBalcony}
+                    onCheckedChange={(checked) => updateFormData("hasBalcony", checked)}
+                    data-testid="checkbox-balcony"
+                  />
+                  <Label htmlFor="hasBalcony">Balcon/Terrasse</Label>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Contact Info */}
+        {step === 4 && (
+          <div className="space-y-6">
+            <h3 className="text-xl font-semibold">Vos coordonnées</h3>
+            <p className="text-muted-foreground">
+              Pour recevoir votre estimation détaillée
+            </p>
+            <div className="grid gap-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="firstName">Prénom</Label>
+                  <Input
+                    id="firstName"
+                    value={formData.firstName}
+                    onChange={(e) => updateFormData("firstName", e.target.value)}
+                    placeholder="Votre prénom"
+                    data-testid="input-first-name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="lastName">Nom</Label>
+                  <Input
+                    id="lastName"
+                    value={formData.lastName}
+                    onChange={(e) => updateFormData("lastName", e.target.value)}
+                    placeholder="Votre nom"
+                    data-testid="input-last-name"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => updateFormData("email", e.target.value)}
+                  placeholder="votre@email.com"
+                  data-testid="input-email-form"
+                />
+              </div>
+              <div>
+                <Label htmlFor="phone">Téléphone (optionnel)</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => updateFormData("phone", e.target.value)}
+                  placeholder="06 12 34 56 78"
+                  data-testid="input-phone-form"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Navigation */}
+        <div className="flex justify-between mt-8">
+          <Button
+            variant="outline"
+            onClick={prevStep}
+            disabled={step === 1}
+            data-testid="button-prev-step"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Précédent
+          </Button>
+          
+          {step < totalSteps ? (
+            <Button
+              onClick={nextStep}
+              data-testid="button-next-step"
+            >
+              Suivant
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          ) : (
+            <Button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              data-testid="button-submit-estimation"
+            >
+              {isSubmitting ? "Calcul en cours..." : "Obtenir mon estimation"}
+            </Button>
+          )}
+        </div>
+      </Card>
+    </div>
+  );
+}
