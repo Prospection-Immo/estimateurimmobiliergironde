@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   Users, 
   Calculator, 
@@ -12,7 +13,9 @@ import {
   Search, 
   MoreHorizontal,
   Mail,
-  MapPin
+  MapPin,
+  LogOut,
+  AlertCircle
 } from "lucide-react";
 
 interface Lead {
@@ -47,10 +50,35 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
   const [leads, setLeads] = useState<Lead[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchData();
+    checkAuthentication();
   }, []);
+
+  const checkAuthentication = async () => {
+    try {
+      const response = await fetch('/api/auth/check');
+      if (response.ok) {
+        const data = await response.json();
+        setIsAuthenticated(data.authenticated);
+        if (data.authenticated) {
+          fetchData();
+        } else {
+          // Redirect to login page
+          window.location.href = '/admin/login';
+        }
+      } else {
+        setIsAuthenticated(false);
+        window.location.href = '/admin/login';
+      }
+    } catch (error) {
+      console.error('Authentication check failed:', error);
+      setIsAuthenticated(false);
+      setAuthError('Erreur de vérification d\'authentification');
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -59,17 +87,29 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
         fetch('/api/stats')
       ]);
 
+      // Check for authentication errors
+      if (leadsResponse.status === 401 || statsResponse.status === 401) {
+        setIsAuthenticated(false);
+        window.location.href = '/admin/login';
+        return;
+      }
+
       if (leadsResponse.ok) {
         const leadsData = await leadsResponse.json();
         setLeads(leadsData);
+      } else {
+        setAuthError(`Erreur lors du chargement des leads: ${leadsResponse.status}`);
       }
 
       if (statsResponse.ok) {
         const statsData = await statsResponse.json();
         setStats(statsData);
+      } else {
+        setAuthError(`Erreur lors du chargement des statistiques: ${statsResponse.status}`);
       }
     } catch (error) {
       console.error('Error fetching admin data:', error);
+      setAuthError('Erreur de connexion au serveur');
     } finally {
       setLoading(false);
     }
@@ -95,6 +135,12 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
         body: JSON.stringify({ status: newStatus }),
       });
 
+      if (response.status === 401) {
+        setIsAuthenticated(false);
+        window.location.href = '/admin/login';
+        return;
+      }
+
       if (response.ok) {
         // Update local state
         setLeads(prevLeads => 
@@ -104,9 +150,29 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
         );
         // Refresh stats
         fetchData();
+      } else {
+        setAuthError(`Erreur lors de la mise à jour du lead: ${response.status}`);
       }
     } catch (error) {
       console.error('Error updating lead status:', error);
+      setAuthError('Erreur de connexion lors de la mise à jour');
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST'
+      });
+      
+      if (response.ok) {
+        setIsAuthenticated(false);
+        window.location.href = '/admin/login';
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Force redirect even if logout request fails
+      window.location.href = '/admin/login';
     }
   };
 
@@ -122,7 +188,7 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
     return matchesSearch && matchesStatus;
   });
 
-  if (loading) {
+  if (isAuthenticated === null || loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="text-center">
@@ -132,16 +198,52 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
     );
   }
 
+  if (isAuthenticated === false) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <Alert className="max-w-md mx-auto">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Vous devez être connecté pour accéder à cette page.
+            <br />
+            <a href="/admin/login" className="text-primary hover:underline">
+              Cliquez ici pour vous connecter
+            </a>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="space-y-8">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard Admin</h1>
-          <p className="text-muted-foreground">
-            Gestion des leads et estimations pour {domain}
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Dashboard Admin</h1>
+            <p className="text-muted-foreground">
+              Gestion des leads et estimations pour {domain}
+            </p>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={handleLogout}
+            className="flex items-center gap-2"
+            data-testid="button-logout"
+          >
+            <LogOut className="h-4 w-4" />
+            Déconnexion
+          </Button>
         </div>
+
+        {/* Error Alert */}
+        {authError && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{authError}</AlertDescription>
+          </Alert>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

@@ -197,6 +197,29 @@ function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    checkAuthentication();
+  }, []);
+
+  const checkAuthentication = async () => {
+    try {
+      const response = await fetch('/api/auth/check');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.authenticated) {
+          // Already logged in, redirect to admin dashboard
+          window.location.href = '/admin';
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error);
+    } finally {
+      setCheckingAuth(false);
+    }
+  };
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -224,6 +247,20 @@ function AdminLoginPage() {
       setIsLoading(false);
     }
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header domain={domain} />
+        <main className="py-16">
+          <div className="max-w-md mx-auto px-4 text-center">
+            <p>Vérification de l'authentification...</p>
+          </div>
+        </main>
+        <Footer domain={domain} />
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen bg-background">
@@ -322,6 +359,9 @@ function Router() {
       <Route path="/estimation-resultats" component={ResultsPage} />
       <Route path="/contact" component={ContactPage} />
       <Route path="/prix-m2" component={PrixM2Page} />
+      <Route path="/admin/login" component={AdminLoginPage} />
+      <Route path="/admin" component={AdminDashboardPage} />
+      {/* Legacy routes for backward compatibility */}
       <Route path="/gironde-login" component={AdminLoginPage} />
       <Route path="/gironde-admin-dashboard" component={AdminDashboardPage} />
       {/* Fallback to 404 */}
