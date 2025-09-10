@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Switch, Route } from "wouter";
+import { Switch, Route, useRoute } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -403,6 +403,186 @@ function GuidesPage() {
 // Guide Detail Page
 function GuideDetailPage() {
   const domain = getDomainFromHeaders();
+  const [match] = useRoute("/guides/:slug");
+  const slug = match?.slug;
+  
+  // Guide content data
+  const guidesData: Record<string, {
+    title: string;
+    category: string;
+    readTime: string;
+    content: Array<{
+      type: 'paragraph' | 'heading' | 'list';
+      content: string | string[];
+    }>;
+  }> = {
+    "acheter-premiere-fois": {
+      title: "Guide complet : Acheter pour la première fois",
+      category: "Achat",
+      readTime: "8 min",
+      content: [
+        {
+          type: 'paragraph',
+          content: "Acheter son premier logement est une étape importante de la vie. Ce guide vous accompagne pas à pas dans cette démarche pour que votre projet se déroule dans les meilleures conditions."
+        },
+        {
+          type: 'heading',
+          content: "1. Définir votre budget"
+        },
+        {
+          type: 'paragraph',
+          content: "La première étape consiste à déterminer votre capacité d'emprunt. En règle générale, vos mensualités ne doivent pas dépasser 33% de vos revenus nets."
+        },
+        {
+          type: 'heading',
+          content: "2. Choisir le bon secteur"
+        },
+        {
+          type: 'paragraph',
+          content: "En Gironde, plusieurs secteurs offrent un excellent rapport qualité-prix. Bordeaux centre reste prisé mais d'autres communes comme Mérignac ou Pessac proposent des alternatives intéressantes."
+        },
+        {
+          type: 'heading',
+          content: "3. Les étapes de l'achat"
+        },
+        {
+          type: 'list',
+          content: ["Recherche et visites", "Offre d'achat", "Compromis de vente", "Financement", "Acte authentique"]
+        }
+      ]
+    },
+    "vendre-rapidement": {
+      title: "Comment vendre son bien rapidement",
+      category: "Vente",
+      readTime: "6 min",
+      content: [
+        {
+          type: 'paragraph',
+          content: "Vendre rapidement son bien immobilier nécessite une stratégie bien définie et une préparation minutieuse."
+        },
+        {
+          type: 'heading',
+          content: "1. Fixer le bon prix"
+        },
+        {
+          type: 'paragraph',
+          content: "Une estimation juste est cruciale. Un prix trop élevé décourage les acheteurs, un prix trop bas vous fait perdre de l'argent."
+        },
+        {
+          type: 'heading',
+          content: "2. Mettre en valeur votre bien"
+        },
+        {
+          type: 'paragraph',
+          content: "Home staging, nettoyage approfondi et petites réparations peuvent faire la différence."
+        },
+        {
+          type: 'heading',
+          content: "3. Optimiser la visibilité"
+        },
+        {
+          type: 'list',
+          content: ["Photos professionnelles", "Annonces sur plusieurs sites", "Visite virtuelle", "Plaquette commerciale"]
+        }
+      ]
+    },
+    "investissement-locatif": {
+      title: "Investissement locatif : le guide complet",
+      category: "Investissement",
+      readTime: "12 min",
+      content: [
+        {
+          type: 'paragraph',
+          content: "L'investissement immobilier locatif en Gironde offre de belles opportunités de rendement et de constitution de patrimoine."
+        },
+        {
+          type: 'heading',
+          content: "1. Choisir le bon secteur"
+        },
+        {
+          type: 'paragraph',
+          content: "Proximité des transports, commerces, écoles et universités sont des critères essentiels pour attirer les locataires."
+        },
+        {
+          type: 'heading',
+          content: "2. Calculer la rentabilité"
+        },
+        {
+          type: 'paragraph',
+          content: "Rentabilité brute, charges, fiscalité : tous les éléments à prendre en compte pour évaluer la performance de votre investissement."
+        },
+        {
+          type: 'heading',
+          content: "3. Les dispositifs fiscaux"
+        },
+        {
+          type: 'list',
+          content: ["Loi Pinel", "LMNP", "Déficit foncier", "Réduction d'impôt"]
+        }
+      ]
+    },
+    "estimation-juste-prix": {
+      title: "Comment estimer le juste prix de votre bien",
+      category: "Estimation",
+      readTime: "5 min",
+      content: [
+        {
+          type: 'paragraph',
+          content: "Une estimation précise est la clé d'une transaction immobilière réussie. Voici notre méthodologie."
+        },
+        {
+          type: 'heading',
+          content: "1. Analyse du marché local"
+        },
+        {
+          type: 'paragraph',
+          content: "Étude des ventes récentes dans votre secteur et des biens similaires au vôtre."
+        },
+        {
+          type: 'heading',
+          content: "2. Critères d'évaluation"
+        },
+        {
+          type: 'list',
+          content: ["Surface et nombre de pièces", "État général du bien", "Exposition et vue", "Prestations et équipements", "Environnement et transports"]
+        },
+        {
+          type: 'heading',
+          content: "3. Ajustements nécessaires"
+        },
+        {
+          type: 'paragraph',
+          content: "Prise en compte des spécificités de votre bien par rapport à la moyenne du marché."
+        }
+      ]
+    }
+  };
+
+  const guide = slug ? guidesData[slug] : null;
+
+  if (!guide) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header domain={domain} />
+        <main className="py-16">
+          <div className="max-w-2xl mx-auto px-4 text-center">
+            <h1 className="text-4xl font-bold mb-4">Guide non trouvé</h1>
+            <p className="text-lg text-muted-foreground mb-8">
+              Le guide que vous recherchez n'existe pas ou a été déplacé.
+            </p>
+            <a 
+              href="/guides"
+              className="inline-block bg-primary text-primary-foreground px-6 py-3 rounded-md hover-elevate"
+              data-testid="button-back-guides"
+            >
+              Retour aux guides
+            </a>
+          </div>
+        </main>
+        <Footer domain={domain} />
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen bg-background">
@@ -411,40 +591,31 @@ function GuideDetailPage() {
         <div className="max-w-4xl mx-auto px-4">
           <div className="mb-8">
             <a href="/guides" className="text-primary hover:underline mb-4 inline-block">← Retour aux guides</a>
-            <h1 className="text-4xl font-bold mb-4">Guide complet : Acheter pour la première fois</h1>
+            <h1 className="text-4xl font-bold mb-4">{guide.title}</h1>
             <div className="flex items-center gap-4 text-muted-foreground">
-              <span>Catégorie: Achat</span>
+              <span>Catégorie: {guide.category}</span>
               <span>•</span>
-              <span>Temps de lecture: 8 min</span>
+              <span>Temps de lecture: {guide.readTime}</span>
             </div>
           </div>
           
           <div className="prose prose-lg max-w-none">
-            <p>
-              Acheter son premier logement est une étape importante de la vie. Ce guide vous accompagne 
-              pas à pas dans cette démarche pour que votre projet se déroule dans les meilleures conditions.
-            </p>
-            
-            <h2>1. Définir votre budget</h2>
-            <p>
-              La première étape consiste à déterminer votre capacité d'emprunt. En règle générale, 
-              vos mensualités ne doivent pas dépasser 33% de vos revenus nets.
-            </p>
-            
-            <h2>2. Choisir le bon secteur</h2>
-            <p>
-              En Gironde, plusieurs secteurs offrent un excellent rapport qualité-prix. Bordeaux centre 
-              reste prisé mais d'autres communes comme Mérignac ou Pessac proposent des alternatives intéressantes.
-            </p>
-            
-            <h2>3. Les étapes de l'achat</h2>
-            <ul>
-              <li>Recherche et visites</li>
-              <li>Offre d'achat</li>
-              <li>Compromis de vente</li>
-              <li>Financement</li>
-              <li>Acte authentique</li>
-            </ul>
+            {guide.content.map((section, index) => {
+              if (section.type === 'paragraph') {
+                return <p key={index}>{section.content}</p>;
+              } else if (section.type === 'heading') {
+                return <h2 key={index}>{section.content}</h2>;
+              } else if (section.type === 'list') {
+                return (
+                  <ul key={index}>
+                    {(section.content as string[]).map((item, itemIndex) => (
+                      <li key={itemIndex}>{item}</li>
+                    ))}
+                  </ul>
+                );
+              }
+              return null;
+            })}
             
             <div className="bg-primary/10 p-6 rounded-lg mt-8">
               <h3 className="text-lg font-semibold mb-3">Besoin d'une estimation ?</h3>
@@ -540,6 +711,151 @@ function ActualitesPage() {
 // Article Detail Page
 function ArticleDetailPage() {
   const domain = getDomainFromHeaders();
+  const [match] = useRoute("/actualites/:slug");
+  const slug = match?.slug;
+  
+  // Articles content data
+  const articlesData: Record<string, {
+    title: string;
+    category: string;
+    date: string;
+    content: Array<{
+      type: 'paragraph' | 'heading' | 'list';
+      content: string | string[];
+    }>;
+  }> = {
+    "marche-immobilier-gironde-2024": {
+      title: "Le marché immobilier en Gironde en 2024",
+      category: "Marché",
+      date: "15 décembre 2024",
+      content: [
+        {
+          type: 'paragraph',
+          content: "L'année 2024 marque un tournant pour le marché immobilier en Gironde. Après plusieurs années de forte croissance, le marché connaît une stabilisation bienvenue pour les acquéreurs."
+        },
+        {
+          type: 'heading',
+          content: "Une stabilisation des prix"
+        },
+        {
+          type: 'paragraph',
+          content: "Les prix au mètre carré observent une pause dans leur progression, particulièrement à Bordeaux où le prix moyen se stabilise autour de 4 200€/m²."
+        },
+        {
+          type: 'heading',
+          content: "Les secteurs porteurs"
+        },
+        {
+          type: 'paragraph',
+          content: "Mérignac et Pessac continuent d'attirer les investisseurs grâce à leur excellent rapport qualité-prix et leur proximité avec Bordeaux."
+        },
+        {
+          type: 'heading',
+          content: "Perspectives 2025"
+        },
+        {
+          type: 'paragraph',
+          content: "Les experts s'accordent sur une poursuite de cette stabilisation, avec des opportunités intéressantes pour les primo-accédants."
+        }
+      ]
+    },
+    "nouveaux-quartiers-bordeaux": {
+      title: "Les nouveaux quartiers prometteurs de Bordeaux",
+      category: "Urbanisme",
+      date: "10 décembre 2024",
+      content: [
+        {
+          type: 'paragraph',
+          content: "Bordeaux se transforme avec de nouveaux quartiers qui redéfinissent le paysage urbain et offrent de nouvelles opportunités d'investissement."
+        },
+        {
+          type: 'heading',
+          content: "Bordeaux Euratlantique"
+        },
+        {
+          type: 'paragraph',
+          content: "Ce quartier d'affaires international continue de se développer avec de nouveaux programmes résidentiels haut de gamme."
+        },
+        {
+          type: 'heading',
+          content: "La Bastide"
+        },
+        {
+          type: 'paragraph',
+          content: "Rive droite, ce secteur bénéficie d'une forte dynamique avec l'arrivée du pont Simone Veil et de nouveaux équipements."
+        },
+        {
+          type: 'heading',
+          content: "Darwin et Caserne Niel"
+        },
+        {
+          type: 'list',
+          content: ["Reconversion d'espaces industriels", "Mixité urbaine innovante", "Proximité des transports", "Environnement écologique"]
+        }
+      ]
+    },
+    "taux-immobilier-baisse": {
+      title: "Taux immobiliers : une baisse attendue ?",
+      category: "Financement",
+      date: "5 décembre 2024",
+      content: [
+        {
+          type: 'paragraph',
+          content: "Après une période de hausse significative, les taux de crédit immobilier montrent des signes de détente qui pourraient relancer le marché."
+        },
+        {
+          type: 'heading',
+          content: "État actuel des taux"
+        },
+        {
+          type: 'paragraph',
+          content: "Les taux moyens oscillent actuellement entre 3,5% et 4,2% selon la durée du prêt et le profil emprunteur."
+        },
+        {
+          type: 'heading',
+          content: "Facteurs d'évolution"
+        },
+        {
+          type: 'list',
+          content: ["Politique monétaire de la BCE", "Inflation en recul", "Concurrence bancaire", "Demande des emprunteurs"]
+        },
+        {
+          type: 'heading',
+          content: "Impact sur le marché"
+        },
+        {
+          type: 'paragraph',
+          content: "Une baisse même modeste des taux pourrait relancer l'activité immobilière et améliorer le pouvoir d'achat des acquéreurs."
+        }
+      ]
+    }
+  };
+
+  const article = slug ? articlesData[slug] : null;
+
+  if (!article) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header domain={domain} />
+        <main className="py-16">
+          <div className="max-w-2xl mx-auto px-4 text-center">
+            <h1 className="text-4xl font-bold mb-4">Article non trouvé</h1>
+            <p className="text-lg text-muted-foreground mb-8">
+              L'article que vous recherchez n'existe pas ou a été déplacé.
+            </p>
+            <a 
+              href="/actualites"
+              className="inline-block bg-primary text-primary-foreground px-6 py-3 rounded-md hover-elevate"
+              data-testid="button-back-articles"
+            >
+              Retour aux actualités
+            </a>
+          </div>
+        </main>
+        <Footer domain={domain} />
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen bg-background">
@@ -548,38 +864,31 @@ function ArticleDetailPage() {
         <div className="max-w-4xl mx-auto px-4">
           <div className="mb-8">
             <a href="/actualites" className="text-primary hover:underline mb-4 inline-block">← Retour aux actualités</a>
-            <h1 className="text-4xl font-bold mb-4">Le marché immobilier en Gironde en 2024</h1>
+            <h1 className="text-4xl font-bold mb-4">{article.title}</h1>
             <div className="flex items-center gap-4 text-muted-foreground">
-              <span>Catégorie: Marché</span>
+              <span>Catégorie: {article.category}</span>
               <span>•</span>
-              <span>15 décembre 2024</span>
+              <span>{article.date}</span>
             </div>
           </div>
           
           <div className="prose prose-lg max-w-none">
-            <p>
-              L'année 2024 marque un tournant pour le marché immobilier en Gironde. 
-              Après plusieurs années de forte croissance, le marché connaît une stabilisation 
-              bienvenue pour les acquéreurs.
-            </p>
-            
-            <h2>Une stabilisation des prix</h2>
-            <p>
-              Les prix au mètre carré observent une pause dans leur progression, 
-              particulièrement à Bordeaux où le prix moyen se stabilise autour de 4 200€/m².
-            </p>
-            
-            <h2>Les secteurs porteurs</h2>
-            <p>
-              Mérignac et Pessac continuent d'attirer les investisseurs grâce à leur 
-              excellent rapport qualité-prix et leur proximité avec Bordeaux.
-            </p>
-            
-            <h2>Perspectives 2025</h2>
-            <p>
-              Les experts s'accordent sur une poursuite de cette stabilisation, 
-              avec des opportunités intéressantes pour les primo-accédants.
-            </p>
+            {article.content.map((section, index) => {
+              if (section.type === 'paragraph') {
+                return <p key={index}>{section.content}</p>;
+              } else if (section.type === 'heading') {
+                return <h2 key={index}>{section.content}</h2>;
+              } else if (section.type === 'list') {
+                return (
+                  <ul key={index}>
+                    {(section.content as string[]).map((item, itemIndex) => (
+                      <li key={itemIndex}>{item}</li>
+                    ))}
+                  </ul>
+                );
+              }
+              return null;
+            })}
             
             <div className="bg-primary/10 p-6 rounded-lg mt-8">
               <h3 className="text-lg font-semibold mb-3">Estimez votre bien</h3>
