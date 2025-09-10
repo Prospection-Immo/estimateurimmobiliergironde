@@ -17,6 +17,8 @@ export default function Header({ domain = "estimation-immobilier-gironde.fr" }: 
     { href: "/", label: "Accueil", icon: Home },
     { href: "/estimation", label: "Estimation gratuite", icon: Calculator },
     { href: "/prix-m2", label: "Prix au m²", icon: FileText },
+    { href: "/guides", label: "Guides", icon: FileText },
+    { href: "/actualites", label: "Actualités", icon: FileText },
     { href: "/contact", label: "Contact", icon: Phone },
   ];
 
