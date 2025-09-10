@@ -22,12 +22,38 @@ export default function ContactForm() {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // TODO: Replace with actual API call
-    console.log("Contact form submitted:", formData);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    setIsSubmitting(false);
-    // TODO: Show success message or redirect
+    try {
+      const response = await fetch('/api/contacts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        // Reset form
+        setFormData({
+          firstName: "",
+          lastName: "",
+          email: "",
+          phone: "",
+          subject: "",
+          message: ""
+        });
+        
+        // TODO: Show success toast notification
+        alert("Votre message a été envoyé avec succès ! Nous vous recontacterons rapidement.");
+      } else {
+        console.error('Contact submission failed');
+        alert("Erreur lors de l'envoi du message. Veuillez réessayer.");
+      }
+    } catch (error) {
+      console.error('Error submitting contact:', error);
+      alert("Erreur lors de l'envoi du message. Veuillez réessayer.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const updateField = (field: keyof typeof formData, value: string) => {

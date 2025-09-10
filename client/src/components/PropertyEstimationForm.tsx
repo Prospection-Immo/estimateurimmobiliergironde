@@ -72,11 +72,39 @@ export default function PropertyEstimationForm() {
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    // TODO: Replace with actual API call
-    console.log("Form submitted:", formData);
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setIsSubmitting(false);
-    // TODO: Navigate to results page
+    
+    try {
+      const response = await fetch('/api/estimations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          surface: parseInt(formData.surface) || 0,
+          rooms: parseInt(formData.rooms) || 0,
+          bedrooms: parseInt(formData.bedrooms) || 0,
+          bathrooms: parseInt(formData.bathrooms) || 0,
+          constructionYear: parseInt(formData.constructionYear) || undefined,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        // Store result in localStorage for results page
+        localStorage.setItem('estimationResult', JSON.stringify(result));
+        // Navigate to results page
+        window.location.href = '/estimation-resultats';
+      } else {
+        console.error('Estimation failed');
+        // TODO: Show error message to user
+      }
+    } catch (error) {
+      console.error('Error submitting estimation:', error);
+      // TODO: Show error message to user
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

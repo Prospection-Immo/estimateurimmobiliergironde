@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,34 +15,80 @@ import {
 } from "lucide-react";
 import expertPhoto from "@assets/generated_images/Real_estate_expert_headshot_b59d45a8.png";
 
-interface EstimationResultsProps {
-  propertyData?: {
-    type: string;
+interface EstimationData {
+  lead: {
     address: string;
     city: string;
+    propertyType: string;
     surface: number;
     rooms: number;
+  };
+  estimation: {
+    estimatedValue: string;
+    pricePerM2: string;
+    confidence: number;
+  };
+  calculatedData: {
     estimatedValue: number;
     pricePerM2: number;
     confidence: number;
   };
 }
 
-// TODO: remove mock data functionality
-const defaultPropertyData = {
-  type: "Appartement",
-  address: "123 rue de la Paix",
-  city: "Bordeaux",
-  surface: 75,
-  rooms: 3,
-  estimatedValue: 285000,
-  pricePerM2: 3800,
-  confidence: 85
-};
+export default function EstimationResults() {
+  const [estimationData, setEstimationData] = useState<EstimationData | null>(null);
+  const [loading, setLoading] = useState(true);
 
-export default function EstimationResults({ 
-  propertyData = defaultPropertyData 
-}: EstimationResultsProps) {
+  useEffect(() => {
+    // Get estimation data from localStorage (set by form submission)
+    const savedData = localStorage.getItem('estimationResult');
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        setEstimationData(parsed);
+      } catch (error) {
+        console.error('Error parsing estimation data:', error);
+      }
+    }
+    setLoading(false);
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="text-center">
+          <p>Chargement de votre estimation...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!estimationData) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Aucune estimation trouvée</h1>
+          <p className="text-muted-foreground mb-6">
+            Veuillez d'abord remplir le formulaire d'estimation.
+          </p>
+          <a href="/estimation" className="inline-block bg-primary text-primary-foreground px-6 py-3 rounded-md hover-elevate">
+            Faire une estimation
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  const propertyData = {
+    type: estimationData.lead.propertyType === 'house' ? 'Maison' : 'Appartement',
+    address: estimationData.lead.address,
+    city: estimationData.lead.city,
+    surface: estimationData.lead.surface,
+    rooms: estimationData.lead.rooms,
+    estimatedValue: estimationData.calculatedData.estimatedValue,
+    pricePerM2: estimationData.calculatedData.pricePerM2,
+    confidence: estimationData.calculatedData.confidence
+  };
   const handleDownloadReport = () => {
     console.log("Download report clicked");
     // TODO: Implement PDF generation

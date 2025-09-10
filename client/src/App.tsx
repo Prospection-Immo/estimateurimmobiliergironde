@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -129,32 +130,59 @@ function ContactPage() {
 // Prix m² Page
 function PrixM2Page() {
   const domain = getDomainFromHeaders();
+  const [priceData, setPriceData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPriceData = async () => {
+      try {
+        const response = await fetch('/api/prix-m2');
+        if (response.ok) {
+          const data = await response.json();
+          setPriceData(data);
+        }
+      } catch (error) {
+        console.error('Error fetching price data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPriceData();
+  }, []);
   
   return (
     <div className="min-h-screen bg-background">
       <Header domain={domain} />
       <main className="py-8">
         <div className="max-w-6xl mx-auto px-4">
-          <h1 className="text-3xl font-bold mb-8">Prix au m² en Gironde</h1>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* TODO: Replace with real data */}
-            {[
-              { city: "Bordeaux", priceM2: 4200, change: "+2.1%" },
-              { city: "Mérignac", priceM2: 3800, change: "+1.8%" },
-              { city: "Pessac", priceM2: 3600, change: "+1.5%" },
-              { city: "Talence", priceM2: 3900, change: "+2.3%" },
-              { city: "Bègles", priceM2: 3400, change: "+1.2%" },
-              { city: "Villenave-d'Ornon", priceM2: 3200, change: "+0.9%" }
-            ].map((city) => (
-              <div key={city.city} className="bg-card p-6 rounded-lg border border-card-border hover-elevate">
-                <h3 className="font-semibold text-lg mb-2">{city.city}</h3>
-                <p className="text-2xl font-bold text-primary mb-1">
-                  {city.priceM2.toLocaleString()} €/m²
-                </p>
-                <p className="text-sm text-chart-2">{city.change} vs année dernière</p>
-              </div>
-            ))}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold mb-4">Prix au m² en Gironde</h1>
+            <p className="text-muted-foreground">
+              Découvrez les prix immobiliers actuels dans les principales villes de la Gironde. 
+              Données mises à jour régulièrement selon les transactions récentes.
+            </p>
           </div>
+          
+          {loading ? (
+            <div className="text-center py-8">
+              <p>Chargement des données...</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {priceData.map((city: any) => (
+                <div key={city.city} className="bg-card p-6 rounded-lg border border-card-border hover-elevate">
+                  <h3 className="font-semibold text-lg mb-2">{city.city}</h3>
+                  <p className="text-2xl font-bold text-primary mb-1">
+                    {city.priceM2.toLocaleString()} €/m²
+                  </p>
+                  <p className={`text-sm ${city.trend === 'up' ? 'text-chart-2' : 'text-muted-foreground'}`}>
+                    {city.change} vs année dernière
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </main>
       <Footer domain={domain} />

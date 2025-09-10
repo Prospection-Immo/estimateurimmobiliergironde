@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,55 +15,27 @@ import {
   MapPin
 } from "lucide-react";
 
-// TODO: remove mock data functionality
-const mockLeads = [
-  {
-    id: "1",
-    firstName: "Marie",
-    lastName: "Dupont",
-    email: "marie.dupont@email.com",
-    phone: "06 12 34 56 78",
-    propertyType: "Appartement",
-    city: "Bordeaux",
-    surface: 75,
-    estimatedValue: 285000,
-    status: "new",
-    createdAt: "2024-01-15"
-  },
-  {
-    id: "2", 
-    firstName: "Jean",
-    lastName: "Martin",
-    email: "jean.martin@email.com",
-    phone: "06 98 76 54 32",
-    propertyType: "Maison",
-    city: "Mérignac",
-    surface: 120,
-    estimatedValue: 420000,
-    status: "contacted",
-    createdAt: "2024-01-14"
-  },
-  {
-    id: "3",
-    firstName: "Sophie",
-    lastName: "Bernard",
-    email: "sophie.bernard@email.com",
-    phone: "06 11 22 33 44",
-    propertyType: "Maison",
-    city: "Pessac",
-    surface: 95,
-    estimatedValue: 340000,
-    status: "new",
-    createdAt: "2024-01-13"
-  }
-];
+interface Lead {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  propertyType: string;
+  city: string;
+  surface?: number;
+  estimatedValue?: string;
+  status: string;
+  createdAt?: string;
+}
 
-const mockStats = {
-  totalLeads: 156,
-  newLeads: 23,
-  estimationsToday: 12,
-  conversionRate: 18.5
-};
+interface Stats {
+  totalLeads: number;
+  newLeads: number;
+  estimationsToday: number;
+  conversionRate: string;
+  totalContacts: number;
+}
 
 interface AdminDashboardProps {
   domain?: string;
@@ -72,6 +44,36 @@ interface AdminDashboardProps {
 export default function AdminDashboard({ domain = "estimation-immobilier-gironde.fr" }: AdminDashboardProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [leadsResponse, statsResponse] = await Promise.all([
+        fetch('/api/leads'),
+        fetch('/api/stats')
+      ]);
+
+      if (leadsResponse.ok) {
+        const leadsData = await leadsResponse.json();
+        setLeads(leadsData);
+      }
+
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json();
+        setStats(statsData);
+      }
+    } catch (error) {
+      console.error('Error fetching admin data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -83,7 +85,32 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
     return variants[status as keyof typeof variants] || variants.new;
   };
 
-  const filteredLeads = mockLeads.filter(lead => {
+  const updateLeadStatus = async (leadId: string, newStatus: string) => {
+    try {
+      const response = await fetch(`/api/leads/${leadId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (response.ok) {
+        // Update local state
+        setLeads(prevLeads => 
+          prevLeads.map(lead => 
+            lead.id === leadId ? { ...lead, status: newStatus } : lead
+          )
+        );
+        // Refresh stats
+        fetchData();
+      }
+    } catch (error) {
+      console.error('Error updating lead status:', error);
+    }
+  };
+
+  const filteredLeads = leads.filter(lead => {
     const matchesSearch = 
       lead.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -94,6 +121,16 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
     
     return matchesSearch && matchesStatus;
   });
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="text-center">
+          <p>Chargement du dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -114,7 +151,7 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                 <Users className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold" data-testid="text-total-leads">{mockStats.totalLeads}</p>
+                <p className="text-2xl font-bold" data-testid="text-total-leads">{stats?.totalLeads || 0}</p>
                 <p className="text-sm text-muted-foreground">Total leads</p>
               </div>
             </div>
@@ -126,7 +163,7 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                 <Phone className="h-6 w-6 text-chart-2" />
               </div>
               <div>
-                <p className="text-2xl font-bold" data-testid="text-new-leads">{mockStats.newLeads}</p>
+                <p className="text-2xl font-bold" data-testid="text-new-leads">{stats?.newLeads || 0}</p>
                 <p className="text-sm text-muted-foreground">Nouveaux leads</p>
               </div>
             </div>
@@ -138,7 +175,7 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                 <Calculator className="h-6 w-6 text-chart-3" />
               </div>
               <div>
-                <p className="text-2xl font-bold" data-testid="text-estimations-today">{mockStats.estimationsToday}</p>
+                <p className="text-2xl font-bold" data-testid="text-estimations-today">{stats?.estimationsToday || 0}</p>
                 <p className="text-sm text-muted-foreground">Estimations aujourd'hui</p>
               </div>
             </div>
@@ -150,7 +187,7 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                 <TrendingUp className="h-6 w-6 text-chart-4" />
               </div>
               <div>
-                <p className="text-2xl font-bold" data-testid="text-conversion-rate">{mockStats.conversionRate}%</p>
+                <p className="text-2xl font-bold" data-testid="text-conversion-rate">{stats?.conversionRate || "0.0"}%</p>
                 <p className="text-sm text-muted-foreground">Taux conversion</p>
               </div>
             </div>
@@ -247,10 +284,10 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                       </div>
                       <div className="text-right space-y-1">
                         <p className="font-semibold">
-                          {lead.estimatedValue?.toLocaleString()} €
+                          {lead.estimatedValue ? parseFloat(lead.estimatedValue).toLocaleString() : 'N/A'} €
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {lead.propertyType} - {lead.surface} m²
+                          {lead.propertyType === 'house' ? 'Maison' : 'Appartement'} - {lead.surface || 'N/A'} m²
                         </p>
                       </div>
                       <Button variant="ghost" size="icon" data-testid={`button-lead-actions-${lead.id}`}>
