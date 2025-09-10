@@ -133,8 +133,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Authentication routes
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      
+      // Simple hardcoded admin credentials for demo
+      if (username === "admin" && password === "admin123") {
+        (req.session as any).isAuthenticated = true;
+        res.json({ success: true });
+      } else {
+        res.status(401).json({ error: "Invalid credentials" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Authentication error" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy(() => {
+      res.json({ success: true });
+    });
+  });
+
+  app.get("/api/auth/check", (req, res) => {
+    res.json({ authenticated: !!(req.session as any).isAuthenticated });
+  });
+
+  // Middleware to check authentication
+  const requireAuth = (req: any, res: any, next: any) => {
+    if (!(req.session as any).isAuthenticated) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    next();
+  };
+
   // Get leads (admin)
-  app.get('/api/leads', async (req, res) => {
+  app.get('/api/leads', requireAuth, async (req, res) => {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
       const leads = await storage.getLeads(limit);
@@ -146,7 +181,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update lead status (admin)
-  app.patch('/api/leads/:id/status', async (req, res) => {
+  app.patch('/api/leads/:id/status', requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const { status } = req.body;
@@ -178,7 +213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get contacts (admin)
-  app.get('/api/contacts', async (req, res) => {
+  app.get('/api/contacts', requireAuth, async (req, res) => {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
       const contacts = await storage.getContacts(limit);
@@ -212,7 +247,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Simple stats endpoint for admin dashboard
-  app.get('/api/stats', async (req, res) => {
+  app.get('/api/stats', requireAuth, async (req, res) => {
     try {
       const leads = await storage.getLeads(1000); // Get more for stats
       const contacts = await storage.getContacts(1000);

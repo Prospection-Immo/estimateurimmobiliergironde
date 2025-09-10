@@ -193,6 +193,37 @@ function PrixM2Page() {
 // Admin Login Page (Simple)
 function AdminLoginPage() {
   const domain = getDomainFromHeaders();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
+    
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+      });
+      
+      if (response.ok) {
+        window.location.href = '/admin';
+      } else {
+        const errorData = await response.text();
+        setError("Nom d'utilisateur ou mot de passe incorrect");
+      }
+    } catch (error) {
+      setError("Erreur de connexion. Veuillez réessayer.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   return (
     <div className="min-h-screen bg-background">
@@ -201,29 +232,41 @@ function AdminLoginPage() {
         <div className="max-w-md mx-auto px-4">
           <div className="bg-card p-8 rounded-lg border border-card-border">
             <h1 className="text-2xl font-bold mb-6 text-center">Connexion Admin</h1>
-            <form className="space-y-4">
+            <form className="space-y-4" onSubmit={handleLogin}>
+              {error && (
+                <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-md">
+                  {error}
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium mb-2">Nom d'utilisateur</label>
                 <input 
                   type="text" 
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   className="w-full p-3 border border-border rounded-md bg-background"
                   data-testid="input-admin-username"
+                  required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">Mot de passe</label>
                 <input 
                   type="password" 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="w-full p-3 border border-border rounded-md bg-background"
                   data-testid="input-admin-password"
+                  required
                 />
               </div>
               <button 
                 type="submit"
-                className="w-full bg-primary text-primary-foreground p-3 rounded-md hover-elevate"
+                disabled={isLoading}
+                className="w-full bg-primary text-primary-foreground p-3 rounded-md hover-elevate disabled:opacity-50"
                 data-testid="button-admin-login"
               >
-                Se connecter
+                {isLoading ? "Connexion..." : "Se connecter"}
               </button>
             </form>
           </div>
