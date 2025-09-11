@@ -17,10 +17,11 @@ export const leads = pgTable("leads", {
   phone: text("phone"),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
-  propertyType: text("property_type").notNull(), // "apartment" | "house"
-  address: text("address").notNull(),
-  city: text("city").notNull(),
-  postalCode: text("postal_code").notNull(),
+  // Property estimation fields (optional for financing leads)
+  propertyType: text("property_type"), // "apartment" | "house" - optional for financing leads
+  address: text("address"),
+  city: text("city"),
+  postalCode: text("postal_code"),
   surface: integer("surface"), // m²
   rooms: integer("rooms"),
   bedrooms: integer("bedrooms"),
@@ -29,9 +30,12 @@ export const leads = pgTable("leads", {
   hasParking: boolean("has_parking").default(false),
   hasBalcony: boolean("has_balcony").default(false),
   constructionYear: integer("construction_year"),
-  saleTimeline: text("sale_timeline").notNull().default("6m"), // "3m" | "6m" | "immediate"
+  saleTimeline: text("sale_timeline").default("6m"), // "3m" | "6m" | "immediate"
   wantsExpertContact: boolean("wants_expert_contact").default(false),
   estimatedValue: decimal("estimated_value", { precision: 10, scale: 2 }),
+  // Financing specific fields
+  financingProjectType: text("financing_project_type"), // For financing leads: "Achat résidence principale", "Investissement locatif", etc.
+  projectAmount: text("project_amount"), // Amount as text (e.g., "250 000 €")
   source: text("source").notNull(), // domain name
   status: text("status").notNull().default("new"), // "new" | "contacted" | "converted" | "archived"
   notes: text("notes"),
