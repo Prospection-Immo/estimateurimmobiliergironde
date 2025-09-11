@@ -1,0 +1,113 @@
+Catalogue des guides (page /guides)
+
+Titre : “Guides Vendeurs par Situation – Gironde”
+
+Filtres : persona (pressé, maximisateur, succession, nouvelle vie, investisseur, primo)
+
+Cartes : titre, bénéfice en 1 phrase, durée de lecture, CTA “Obtenir le guide”
+
+Landings par guide
+
+Promesse en 1 phrase + 3 bénéfices concrets
+
+Formulaire court (email, prénom, ville) + consentement
+
+Preuve : 1 mini-avis + “100% gratuit & confidentiel”
+
+UTM auto-capturés
+
+CTA secondaire : “Voir le sommaire du guide”
+
+Page de remerciement
+
+Bouton “Lire en ligne maintenant”
+
+Lien “Télécharger le PDF (traqué)”
+
+“Que faire ensuite ?” : RDV/estimation
+
+Lecture Web (template)
+
+Barre de progression lecture
+
+Table des matières sticky
+
+Trackers : open, scroll 25/50/75/90, 30s/120s, download
+
+Encarts : “Checklist téléchargeable”, “Prendre RDV”
+
+PDF Upgrade
+
+Version imprimable + 1 page bonus (checklist / calendrier de vente)
+
+Watermark discret (marque + URL)
+
+Séquences e-mail (par persona)
+
+J0 : envoi du guide + sommaire + lien lecture
+
+J+2 : 1 erreur fréquente + mini-outil
+
+J+5 : étude de cas Gironde (avant/après)
+
+J+10 : offre soft (audit/estimation)
+
+Personnalisation légère
+
+Insérer prénom, ville, persona dans hero et e-mails
+
+Sections locales : “Particularités Gironde (Bordeaux / Bassin / Libourne)”
+
+CTAs intelligents
+
+En haut : “Télécharger PDF”
+
+Au milieu (après 50%) : “Recevoir la checklist”
+
+En bas : “Plan d’action 15 min” (calendrier)
+
+Segments & tags
+
+Tags : persona:…, guide:…, source:utm_source
+
+Score d’engagement : open(+1), scroll90(+3), download(+4)
+
+A/B tests rapides
+
+Landing : promesse (chiffre vs bénéfice émotionnel)
+
+Form : 2 champs vs 3 champs
+
+CTA : “Télécharger” vs “Recevoir”
+
+Retargeting
+
+Audiences : “vu landing, pas soumis”, “lu >50%”, “téléchargé”
+
+Créas : extrait du guide + preuve sociale + CTA RDV
+
+SEO minimum viable
+
+Page pilier “Guides vendeurs Gironde”
+
+Fiche par persona (URL propre, H1, méta)
+
+Schéma FAQ sur 3 questions clés / guide
+
+RGPD & confiance
+
+Case consentement obligatoire + lien politique
+
+Bannière cookies (déclenche GTM après consent)
+
+Tableau de bord simple
+
+Par guide : vues landing → leads → lectures → downloads → RDV
+
+Taux scroll moyen & temps moyen
+
+Offres connexes
+
+Module “Financement” (courtier partenaire) proposé dans guides “pressé”, “nouvelle vie”, “primo”
+
+Lien discret, pas de naming partenaire
