@@ -16,6 +16,9 @@ import EstimationResults from "@/components/EstimationResults";
 import ContactForm from "@/components/ContactForm";
 import AdminDashboard from "@/components/AdminDashboard";
 import FinancementPage from "@/pages/FinancementPage";
+import MentionsLegalesPage from "@/pages/MentionsLegalesPage";
+import ConfidentialitePage from "@/pages/ConfidentialitePage";
+import CookiesPage from "@/pages/CookiesPage";
 
 // Utility function to detect domain from Host header
 function getDomainFromHeaders(): string {
@@ -964,6 +967,49 @@ function FinancementPageComponent() {
   );
 }
 
+// Legal Pages Components
+function MentionsLegalesPageComponent() {
+  const domain = getDomainFromHeaders();
+  
+  return (
+    <div className="min-h-screen bg-background">
+      <Header domain={domain} />
+      <main>
+        <MentionsLegalesPage domain={domain} />
+      </main>
+      <Footer domain={domain} />
+    </div>
+  );
+}
+
+function ConfidentialitePageComponent() {
+  const domain = getDomainFromHeaders();
+  
+  return (
+    <div className="min-h-screen bg-background">
+      <Header domain={domain} />
+      <main>
+        <ConfidentialitePage domain={domain} />
+      </main>
+      <Footer domain={domain} />
+    </div>
+  );
+}
+
+function CookiesPageComponent() {
+  const domain = getDomainFromHeaders();
+  
+  return (
+    <div className="min-h-screen bg-background">
+      <Header domain={domain} />
+      <main>
+        <CookiesPage domain={domain} />
+      </main>
+      <Footer domain={domain} />
+    </div>
+  );
+}
+
 // Router Component
 function Router() {
   return (
@@ -980,6 +1026,10 @@ function Router() {
       <Route path="/actualites/:slug" component={ArticleDetailPage} />
       <Route path="/admin/login" component={AdminLoginPage} />
       <Route path="/admin" component={AdminDashboardPage} />
+      {/* Legal pages */}
+      <Route path="/mentions-legales" component={MentionsLegalesPageComponent} />
+      <Route path="/politique-de-confidentialite" component={ConfidentialitePageComponent} />
+      <Route path="/politique-cookies" component={CookiesPageComponent} />
       {/* Legacy routes for backward compatibility */}
       <Route path="/gironde-login" component={AdminLoginPage} />
       <Route path="/gironde-admin-dashboard" component={AdminDashboardPage} />

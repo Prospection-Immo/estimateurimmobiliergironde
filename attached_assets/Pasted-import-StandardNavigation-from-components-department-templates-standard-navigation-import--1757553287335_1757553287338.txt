@@ -1,0 +1,190 @@
+import { StandardNavigation } from "@/components/department-templates/standard-navigation";
+import { FooterSection } from "@/components/department-templates/footer-section";
+import { ArrowLeft } from "lucide-react";
+import { Link } from "wouter";
+import { useEnvironment } from "@/hooks/useEnvironment";
+import { useEffect } from "react";
+import { trackPageView } from "@/lib/gtm";
+
+export default function GirondeMentionsLegales() {
+  const { isDevelopment } = useEnvironment();
+
+  useEffect(() => {
+    trackPageView("mentions-legales", "gironde");
+  }, []);
+
+  const departmentConfig = {
+    code: "33",
+    name: "Gironde",
+    region: "Nouvelle-Aquitaine",
+    prefecture: "Bordeaux",
+    colors: {
+      primary: "#0E897F", // Teal professionnel
+      secondary: "#FFD700", // Or
+      accent: "#2E8B57",   // Vert mer
+    },
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Bandeau retour développement */}
+      {isDevelopment && (
+        <div className="bg-blue-600 text-white text-center py-2 text-sm">
+          <Link href="/" className="inline-flex items-center gap-2 hover:underline">
+            <ArrowLeft className="h-4 w-4" />
+            Retour au Hub National (Mode Développement)
+          </Link>
+        </div>
+      )}
+
+      {/* Navigation */}
+      <StandardNavigation departmentConfig={departmentConfig} basePath="/gironde" />
+
+      {/* Header */}
+      <header
+        className="relative py-16 text-white"
+        style={{
+          background: `linear-gradient(135deg, ${departmentConfig.colors.primary}, ${departmentConfig.colors.accent})`,
+        }}
+      >
+        <div className="container mx-auto px-4 text-center">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">Mentions Légales</h1>
+          <p className="text-xl opacity-90">
+            Informations légales du service d&apos;estimation immobilière en Gironde
+          </p>
+        </div>
+      </header>
+
+      {/* Contenu */}
+      <div className="container mx-auto px-4 py-12">
+        <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-6 md:p-8 lg:p-12">
+          
+          {/* Bloc info */}
+          <div className="text-center mb-8">
+            <div className="bg-blue-50 p-6 rounded-lg border-l-4 border-blue-500">
+              <p className="text-lg text-blue-800">
+                <strong>Information importante :</strong> Pour consulter les mentions légales et conditions générales complètes, 
+                veuillez vous rendre sur notre site principal :
+              </p>
+              <a 
+                href="https://seni-estimation.fr/mentions-legales" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-block mt-4 px-6 py-3 text-white font-semibold rounded-lg transition-colors hover:opacity-90"
+                style={{ backgroundColor: departmentConfig.colors.primary }}
+              >
+                Consulter les mentions légales complètes →
+              </a>
+            </div>
+          </div>
+
+          {/* Éditeur */}
+          <section className="mb-12">
+            <h2 className="text-2xl font-bold mb-6" style={{ color: departmentConfig.colors.primary }}>
+              Éditeur du site local
+            </h2>
+            <div className="space-y-4 text-gray-700">
+              <p><strong>Service :</strong> Estimation Immobilier Gironde</p>
+              <p><strong>Réseau :</strong> SENI - Système d&apos;Estimation Nationale Immobilière</p>
+              <p><strong>Site principal :</strong> <a href="https://seni-estimation.fr" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">https://seni-estimation.fr</a></p>
+              <p><strong>Activité :</strong> Plateforme nationale dédiée aux professionnels de l&apos;immobilier avec des outils d&apos;analyse avancés</p>
+              <p><strong>Email de contact :</strong> admin@seni-estimation.fr</p>
+              <p><strong>Responsable de la publication :</strong> Administrateur SENI</p>
+            </div>
+          </section>
+
+          {/* Services */}
+          <section className="mb-12">
+            <h2 className="text-2xl font-bold mb-6" style={{ color: departmentConfig.colors.primary }}>
+              Services proposés
+            </h2>
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h3 className="font-semibold mb-2">Couverture Nationale</h3>
+                <p className="text-sm text-gray-600">Des données actualisées sur tout le territoire français</p>
+              </div>
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h3 className="font-semibold mb-2">Fiabilité Garantie</h3>
+                <p className="text-sm text-gray-600">Des estimations basées sur des sources reconnues et objectives</p>
+              </div>
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h3 className="font-semibold mb-2">Estimation Rapide</h3>
+                <p className="text-sm text-gray-600">Obtenue en quelques minutes grâce à notre interface optimisée</p>
+              </div>
+            </div>
+          </section>
+
+          {/* Hébergement */}
+          <section className="mb-12">
+            <h2 className="text-2xl font-bold mb-6" style={{ color: departmentConfig.colors.primary }}>
+              Hébergement
+            </h2>
+            <div className="space-y-4 text-gray-700">
+              <p><strong>Hébergeur :</strong> Replit, Inc.</p>
+              <p><strong>Adresse :</strong> 767 Bryant St. #203, San Francisco, CA 94107, États-Unis</p>
+              <p>Le site est hébergé sur la plateforme Replit qui assure la disponibilité et la sécurité de nos services.</p>
+            </div>
+          </section>
+
+          {/* Données */}
+          <section className="mb-12">
+            <h2 className="text-2xl font-bold mb-6" style={{ color: departmentConfig.colors.primary }}>
+              Données personnelles et cookies
+            </h2>
+            <div className="space-y-4 text-gray-700">
+              <h3 className="text-lg font-semibold">Collecte des données</h3>
+              <p>Les informations saisies dans nos formulaires (adresse, surface, caractéristiques du bien) sont utilisées uniquement pour calculer l&apos;estimation immobilière demandée.</p>
+              <h3 className="text-lg font-semibold">Conservation des données</h3>
+              <p>Les données de contact sont conservées dans le respect de la réglementation en vigueur. Vous disposez d&apos;un droit d&apos;accès, de rectification et de suppression.</p>
+              <h3 className="text-lg font-semibold">Cookies et statistiques</h3>
+              <p>Ce site utilise Google Analytics pour améliorer l&apos;expérience utilisateur et mesurer l&apos;audience. Ces outils ne collectent que des données anonymisées.</p>
+            </div>
+          </section>
+
+          {/* Propriété */}
+          <section className="mb-12">
+            <h2 className="text-2xl font-bold mb-6" style={{ color: departmentConfig.colors.primary }}>
+              Propriété intellectuelle
+            </h2>
+            <div className="space-y-4 text-gray-700">
+              <p>L&apos;ensemble des contenus présents sur ce site (textes, images, graphismes, logos, algorithmes) sont la propriété exclusive de SENI ou font l&apos;objet d&apos;autorisation d&apos;usage.</p>
+              <p>Toute reproduction ou adaptation, totale ou partielle, est interdite sauf autorisation écrite préalable.</p>
+            </div>
+          </section>
+
+          {/* Responsabilité */}
+          <section className="mb-12">
+            <h2 className="text-2xl font-bold mb-6" style={{ color: departmentConfig.colors.primary }}>
+              Limitation de responsabilité
+            </h2>
+            <div className="space-y-4 text-gray-700">
+              <p>Les estimations fournies par SENI sont données à titre indicatif et ne remplacent pas l&apos;expertise d&apos;un professionnel qualifié.</p>
+              <p>SENI ne peut être tenu responsable de l&apos;utilisation faite des informations publiées ni des dommages directs ou indirects pouvant en découler.</p>
+              <p>L&apos;utilisateur reconnaît avoir pris connaissance des présentes mentions légales et s&apos;engage à les respecter.</p>
+            </div>
+          </section>
+
+          {/* Contact */}
+          <section className="mb-8">
+            <h2 className="text-2xl font-bold mb-6" style={{ color: departmentConfig.colors.primary }}>
+              Contact
+            </h2>
+            <div className="space-y-4 text-gray-700">
+              <p>Pour toute question relative aux mentions légales, à l&apos;utilisation du site ou à vos données personnelles :</p>
+              <p><strong>Email :</strong> <a href="mailto:admin@seni-estimation.fr" className="text-blue-600 hover:underline">admin@seni-estimation.fr</a></p>
+            </div>
+          </section>
+
+          {/* Footer texte */}
+          <div className="border-t pt-8 text-center text-gray-600">
+            <p>© 2025 SENI – Estimation Immobilière. Tous droits réservés.</p>
+            <p className="text-sm mt-2">Dernière mise à jour : Septembre 2025</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <FooterSection departmentConfig={departmentConfig} />
+    </div>
+  );
+}
