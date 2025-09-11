@@ -43,21 +43,6 @@ export default function Hero({ domain = "estimation-immobilier-gironde.fr" }: He
               </div>
             </div>
 
-            {/* CTA Buttons */}
-            <div className="flex flex-col gap-4">
-              <Link href="/estimation" data-testid="button-start-estimation">
-                <Button size="lg" className="w-full text-sm sm:text-base">
-                  <Calculator className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                  <span className="truncate">Recevez votre estimation gratuite</span>
-                </Button>
-              </Link>
-              <Link href="/prix-m2" data-testid="button-price-m2">
-                <Button variant="outline" size="lg" className="w-full bg-background/80 backdrop-blur-sm text-sm sm:text-base">
-                  <MapPin className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                  Prix au m² {cityName}
-                </Button>
-              </Link>
-            </div>
 
             {/* Trust Indicators */}
             <div className="grid grid-cols-3 gap-2 sm:gap-4 pt-8">
