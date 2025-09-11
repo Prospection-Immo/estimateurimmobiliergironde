@@ -75,7 +75,7 @@ export default function Footer({ domain = "estimation-immobilier-gironde.fr" }: 
                 <span>contact@{domain}</span>
               </div>
             </div>
-            <Link href="/contact" data-testid="link-footer-contact">
+            <Link href="/contact" data-testid="link-footer-contact" className="mt-6 inline-block">
               <button className="text-sm bg-primary text-primary-foreground px-4 py-2 rounded hover-elevate">
                 Nous contacter
               </button>
