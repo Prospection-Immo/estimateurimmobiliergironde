@@ -5,7 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { Zap, MapPin, Search, Mail } from "lucide-react";
+import { Zap, MapPin, Search, Mail, Eye, EyeOff } from "lucide-react";
 
 // Components
 import Header from "@/components/Header";
@@ -211,6 +211,7 @@ function AdminLoginPage() {
   const domain = getDomainFromHeaders();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -298,14 +299,24 @@ function AdminLoginPage() {
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">Mot de passe</label>
-              <input 
-                type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-3 border border-border rounded-md bg-background"
-                data-testid="input-admin-password"
-                required
-              />
+              <div className="relative">
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full p-3 pr-12 border border-border rounded-md bg-background"
+                  data-testid="input-admin-password"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
+                  data-testid="button-toggle-password-visibility"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
             <button 
               type="submit"
