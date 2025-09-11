@@ -25,59 +25,61 @@ export default function Hero({ domain = "estimation-immobilier-gironde.fr" }: He
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 py-16">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-start lg:items-center">
           {/* Content */}
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <h1 className="text-4xl md:text-5xl font-bold text-foreground leading-tight">
+          <div className="space-y-8">
+            <div className="space-y-6">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground leading-tight">
                 Estimez gratuitement votre bien immobilier en{" "}
                 <span className="text-primary">{cityName}</span>
               </h1>
-              <p className="text-lg text-muted-foreground max-w-lg">
-                Obtenez une estimation fiable en quelques clics grâce à l'IA et aux données DVF officielles.
-              </p>
-              <p className="text-base text-muted-foreground max-w-lg">
-                Que vous soyez vendeur, investisseur ou simplement curieux, découvrez la vraie valeur de votre bien dans le marché actuel de la Gironde.
-              </p>
+              <div className="space-y-4">
+                <p className="text-base sm:text-lg text-muted-foreground max-w-xl leading-relaxed">
+                  Obtenez une estimation fiable en quelques clics grâce à l'IA et aux données DVF officielles.
+                </p>
+                <p className="text-sm sm:text-base text-muted-foreground max-w-xl leading-relaxed">
+                  Que vous soyez vendeur, investisseur ou simplement curieux, découvrez la vraie valeur de votre bien dans le marché actuel de la Gironde.
+                </p>
+              </div>
             </div>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col gap-4">
               <Link href="/estimation" data-testid="button-start-estimation">
-                <Button size="lg" className="w-full sm:w-auto">
-                  <Calculator className="h-5 w-5 mr-2" />
-                  Recevez votre estimation gratuite maintenant
+                <Button size="lg" className="w-full text-sm sm:text-base">
+                  <Calculator className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                  <span className="truncate">Recevez votre estimation gratuite</span>
                 </Button>
               </Link>
               <Link href="/prix-m2" data-testid="button-price-m2">
-                <Button variant="outline" size="lg" className="w-full sm:w-auto bg-background/80 backdrop-blur-sm">
-                  <MapPin className="h-5 w-5 mr-2" />
+                <Button variant="outline" size="lg" className="w-full bg-background/80 backdrop-blur-sm text-sm sm:text-base">
+                  <MapPin className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                   Prix au m² {cityName}
                 </Button>
               </Link>
             </div>
 
             {/* Trust Indicators */}
-            <div className="grid grid-cols-3 gap-4 pt-6">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 pt-8">
               <div className="text-center">
-                <div className="bg-primary/10 p-3 rounded-lg w-fit mx-auto mb-2">
-                  <Shield className="h-6 w-6 text-primary" />
+                <div className="bg-primary/10 p-2 sm:p-3 rounded-lg w-fit mx-auto mb-2">
+                  <Shield className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
                 </div>
-                <p className="text-sm font-medium" data-testid="text-trust-gratuit">100% gratuit</p>
+                <p className="text-xs sm:text-sm font-medium" data-testid="text-trust-gratuit">100% gratuit</p>
                 <p className="text-xs text-muted-foreground">& confidentiel</p>
               </div>
               <div className="text-center">
-                <div className="bg-primary/10 p-3 rounded-lg w-fit mx-auto mb-2">
-                  <BarChart3 className="h-6 w-6 text-primary" />
+                <div className="bg-primary/10 p-2 sm:p-3 rounded-lg w-fit mx-auto mb-2">
+                  <BarChart3 className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
                 </div>
-                <p className="text-sm font-medium" data-testid="text-trust-fiabilite">Fiabilité</p>
+                <p className="text-xs sm:text-sm font-medium" data-testid="text-trust-fiabilite">Fiabilité</p>
                 <p className="text-xs text-muted-foreground">DVF & IA</p>
               </div>
               <div className="text-center">
-                <div className="bg-primary/10 p-3 rounded-lg w-fit mx-auto mb-2">
-                  <Zap className="h-6 w-6 text-primary" />
+                <div className="bg-primary/10 p-2 sm:p-3 rounded-lg w-fit mx-auto mb-2">
+                  <Zap className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
                 </div>
-                <p className="text-sm font-medium" data-testid="text-trust-rapidite">Rapidité</p>
+                <p className="text-xs sm:text-sm font-medium" data-testid="text-trust-rapidite">Rapidité</p>
                 <p className="text-xs text-muted-foreground">&lt; 5 minutes</p>
               </div>
             </div>
