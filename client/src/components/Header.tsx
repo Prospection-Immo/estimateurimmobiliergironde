@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Home, Calculator, FileText, Euro } from "lucide-react";
+import { Menu, X, Home, Calculator, FileText, Euro, Newspaper } from "lucide-react";
 
 interface HeaderProps {
   domain?: string;
@@ -18,6 +18,7 @@ export default function Header({ domain = "estimation-immobilier-gironde.fr" }: 
     { href: "/estimation", label: "Estimation gratuite", icon: Calculator },
     { href: "/financement", label: "Financement", icon: Euro },
     { href: "/prix-m2", label: "Prix au m²", icon: FileText },
+    { href: "/actualites", label: "Actualités", icon: Newspaper },
   ];
 
 
