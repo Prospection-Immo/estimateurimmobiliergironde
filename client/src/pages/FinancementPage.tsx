@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle, Shield, Clock, Euro, Users, TrendingUp, Lightbulb, Target, Compass, Mail, Phone, AlertTriangle } from "lucide-react";
+import { CheckCircle, Shield, Clock, Euro, Users, TrendingUp, Lightbulb, Target, Compass, Mail, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import bordeaux_house from "@assets/generated_images/Bordeaux_house_property_photo_41cf0370.png";
@@ -460,15 +460,7 @@ export default function FinancementPage({ domain = "estimation-immobilier-girond
         <div className="max-w-4xl mx-auto px-4 text-center">
           <h2 className="text-xl font-bold mb-6">Encore des doutes ?</h2>
           
-          <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-            <Card className="hover-elevate">
-              <CardContent className="p-6">
-                <Phone className="h-8 w-8 text-primary mx-auto mb-4" />
-                <h3 className="font-semibold mb-2">Contactez-nous par téléphone</h3>
-                <p className="text-muted-foreground text-sm">05 56 XX XX XX</p>
-              </CardContent>
-            </Card>
-
+          <div className="max-w-md mx-auto">
             <Card className="hover-elevate">
               <CardContent className="p-6">
                 <Mail className="h-8 w-8 text-primary mx-auto mb-4" />
