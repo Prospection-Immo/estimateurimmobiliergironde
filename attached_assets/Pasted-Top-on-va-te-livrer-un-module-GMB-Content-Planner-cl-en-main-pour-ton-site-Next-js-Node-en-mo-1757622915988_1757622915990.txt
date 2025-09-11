@@ -1,0 +1,256 @@
+Top, on va te livrer un module “GMB Content Planner” clé-en-main pour ton site (Next.js/Node), en mode manuel au départ : détection d’articles, génération de posts Google Business Profile (ex-GMB), plan de publication tous les 2 jours, et envoi par email d’un journal prêt à copier-coller.
+
+1) Fonctionnement général (vue d’ensemble)
+
+Scan des contenus
+
+Sources : /rss.xml et/ou sitemap.xml + endpoints “Actualités” et “Guide”.
+
+Déduplication via l’URL canonique et la date de publication.
+
+Génération des posts GMB (manuel au début)
+
+Pour chaque article détecté : 1 post “prêt à publier” (≤ 1 500 caractères).
+
+Variantes automatiques possibles : Résumé, Question, Astuce locale, Chiffre du marché, Invitation à l’action.
+
+Ajout automatique d’un lien UTM (source=gmb, medium=post, campaign=blog-YYYY-WW).
+
+Planification
+
+Rythme : 1 post tous les 2 jours (D0, D2, D4, …).
+
+Fenêtre : prochaine quinzaine (7 posts) ou mois (15 posts).
+
+Les posts sont listés dans un email (“Journal de publication”) que tu reçois avec : date prévue, titre, texte à publier, lien.
+
+Envoi par email
+
+SMTP (o2switch) ou API (Mailgun/SendGrid).
+
+Objet + HTML propre + version texte.
+
+Bouton “Marquer comme publié” (lien signé vers ton backend).
+
+2) Modèle de données (Prisma)
+model Article {
+  id             String   @id @default(cuid())
+  title          String
+  url            String   @unique
+  publishedAt    DateTime
+  detectedAt     DateTime @default(now())
+  category       String?  // "actualites" | "guide"
+  summary        String?
+  status         String   @default("active") // active|archived
+  gmbPosts       GMBPost[]
+}
+
+model GMBPost {
+  id             String   @id @default(cuid())
+  articleId      String
+  Article        Article  @relation(fields: [articleId], references: [id])
+  plannedFor     DateTime
+  variant        String   // "resume"|"question"|"astuce"|"chiffre"|"invitation"
+  content        String   // texte prêt GMB (<=1500 chars)
+  utmUrl         String
+  status         String   @default("planned") // planned|emailed|published|skipped
+  emailedAt      DateTime?
+  publishedAt    DateTime?
+}
+
+model Setting {
+  key   String @id
+  value String
+}
+
+3) Endpoints & Jobs
+
+POST /api/gmb/scan
+Parse RSS/Sitemap → upsert Article.
+
+POST /api/gmb/generate
+Pour les Article sans GMBPost à venir → crée GMBPost (logic date tous les 2 jours).
+
+POST /api/gmb/email/send
+Construit le “journal de publication” (prochaines 2 semaines) et l’envoie.
+
+POST /api/gmb/mark-published?id=...&token=...
+Marque un post comme “published” (lien dans l’email).
+
+Cron (QStash/CRON/PM2):
+
+Tous les jours 06:00 : /api/gmb/scan
+
+Tous les jours 06:05 : /api/gmb/generate
+
+Tous les 2 jours 07:00 : /api/gmb/email/send
+
+Variables d’env : SMTP_HOST=bus.o2switch.net, SMTP_PORT=465, SMTP_USER=contact@..., SMTP_PASS=..., BASE_URL=https://www.estimation-immobilier-gironde.fr, SECURE_TOKEN=...
+
+4) Templates de génération (Prompt “ITPINO”)
+
+Utilise ce prompt normalisé côté serveur pour produire un texte GMB net, local et actionnable :
+
+ITPINO = Intent • Ton • Persona • Infos • Next step • Offre
+
+Tu es rédacteur Google Business Profile local (Gironde).
+OBJECTIF (Intent) : Générer un post GMB (<= 1 500 caractères) qui apporte de la valeur,
+donne envie de cliquer et reste conforme aux guidelines Google.
+
+TON : Clair, utile, bienveillant, pro, 1 à 2 emojis max. Pas de superlatifs excessifs.
+
+PERSONA : Propriétaire vendeur en Gironde (niveau de conscience variable).
+INFOS CONTENU (source article):
+- Titre: {title}
+- Résumé: {summary}
+- URL: {url}
+- Catégorie: {category} (Actualités/Guide)
+- Localité: Gironde (+ villes si pertinentes: Bordeaux, Mérignac, Pessac...)
+
+CONTRAINTES :
+- Commencer par une accroche concrète liée à la Gironde.
+- Intégrer un bénéfice actionnable (ex: comprendre le juste prix, éviter de sous-vendre, etc.).
+- 0 à 2 hashtags max, format local (#ImmobilierGironde, #EstimationMaison).
+- Appel à l’action discret vers l’URL UTM: {utmUrl}
+- Pas d’exagération, pas de claims invérifiables.
+
+STRUCTURE :
+1) Accroche locale courte (1 phrase)
+2) Idée clé issue de l’article (2-3 phrases)
+3) Mini astuce ou question pour engager (1-2 phrases)
+4) CTA discret + URL (avec UTM)
+5) 0-2 hashtags
+
+Renvoyer UNIQUEMENT le texte final sans préface, ≤ 1 500 caractères.
+
+5) Variantes automatiques (rotation)
+
+Pour chaque article, choisis une variante en round-robin :
+
+Résumé local
+
+Question au vendeur (“Comment fixer un prix juste à Bordeaux ?”)
+
+Astuce pratique (“Vérifiez ces 3 points avant l’estimation…”)
+
+Le chiffre du marché (“+X%/-X% à …” si tu as une donnée interne)
+
+Invitation à l’action (“Recevez une estimation fondée DVF + IA”)
+
+6) Génération des dates (tous les 2 jours)
+
+Algorithme simple :
+
+Prends la dernière plannedFor existante ; sinon, prends demain 10:00 Europe/Paris.
+
+Ajoute +2 jours pour chaque nouveau GMBPost.
+
+Remplis au moins les 7 prochains posts (≈ 2 semaines).
+
+7) Email “Journal de publication” (HTML)
+
+Objet
+Journal GMB – Prochaines publications (15 jours)
+
+En-tête
+
+Bonjour, voici vos posts GMB planifiés tous les 2 jours pour la Gironde.
+Chaque bloc contient : Date, Titre source, Texte prêt à publier, Lien UTM, Boutons.
+
+Carte par post
+
+Date prévue : mar. 23/09 – 10:00
+
+Source : Guide – “Estimation immobilière : éviter 5 erreurs courantes”
+
+Texte à publier (copier-coller) :
+(bloc <pre> / <code> monospace ou <textarea>)
+
+Lien : https://.../article?utm_source=gmb&utm_medium=post&utm_campaign=blog-2025-W39
+
+Actions : [Marquer comme publié] (lien signé), [Voir l’article]
+
+Footer discret
+Mentions légales + rappel : “Vous recevez cet email car le GMB Planner est activé”.
+
+8) Exemples concrets (Gironde)
+
+Ex. 1 – Post “Résumé local”
+
+Vendre en Gironde ? Le bon prix commence par des données locales fiables.
+Dans notre dernier guide, découvrez comment confronter votre intuition aux ventes réelles DVF pour éviter de sous-vendre. Une méthode simple pour garder la main sur votre négociation.
+Envie d’un chiffre précis pour votre bien ? Estimation en ligne (DVF + IA) en quelques minutes : https://www.estimation-immobilier-gironde.fr/estimation?utm_source=gmb&utm_medium=post&utm_campaign=blog-2025-W39
+
+#ImmobilierGironde #EstimationMaison
+
+Ex. 2 – Post “Question au vendeur”
+
+À Bordeaux, comment fixer un prix juste sans rester 90 jours sur le marché ?
+On vous montre une approche pas-à-pas pour croiser DVF, état du bien et demande locale.
+Lancez votre estimation (gratuite & confidentielle) : https://www.estimation-immobilier-gironde.fr/estimation?utm_source=gmb&utm_medium=post&utm_campaign=blog-2025-W39
+
+#ImmobilierGironde
+
+9) Slugs, UTM & SEO (cohérence Ads/SEO)
+
+Exemple de slug d’article : /actualites/estimation-maison-gironde-erreurs
+
+UTM builder :
+
+source = gmb
+
+medium = post
+
+campaign = blog-YYYY-WW
+
+content = {slug}
+
+Title/Meta des pages déjà harmonisés autour de “Estimation maison Gironde”.
+
+10) Back-office minimal (formulaire)
+
+Settings
+
+Adresse email de réception du Journal
+
+Fuseau (Europe/Paris), heure d’envoi (07:00), rythme (2 jours)
+
+Activer/Désactiver catégories (Actualités/Guide)
+
+Boutons
+
+“Scanner maintenant”
+
+“Générer les 7 prochains posts”
+
+“Envoyer le Journal aujourd’hui”
+
+11) Checklist pour ton agent (Replit)
+
+ Créer modèles Prisma (ci-dessus) + migrations
+
+ Implémenter /api/gmb/scan (RSS + Sitemap)
+
+ Implémenter /api/gmb/generate (prompt ITPINO + variantes + UTM)
+
+ Implémenter /api/gmb/email/send (HTML + texte + boutons signés)
+
+ CRON : 06:00 scan, 06:05 génération, 07:00 email tous les 2 jours
+
+ Admin minimal (Next.js route sécurisée)
+
+ Env vars SMTP o2switch + SECURE_TOKEN
+
+ Logs & retries (3 tentatives, backoff)
+
+12) Bonus : conformité & bonnes pratiques GBP
+
+≤ 1 500 caractères, 1-2 emojis max, ton informatif.
+
+Pas de promesses irréalistes, pas d’infos médicales/juridiques.
+
+Inclure localité (Gironde, Bordeaux, …) sans spam.
+
+0-2 hashtags max, pertinents et courts.
+
+Lien UTM discret, pas de tracking param hors UTM standard.

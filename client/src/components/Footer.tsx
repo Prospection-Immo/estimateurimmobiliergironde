@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Mail, Phone, MapPin, Facebook, Linkedin, Twitter } from "lucide-react";
+import { Mail, MapPin } from "lucide-react";
 
 interface FooterProps {
   domain?: string;
@@ -22,17 +22,6 @@ export default function Footer({ domain = "estimation-immobilier-gironde.fr" }: 
               Expert en estimation immobilière dans la région {isGironde ? "Gironde" : "de Bordeaux"}. 
               Évaluation précise et gratuite de votre patrimoine immobilier.
             </p>
-            <div className="flex space-x-4">
-              <a href="#" className="text-muted-foreground hover:text-primary hover-elevate p-2 rounded" data-testid="link-facebook">
-                <Facebook className="h-5 w-5" />
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-primary hover-elevate p-2 rounded" data-testid="link-linkedin">
-                <Linkedin className="h-5 w-5" />
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-primary hover-elevate p-2 rounded" data-testid="link-twitter">
-                <Twitter className="h-5 w-5" />
-              </a>
-            </div>
           </div>
 
           {/* Services */}
@@ -80,10 +69,6 @@ export default function Footer({ domain = "estimation-immobilier-gironde.fr" }: 
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4" />
                 <span>Bordeaux, Gironde</span>
-              </div>
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <Phone className="h-4 w-4" />
-                <span>05 56 XX XX XX</span>
               </div>
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <Mail className="h-4 w-4" />
