@@ -9,7 +9,7 @@ export default function Hero({ domain = "estimation-immobilier-gironde.fr" }: He
   const cityName = isGironde ? "Gironde" : "Bordeaux";
 
   return (
-    <section className="relative min-h-[60vh] bg-gradient-to-br from-background to-muted">
+    <section className="relative min-h-[50vh] bg-gradient-to-br from-background to-muted flex items-center">
       {/* Hero Background */}
       <div className="absolute inset-0 z-0">
         <img
@@ -20,7 +20,7 @@ export default function Hero({ domain = "estimation-immobilier-gironde.fr" }: He
         <div className="absolute inset-0 bg-gradient-to-r from-background/90 to-background/60"></div>
       </div>
 
-      <div className="relative z-10 max-w-6xl mx-auto px-4 py-8">
+      <div className="relative z-10 max-w-6xl mx-auto px-4 py-12 w-full">
         {/* Centered Title */}
         <div className="text-center mb-6">
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground leading-tight">
