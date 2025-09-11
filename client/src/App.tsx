@@ -15,6 +15,7 @@ import PropertyEstimationForm from "@/components/PropertyEstimationForm";
 import EstimationResults from "@/components/EstimationResults";
 import ContactForm from "@/components/ContactForm";
 import AdminDashboard from "@/components/AdminDashboard";
+import FinancementPage from "@/pages/FinancementPage";
 
 // Utility function to detect domain from Host header
 function getDomainFromHeaders(): string {
@@ -948,6 +949,21 @@ function NotFound() {
   );
 }
 
+// Financement Page Wrapper
+function FinancementPageComponent() {
+  const domain = getDomainFromHeaders();
+  
+  return (
+    <div className="min-h-screen bg-background">
+      <Header domain={domain} />
+      <main>
+        <FinancementPage domain={domain} />
+      </main>
+      <Footer domain={domain} />
+    </div>
+  );
+}
+
 // Router Component
 function Router() {
   return (
@@ -956,6 +972,7 @@ function Router() {
       <Route path="/estimation" component={EstimationPage} />
       <Route path="/estimation-resultats" component={ResultsPage} />
       <Route path="/contact" component={ContactPage} />
+      <Route path="/financement" component={FinancementPageComponent} />
       <Route path="/prix-m2" component={PrixM2Page} />
       <Route path="/guides" component={GuidesPage} />
       <Route path="/guides/:slug" component={GuideDetailPage} />
