@@ -24,8 +24,11 @@ export default function Hero({ domain = "estimation-immobilier-gironde.fr" }: He
         {/* Centered Title */}
         <div className="text-center mb-6">
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground leading-tight">
-            Estimation immobilière en Gironde
+            Estimation immobilière Gironde
           </h1>
+          <p className="text-lg sm:text-xl text-muted-foreground mt-3">
+            Expertise immobilière locale
+          </p>
         </div>
         
         <div className="text-center">
