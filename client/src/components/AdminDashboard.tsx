@@ -15,7 +15,10 @@ import {
   Mail,
   MapPin,
   LogOut,
-  AlertCircle
+  AlertCircle,
+  Eye,
+  MessageSquare,
+  Clock
 } from "lucide-react";
 
 interface Lead {
@@ -58,6 +61,19 @@ interface Estimation {
   };
 }
 
+interface Contact {
+  id: string;
+  email: string;
+  phone?: string;
+  firstName: string;
+  lastName: string;
+  subject: string;
+  message: string;
+  source: string;
+  status: string;
+  createdAt: string;
+}
+
 interface Stats {
   totalLeads: number;
   newLeads: number;
@@ -76,6 +92,7 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
   const [selectedLeadType, setSelectedLeadType] = useState("all");
   const [leads, setLeads] = useState<Lead[]>([]);
   const [estimations, setEstimations] = useState<Estimation[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -110,14 +127,15 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
 
   const fetchData = async () => {
     try {
-      const [leadsResponse, estimationsResponse, statsResponse] = await Promise.all([
+      const [leadsResponse, estimationsResponse, contactsResponse, statsResponse] = await Promise.all([
         fetch('/api/leads'),
         fetch('/api/estimations'),
+        fetch('/api/contacts'),
         fetch('/api/stats')
       ]);
 
       // Check for authentication errors
-      if (leadsResponse.status === 401 || estimationsResponse.status === 401 || statsResponse.status === 401) {
+      if (leadsResponse.status === 401 || estimationsResponse.status === 401 || contactsResponse.status === 401 || statsResponse.status === 401) {
         setIsAuthenticated(false);
         window.location.href = '/admin/login';
         return;
@@ -135,6 +153,13 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
         setEstimations(estimationsData);
       } else {
         setAuthError(`Erreur lors du chargement des estimations: ${estimationsResponse.status}`);
+      }
+
+      if (contactsResponse.ok) {
+        const contactsData = await contactsResponse.json();
+        setContacts(contactsData);
+      } else {
+        setAuthError(`Erreur lors du chargement des contacts: ${contactsResponse.status}`);
       }
 
       if (statsResponse.ok) {
@@ -605,9 +630,124 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
             </Card>
           </TabsContent>
 
-          <TabsContent value="contacts">
+          <TabsContent value="contacts" className="space-y-6">
+            {/* Filters for Contacts */}
             <Card className="p-6">
-              <p className="text-muted-foreground">Messages de contact - En cours de développement</p>
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Rechercher par nom, email ou sujet..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                      data-testid="input-search-contacts"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setSearchTerm("")}
+                    data-testid="button-clear-search"
+                  >
+                    Tout afficher
+                  </Button>
+                </div>
+              </div>
+            </Card>
+
+            {/* Contacts Table */}
+            <Card className="p-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Messages de contact</h3>
+                <div className="space-y-4">
+                  {contacts.filter(contact => 
+                    !searchTerm || 
+                    `${contact.firstName} ${contact.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    contact.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    contact.subject.toLowerCase().includes(searchTerm.toLowerCase())
+                  ).map((contact) => (
+                    <div
+                      key={contact.id}
+                      className="flex flex-col md:flex-row gap-4 p-4 border border-border rounded-lg hover-elevate"
+                      data-testid={`card-contact-${contact.id}`}
+                    >
+                      <div className="flex-1 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <h4 className="font-medium">
+                              {contact.firstName} {contact.lastName}
+                            </h4>
+                            <Badge variant={contact.status === 'new' ? 'default' : 'secondary'} className="text-xs">
+                              {contact.status === 'new' ? 'Nouveau' : 'Traité'}
+                            </Badge>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(contact.createdAt).toLocaleDateString('fr-FR', {
+                              day: '2-digit',
+                              month: '2-digit', 
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                            <div className="flex items-center space-x-1">
+                              <Mail className="h-3 w-3" />
+                              <span>{contact.email}</span>
+                            </div>
+                            {contact.phone && (
+                              <div className="flex items-center space-x-1">
+                                <Phone className="h-3 w-3" />
+                                <span>{contact.phone}</span>
+                              </div>
+                            )}
+                            <div className="flex items-center space-x-1">
+                              <Clock className="h-3 w-3" />
+                              <span>{contact.source}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <div className="text-sm font-medium text-foreground">
+                              Sujet: {contact.subject}
+                            </div>
+                            <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">
+                              {contact.message.length > 150 ? 
+                                `${contact.message.substring(0, 150)}...` : 
+                                contact.message
+                              }
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col justify-between items-end space-y-2">
+                        <Button variant="ghost" size="icon" data-testid={`button-contact-actions-${contact.id}`}>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                        {contact.message.length > 150 && (
+                          <Button variant="outline" size="sm" data-testid={`button-view-full-message-${contact.id}`}>
+                            <Eye className="h-3 w-3 mr-1" />
+                            Voir tout
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {contacts.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>Aucun message de contact pour le moment</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </Card>
           </TabsContent>
         </Tabs>
