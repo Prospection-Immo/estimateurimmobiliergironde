@@ -20,9 +20,9 @@ export default function Hero({ domain = "estimation-immobilier-gironde.fr" }: He
         <div className="absolute inset-0 bg-gradient-to-r from-background/90 to-background/60"></div>
       </div>
 
-      <div className="relative z-10 max-w-6xl mx-auto px-4 py-16">
+      <div className="relative z-10 max-w-6xl mx-auto px-4 py-8">
         {/* Centered Title */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-6">
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground leading-tight">
             Estimation immobilière en Gironde
           </h1>
