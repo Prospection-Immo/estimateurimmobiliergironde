@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Home, Calculator, Phone, FileText, User, Euro } from "lucide-react";
+import { Menu, X, Home, Calculator, FileText, Euro } from "lucide-react";
 
 interface HeaderProps {
   domain?: string;
@@ -18,14 +18,8 @@ export default function Header({ domain = "estimation-immobilier-gironde.fr" }: 
     { href: "/estimation", label: "Estimation gratuite", icon: Calculator },
     { href: "/financement", label: "Financement", icon: Euro },
     { href: "/prix-m2", label: "Prix au m²", icon: FileText },
-    { href: "/guides", label: "Guides", icon: FileText },
-    { href: "/actualites", label: "Actualités", icon: FileText },
-    { href: "/contact", label: "Contact", icon: Phone },
   ];
 
-  const adminItems = [
-    { href: "/gironde-admin-dashboard", label: "Dashboard", icon: User },
-  ];
 
   return (
     <header className="bg-background border-b border-border sticky top-0 z-50">
@@ -63,15 +57,6 @@ export default function Header({ domain = "estimation-immobilier-gironde.fr" }: 
             ))}
           </nav>
 
-          {/* Admin Access */}
-          <div className="hidden md:flex items-center space-x-2">
-            <Link href="/gironde-login" data-testid="link-admin">
-              <Button variant="ghost" size="sm">
-                <User className="h-4 w-4 mr-1" />
-                Admin
-              </Button>
-            </Link>
-          </div>
 
           {/* Mobile Menu Button */}
           <Button
@@ -105,15 +90,6 @@ export default function Header({ domain = "estimation-immobilier-gironde.fr" }: 
                   <span>{item.label}</span>
                 </Link>
               ))}
-              <Link
-                href="/gironde-login"
-                className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm text-foreground hover:bg-accent hover-elevate"
-                onClick={() => setIsMenuOpen(false)}
-                data-testid="link-mobile-admin"
-              >
-                <User className="h-4 w-4" />
-                <span>Admin</span>
-              </Link>
             </nav>
           </div>
         )}

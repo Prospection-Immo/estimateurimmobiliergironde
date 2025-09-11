@@ -35,10 +35,23 @@ export default function FinancementPage({ domain = "estimation-immobilier-girond
     setIsSubmitting(true);
 
     try {
-      await apiRequest("POST", "/api/financement-leads", {
-        ...formData,
+      // Split nom into firstName and lastName
+      const nameParts = formData.nom.trim().split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+
+      // Map form fields to API expected field names
+      const payload = {
+        firstName,
+        lastName,
+        email: formData.email,
+        phone: formData.telephone || undefined,
+        financingProjectType: formData.typeProjet,
+        projectAmount: formData.montant,
         source: domain
-      });
+      };
+
+      await apiRequest("POST", "/api/financement-leads", payload);
 
       toast({
         title: "Demande envoyée avec succès",

@@ -114,6 +114,9 @@ export default function Footer({ domain = "estimation-immobilier-gironde.fr" }: 
               <Link href="/politique-cookies" className="text-sm text-muted-foreground hover:text-primary hover-elevate px-2 py-1 rounded" data-testid="link-footer-cookies">
                 Cookies
               </Link>
+              <Link href="/gironde-login" className="text-sm text-muted-foreground hover:text-primary hover-elevate px-2 py-1 rounded" data-testid="link-footer-admin" aria-label="Admin">
+                ·<span className="sr-only">Admin</span>
+              </Link>
             </nav>
           </div>
         </div>
