@@ -152,6 +152,7 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
   const [articleSearchTerm, setArticleSearchTerm] = useState("");
   const [articleStatus, setArticleStatus] = useState("all");
   const [articleCategory, setArticleCategory] = useState("all");
+  const [activeArticleTab, setActiveArticleTab] = useState("liste");
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewArticle, setPreviewArticle] = useState<GeneratedArticle | null>(null);
   const [generatingArticle, setGeneratingArticle] = useState(false);
@@ -168,8 +169,16 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
   const queryClientInstance = useQueryClient();
 
   // React Query hooks for articles
+  const articlesQueryParams = new URLSearchParams();
+  if (articleStatus && articleStatus !== 'all') articlesQueryParams.append('status', articleStatus);
+  if (articleCategory && articleCategory !== 'all') articlesQueryParams.append('category', articleCategory);
+  if (articleSearchTerm) articlesQueryParams.append('q', articleSearchTerm);
+  
+  const articlesQueryString = articlesQueryParams.toString();
+  const articlesUrl = `/api/admin/articles${articlesQueryString ? `?${articlesQueryString}` : ''}`;
+  
   const { data: articles = [], isLoading: articlesLoading, error: articlesError } = useQuery<Article[]>({
-    queryKey: ['/api/admin/articles', { status: articleStatus, category: articleCategory, q: articleSearchTerm }],
+    queryKey: [articlesUrl],
     enabled: isAuthenticated === true,
     staleTime: 0
   });
@@ -181,6 +190,10 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
     },
     onSuccess: () => {
       queryClientInstance.invalidateQueries({ queryKey: ['/api/admin/articles'] });
+      queryClientInstance.invalidateQueries({ predicate: (query) => 
+        Boolean(query.queryKey[0] && typeof query.queryKey[0] === 'string' && 
+        query.queryKey[0].startsWith('/api/admin/articles'))
+      });
       setShowPreviewModal(false);
       setPreviewArticle(null);
     }
@@ -193,6 +206,10 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
     },
     onSuccess: () => {
       queryClientInstance.invalidateQueries({ queryKey: ['/api/admin/articles'] });
+      queryClientInstance.invalidateQueries({ predicate: (query) => 
+        Boolean(query.queryKey[0] && typeof query.queryKey[0] === 'string' && 
+        query.queryKey[0].startsWith('/api/admin/articles'))
+      });
     }
   });
 
@@ -202,6 +219,10 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
     },
     onSuccess: () => {
       queryClientInstance.invalidateQueries({ queryKey: ['/api/admin/articles'] });
+      queryClientInstance.invalidateQueries({ predicate: (query) => 
+        Boolean(query.queryKey[0] && typeof query.queryKey[0] === 'string' && 
+        query.queryKey[0].startsWith('/api/admin/articles'))
+      });
     }
   });
 
@@ -875,7 +896,7 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
           </TabsContent>
 
           <TabsContent value="articles" className="space-y-6">
-            <Tabs defaultValue="liste" className="space-y-6">
+            <Tabs value={activeArticleTab} onValueChange={setActiveArticleTab} className="space-y-6">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="liste" data-testid="tab-articles-liste">Liste</TabsTrigger>
                 <TabsTrigger value="generation" data-testid="tab-articles-generation">Génération</TabsTrigger>
@@ -942,6 +963,7 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                             audience: "proprietaires",
                             tone: "professionnel"
                           });
+                          setActiveArticleTab("generation");
                         }}
                         data-testid="button-create-article"
                       >
