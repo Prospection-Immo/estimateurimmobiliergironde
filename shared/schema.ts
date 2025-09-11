@@ -143,3 +143,23 @@ export type InsertContact = z.infer<typeof insertContactSchema>;
 export type InsertArticle = z.infer<typeof insertArticleSchema>;
 export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
 export type InsertEmailHistory = z.infer<typeof insertEmailHistorySchema>;
+
+// Auth session table for 2FA
+export const authSessions = pgTable('auth_sessions', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar('email').notNull(),
+  isEmailVerified: boolean('is_email_verified').default(false),
+  phoneNumber: varchar('phone_number'),
+  isSmsVerified: boolean('is_sms_verified').default(false),
+  verificationSid: varchar('verification_sid'), // Twilio Verify SID
+  createdAt: timestamp('created_at').defaultNow(),
+  expiresAt: timestamp('expires_at').notNull(),
+});
+
+export const insertAuthSessionSchema = createInsertSchema(authSessions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertAuthSession = z.infer<typeof insertAuthSessionSchema>;
+export type AuthSession = typeof authSessions.$inferSelect;

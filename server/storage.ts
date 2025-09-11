@@ -8,6 +8,7 @@ import {
   type Article,
   type EmailTemplate,
   type EmailHistory,
+  type AuthSession,
   type InsertUser, 
   type InsertLead, 
   type InsertEstimation, 
@@ -15,13 +16,15 @@ import {
   type InsertArticle,
   type InsertEmailTemplate,
   type InsertEmailHistory,
+  type InsertAuthSession,
   users,
   leads,
   estimations,
   contacts,
   articles,
   emailTemplates,
-  emailHistory
+  emailHistory,
+  authSessions
 } from "@shared/schema";
 import { eq, desc, sql, and } from "drizzle-orm";
 
@@ -70,6 +73,11 @@ export interface IStorage {
   createEmailHistory(history: InsertEmailHistory): Promise<EmailHistory>;
   getEmailHistory(limit?: number, status?: string): Promise<EmailHistory[]>;
   updateEmailHistoryStatus(id: string, status: string, errorMessage?: string): Promise<void>;
+  
+  // Auth Sessions (2FA)
+  createAuthSession(session: InsertAuthSession): Promise<AuthSession>;
+  getAuthSession(id: string): Promise<AuthSession | undefined>;
+  updateAuthSession(id: string, updates: Partial<InsertAuthSession>): Promise<void>;
 }
 
 export class SupabaseStorage implements IStorage {
@@ -261,6 +269,31 @@ export class SupabaseStorage implements IStorage {
       updates.sentAt = new Date();
     }
     await db.update(emailHistory).set(updates).where(eq(emailHistory.id, id));
+  }
+
+  // Auth Sessions (2FA)
+  async createAuthSession(session: InsertAuthSession): Promise<AuthSession> {
+    const [authSession] = await db
+      .insert(authSessions)
+      .values(session)
+      .returning();
+    return authSession;
+  }
+
+  async getAuthSession(id: string): Promise<AuthSession | undefined> {
+    const [authSession] = await db
+      .select()
+      .from(authSessions)
+      .where(eq(authSessions.id, id))
+      .limit(1);
+    return authSession;
+  }
+
+  async updateAuthSession(id: string, updates: Partial<InsertAuthSession>): Promise<void> {
+    await db
+      .update(authSessions)
+      .set(updates)
+      .where(eq(authSessions.id, id));
   }
 }
 

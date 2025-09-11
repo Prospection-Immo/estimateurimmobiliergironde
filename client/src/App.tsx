@@ -25,6 +25,7 @@ import CookiesPage from "@/pages/CookiesPage";
 import ActualitesPageComponent from "@/pages/ActualitesPage";
 import ArticleDetailPageComponent from "@/pages/ArticleDetailPage";
 import LexiquePageComponent from "@/pages/LexiquePage";
+import Admin2FALogin from "@/components/Admin2FALogin";
 import bordeaux_house from "@assets/generated_images/Bordeaux_house_property_photo_41cf0370.png";
 
 // Utility function to detect domain from Host header
@@ -374,8 +375,15 @@ function PrixM2Page() {
   );
 }
 
-// Admin Login Page (Simple)
+// Admin Login Page with 2FA
 function AdminLoginPage() {
+  const domain = getDomainFromHeaders();
+  
+  return <Admin2FALogin domain={domain} />;
+}
+
+// Legacy Admin Login Page (Simple)
+function LegacyAdminLoginPage() {
   const domain = getDomainFromHeaders();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");

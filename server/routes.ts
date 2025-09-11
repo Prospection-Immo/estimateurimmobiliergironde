@@ -219,11 +219,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             firstName: validatedData.firstName,
             lastName: validatedData.lastName,
             email: validatedData.email,
-            phone: validatedData.phone,
+            phone: validatedData.phone || '',
             propertyType: validatedData.propertyType === 'house' ? 'Maison' : 'Appartement',
             address: validatedData.address,
             city: validatedData.city,
-            surface: (validatedData.surface || 0).toString(),
+            surface: validatedData.surface || 0,
             estimatedValue: estimation.estimatedValue.toLocaleString('fr-FR'),
             pricePerM2: estimation.pricePerM2.toLocaleString('fr-FR')
           };
@@ -254,11 +254,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             firstName: validatedData.firstName,
             lastName: validatedData.lastName,
             email: validatedData.email,
-            phone: validatedData.phone,
+            phone: validatedData.phone || '',
             propertyType: validatedData.propertyType === 'house' ? 'Maison' : 'Appartement',
             address: validatedData.address,
             city: validatedData.city,
-            surface: (validatedData.surface || 0).toString(),
+            surface: validatedData.surface || 0,
             estimatedValue: estimation.estimatedValue.toLocaleString('fr-FR'),
             pricePerM2: estimation.pricePerM2.toLocaleString('fr-FR'),
             leadType: 'Estimation immobilière',
@@ -341,7 +341,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             firstName: validatedData.firstName,
             lastName: validatedData.lastName,
             email: validatedData.email,
-            phone: validatedData.phone,
+            phone: validatedData.phone || '',
             financingProjectType: validatedData.financingProjectType || 'Financement immobilier',
             projectAmount: validatedData.projectAmount || 'Non spécifié'
           };
@@ -372,7 +372,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             firstName: validatedData.firstName,
             lastName: validatedData.lastName,
             email: validatedData.email,
-            phone: validatedData.phone,
+            phone: validatedData.phone || '',
             financingProjectType: validatedData.financingProjectType || 'Financement immobilier',
             projectAmount: validatedData.projectAmount || 'Non spécifié',
             source: validatedData.source || domain,
@@ -402,7 +402,150 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Authentication routes
+  // Authentication routes - Step 1: Email/Password verification
+  app.post("/api/auth/login-step1", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      // Simple hardcoded admin credentials for demo
+      if (email === "admin@test.fr" && password === "admin123") {
+        // Create auth session for 2FA
+        const sessionId = crypto.randomUUID();
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+        
+        const authSession = await storage.createAuthSession({
+          email,
+          isEmailVerified: true,
+          expiresAt
+        });
+        
+        // Store session ID in HTTP session
+        (req.session as any).authSessionId = authSession.id;
+        
+        res.json({ 
+          success: true, 
+          requiresSms: true,
+          sessionId: authSession.id
+        });
+      } else {
+        res.status(401).json({ error: "Invalid credentials" });
+      }
+    } catch (error) {
+      console.error('Login step 1 error:', error);
+      res.status(500).json({ error: "Authentication error" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy(() => {
+      res.json({ success: true });
+    });
+  });
+
+  // Step 2: Send SMS verification code
+  app.post("/api/auth/send-sms", async (req, res) => {
+    try {
+      const { phoneNumber } = req.body;
+      const authSessionId = (req.session as any).authSessionId;
+      
+      if (!authSessionId) {
+        return res.status(400).json({ error: "No active authentication session" });
+      }
+      
+      const authSession = await storage.getAuthSession(authSessionId);
+      if (!authSession || authSession.expiresAt < new Date()) {
+        return res.status(400).json({ error: "Authentication session expired" });
+      }
+      
+      // Send SMS via Twilio Verify
+      const twilioResponse = await fetch(`https://verify.twilio.com/v2/Services/VA0562b4c0e460ba0c03268eb0e413b313/Verifications`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Basic ${Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64')}`
+        },
+        body: new URLSearchParams({
+          'To': phoneNumber,
+          'Channel': 'sms'
+        })
+      });
+      
+      const twilioData = await twilioResponse.json();
+      
+      if (twilioResponse.ok) {
+        // Update auth session with phone number and verification SID
+        await storage.updateAuthSession(authSessionId, {
+          phoneNumber,
+          verificationSid: twilioData.sid
+        });
+        
+        res.json({ success: true, message: "Code SMS envoyé" });
+      } else {
+        console.error('Twilio error:', twilioData);
+        res.status(400).json({ error: "Erreur lors de l'envoi du SMS" });
+      }
+    } catch (error) {
+      console.error('Send SMS error:', error);
+      res.status(500).json({ error: "Erreur serveur" });
+    }
+  });
+  
+  // Step 3: Verify SMS code
+  app.post("/api/auth/verify-sms", async (req, res) => {
+    try {
+      const { code } = req.body;
+      const authSessionId = (req.session as any).authSessionId;
+      
+      if (!authSessionId) {
+        return res.status(400).json({ error: "No active authentication session" });
+      }
+      
+      const authSession = await storage.getAuthSession(authSessionId);
+      if (!authSession || authSession.expiresAt < new Date()) {
+        return res.status(400).json({ error: "Authentication session expired" });
+      }
+      
+      if (!authSession.verificationSid || !authSession.phoneNumber) {
+        return res.status(400).json({ error: "SMS verification not initiated" });
+      }
+      
+      // Verify code with Twilio
+      const twilioResponse = await fetch(`https://verify.twilio.com/v2/Services/VA0562b4c0e460ba0c03268eb0e413b313/VerificationCheck`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Basic ${Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64')}`
+        },
+        body: new URLSearchParams({
+          'To': authSession.phoneNumber,
+          'Code': code
+        })
+      });
+      
+      const twilioData = await twilioResponse.json();
+      
+      if (twilioResponse.ok && twilioData.status === 'approved') {
+        // Mark SMS as verified and complete authentication
+        await storage.updateAuthSession(authSessionId, {
+          isSmsVerified: true
+        });
+        
+        // Set final authentication in session
+        (req.session as any).isAuthenticated = true;
+        delete (req.session as any).authSessionId; // Clean up
+        
+        res.json({ success: true, message: "Authentification réussie" });
+      } else {
+        console.error('Twilio verification error:', twilioData);
+        res.status(400).json({ error: "Code invalide" });
+      }
+    } catch (error) {
+      console.error('Verify SMS error:', error);
+      res.status(500).json({ error: "Erreur serveur" });
+    }
+  });
+  
+  // Legacy login route for backward compatibility
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { username, password } = req.body;
@@ -417,12 +560,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       res.status(500).json({ error: "Authentication error" });
     }
-  });
-
-  app.post("/api/auth/logout", (req, res) => {
-    req.session.destroy(() => {
-      res.json({ success: true });
-    });
   });
 
   app.get("/api/auth/check", (req, res) => {
@@ -494,7 +631,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             firstName: validatedData.firstName,
             lastName: validatedData.lastName,
             email: validatedData.email,
-            phone: validatedData.phone,
+            phone: validatedData.phone || '',
             subject: validatedData.subject,
             message: validatedData.message,
             source: validatedData.source || domain
@@ -526,7 +663,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             firstName: validatedData.firstName,
             lastName: validatedData.lastName,
             email: validatedData.email,
-            phone: validatedData.phone,
+            phone: validatedData.phone || '',
             subject: validatedData.subject,
             message: validatedData.message,
             source: validatedData.source || domain,
