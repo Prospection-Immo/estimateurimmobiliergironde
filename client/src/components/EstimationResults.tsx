@@ -16,7 +16,6 @@ import {
   AlertTriangle,
   CheckCircle
 } from "lucide-react";
-import expertPhoto from "@assets/generated_images/Real_estate_expert_headshot_b59d45a8.png";
 
 interface EstimationData {
   lead: {
@@ -231,28 +230,26 @@ export default function EstimationResults() {
           </div>
         </Card>
 
-        {/* Expert Contact */}
+        {/* Support Section */}
         <Card className="p-6">
-          <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6">
-            <img
-              src={expertPhoto}
-              alt="Expert immobilier"
-              className="w-20 h-20 rounded-full object-cover"
-            />
-            <div className="flex-1 text-center md:text-left">
-              <h4 className="font-semibold text-lg">Expert immobilier local</h4>
-              <p className="text-muted-foreground mb-4">
-                Spécialiste du marché {propertyData.city} depuis plus de 10 ans. 
-                Contactez-moi pour affiner votre estimation ou pour vendre votre bien.
+          <div className="text-center space-y-4">
+            <div className="bg-primary/10 p-4 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
+              <Phone className="h-8 w-8 text-primary" />
+            </div>
+            <div>
+              <h4 className="font-semibold text-lg mb-2">Besoin d'aide ?</h4>
+              <p className="text-muted-foreground mb-4 max-w-2xl mx-auto">
+                Notre équipe d'experts immobiliers locaux est là pour vous accompagner. 
+                Contactez-nous pour affiner votre estimation ou obtenir des conseils personnalisés.
               </p>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Button variant="outline" data-testid="button-call-expert">
                   <Phone className="h-4 w-4 mr-2" />
                   05 56 XX XX XX
                 </Button>
                 <Button variant="outline" data-testid="button-email-expert">
                   <Mail className="h-4 w-4 mr-2" />
-                  Envoyer un email
+                  Nous contacter
                 </Button>
               </div>
             </div>
