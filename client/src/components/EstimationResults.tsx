@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +12,9 @@ import {
   Phone, 
   Mail,
   Share2,
-  Calculator
+  Calculator,
+  AlertTriangle,
+  CheckCircle
 } from "lucide-react";
 import expertPhoto from "@assets/generated_images/Real_estate_expert_headshot_b59d45a8.png";
 
@@ -255,6 +258,54 @@ export default function EstimationResults() {
             </div>
           </div>
         </Card>
+
+        {/* Free Guides */}
+        <div className="bg-gradient-to-br from-muted/50 to-muted p-6 rounded-lg">
+          <div className="text-center mb-6">
+            <h3 className="text-xl font-semibold mb-2">Guides gratuits pour réussir votre vente</h3>
+            <p className="text-muted-foreground">
+              Téléchargez nos guides exclusifs pour maximiser vos chances de vendre au bon prix
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card className="p-6 hover-elevate">
+              <div className="flex items-start space-x-4">
+                <div className="bg-destructive/10 p-3 rounded-lg">
+                  <AlertTriangle className="h-6 w-6 text-destructive" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold mb-2">7 erreurs à éviter absolument</h4>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Les pièges les plus courants qui font perdre des milliers d'euros aux vendeurs en Gironde
+                  </p>
+                  <Button variant="outline" data-testid="button-guide-errors" asChild>
+                    <Link href="/actualites/7-erreurs-a-eviter-vente-bien-gironde">
+                      Lire le guide
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            </Card>
+            <Card className="p-6 hover-elevate">
+              <div className="flex items-start space-x-4">
+                <div className="bg-chart-2/10 p-3 rounded-lg">
+                  <CheckCircle className="h-6 w-6 text-chart-2" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold mb-2">5 actions gratuites pour vendre rapidement</h4>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Des conseils pratiques et immédiats pour optimiser votre vente sans dépenser un euro
+                  </p>
+                  <Button variant="outline" data-testid="button-guide-practices" asChild>
+                    <Link href="/actualites/5-bonnes-choses-a-faire-gratuitement-pour-vendre-rapidement-en-gironde">
+                      Lire le guide
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
 
         {/* Next Steps */}
         <Card className="p-6 bg-muted">
