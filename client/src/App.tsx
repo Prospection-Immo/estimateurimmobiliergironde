@@ -24,6 +24,7 @@ import ConfidentialitePage from "@/pages/ConfidentialitePage";
 import CookiesPage from "@/pages/CookiesPage";
 import ActualitesPageComponent from "@/pages/ActualitesPage";
 import ArticleDetailPageComponent from "@/pages/ArticleDetailPage";
+import LexiquePageComponent from "@/pages/LexiquePage";
 import bordeaux_house from "@assets/generated_images/Bordeaux_house_property_photo_41cf0370.png";
 
 // Utility function to detect domain from Host header
@@ -939,6 +940,13 @@ function CookiesPageComponent() {
   );
 }
 
+// Lexique Page
+function LexiquePageComponentWrapper() {
+  const domain = getDomainFromHeaders();
+  
+  return <LexiquePageComponent domain={domain} />;
+}
+
 // Article Redirect Component
 function ArticleRedirect() {
   const params = useParams<{ slug: string }>();
@@ -973,6 +981,7 @@ function Router() {
       <Route path="/guides/:slug" component={GuideDetailPage} />
       <Route path="/actualites" component={ActualitesPage} />
       <Route path="/actualites/:slug" component={ArticleDetailPage} />
+      <Route path="/lexique-immobilier" component={LexiquePageComponentWrapper} />
       {/* Redirect old article URLs to new format */}
       <Route path="/articles/:slug" component={ArticleRedirect} />
       <Route path="/login" component={AdminLoginPage} />
