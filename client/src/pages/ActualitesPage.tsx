@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, ArrowRight, FileText } from "lucide-react";
 import { Link } from "wouter";
 import { useEffect } from "react";
+import bordeaux_house from "@assets/generated_images/Bordeaux_house_property_photo_41cf0370.png";
 
 interface Article {
   id: string;
@@ -67,25 +68,53 @@ export default function ActualitesPage({ domain = "estimation-immobilier-gironde
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="max-w-6xl mx-auto px-4 py-16">
-          <div className="space-y-8">
-            <div className="text-center space-y-4">
-              <h1 className="text-3xl font-bold text-foreground">
-                Actualités de l'immobilier en Gironde : marché, tendances et conseils
+        {/* Hero Section */}
+        <section className="relative min-h-[50vh] bg-gradient-to-br from-background to-muted flex items-center">
+          {/* Hero Background */}
+          <div className="absolute inset-0 z-0">
+            <img
+              src={bordeaux_house}
+              alt="Belle propriété en Gironde"
+              className="w-full h-full object-cover opacity-20"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-900/90 to-blue-800/80"></div>
+          </div>
+
+          <div className="relative z-10 max-w-6xl mx-auto px-4 py-12 w-full">
+            {/* Centered Title */}
+            <div className="text-center mb-6">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight">
+                Actualités immobilières Gironde
               </h1>
-              <div className="animate-pulse space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <Card key={i} className="h-48">
-                    <CardHeader>
-                      <div className="h-6 bg-muted rounded w-3/4"></div>
-                      <div className="h-4 bg-muted rounded w-1/2"></div>
-                    </CardHeader>
-                  </Card>
-                ))}
-              </div>
+              <p className="text-lg sm:text-xl text-white/90 mt-3">
+                Marché, tendances et conseils
+              </p>
+            </div>
+            
+            <div className="text-center">
+              <p className="text-base sm:text-lg text-white/80 max-w-3xl mx-auto leading-relaxed">
+                Découvrez nos derniers articles, analyses de marché et conseils d'experts 
+                pour réussir vos projets immobiliers en {cityName}.
+              </p>
             </div>
           </div>
-        </div>
+        </section>
+
+        {/* Loading Content */}
+        <section className="py-16 bg-background">
+          <div className="max-w-6xl mx-auto px-4">
+            <div className="animate-pulse space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="h-48">
+                  <CardHeader>
+                    <div className="h-6 bg-muted rounded w-3/4"></div>
+                    <div className="h-4 bg-muted rounded w-1/2"></div>
+                  </CardHeader>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
       </div>
     );
   }
@@ -93,38 +122,94 @@ export default function ActualitesPage({ domain = "estimation-immobilier-gironde
   if (error) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="max-w-6xl mx-auto px-4 py-16">
-          <div className="text-center space-y-4">
-            <h1 className="text-3xl font-bold text-foreground">
-              Actualités de l'immobilier en Gironde : marché, tendances et conseils
-            </h1>
-            <div className="bg-destructive/10 text-destructive p-4 rounded-lg">
-              <p>Erreur lors du chargement des articles. Veuillez réessayer plus tard.</p>
+        {/* Hero Section */}
+        <section className="relative min-h-[50vh] bg-gradient-to-br from-background to-muted flex items-center">
+          {/* Hero Background */}
+          <div className="absolute inset-0 z-0">
+            <img
+              src={bordeaux_house}
+              alt="Belle propriété en Gironde"
+              className="w-full h-full object-cover opacity-20"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-900/90 to-blue-800/80"></div>
+          </div>
+
+          <div className="relative z-10 max-w-6xl mx-auto px-4 py-12 w-full">
+            {/* Centered Title */}
+            <div className="text-center mb-6">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight">
+                Actualités immobilières Gironde
+              </h1>
+              <p className="text-lg sm:text-xl text-white/90 mt-3">
+                Marché, tendances et conseils
+              </p>
+            </div>
+            
+            <div className="text-center">
+              <p className="text-base sm:text-lg text-white/80 max-w-3xl mx-auto leading-relaxed">
+                Découvrez nos derniers articles, analyses de marché et conseils d'experts 
+                pour réussir vos projets immobiliers en {cityName}.
+              </p>
             </div>
           </div>
-        </div>
+        </section>
+
+        {/* Error Content */}
+        <section className="py-16 bg-background">
+          <div className="max-w-6xl mx-auto px-4">
+            <div className="text-center">
+              <div className="bg-destructive/10 text-destructive p-4 rounded-lg">
+                <p>Erreur lors du chargement des articles. Veuillez réessayer plus tard.</p>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-6xl mx-auto px-4 py-16">
-        <div className="space-y-8">
-          {/* Header */}
-          <div className="text-center space-y-4">
-            <h1 className="text-3xl sm:text-4xl font-bold text-foreground" data-testid="title-actualites">
-              Actualités de l'immobilier en Gironde : marché, tendances et conseils
+      {/* Hero Section */}
+      <section className="relative min-h-[50vh] bg-gradient-to-br from-background to-muted flex items-center">
+        {/* Hero Background */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src={bordeaux_house}
+            alt="Belle propriété en Gironde"
+            className="w-full h-full object-cover opacity-20"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-900/90 to-blue-800/80"></div>
+        </div>
+
+        <div className="relative z-10 max-w-6xl mx-auto px-4 py-12 w-full">
+          {/* Centered Title */}
+          <div className="text-center mb-6">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight" data-testid="title-actualites">
+              Actualités immobilières Gironde
             </h1>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-lg sm:text-xl text-white/90 mt-3">
+              Marché, tendances et conseils
+            </p>
+          </div>
+          
+          <div className="text-center">
+            <p className="text-base sm:text-lg text-white/80 max-w-3xl mx-auto leading-relaxed">
               Découvrez nos derniers articles, analyses de marché et conseils d'experts 
               pour réussir vos projets immobiliers en {cityName}.
             </p>
           </div>
+        </div>
+      </section>
 
-          {/* Articles Grid */}
-          {articles && articles.length > 0 ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Articles Section */}
+      <section className="py-16 bg-background">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="space-y-8">
+
+            {/* Articles Grid */}
+            {articles && articles.length > 0 ? (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {articles.map((article) => (
                 <Card key={article.id} className="hover-elevate" data-testid={`card-article-${article.slug}`}>
                   <CardHeader className="space-y-3">
@@ -165,26 +250,27 @@ export default function ActualitesPage({ domain = "estimation-immobilier-gironde
                   </CardContent>
                 </Card>
               ))}
-            </div>
-          ) : (
-            <div className="text-center py-16 space-y-4">
-              <FileText className="h-16 w-16 text-muted-foreground mx-auto" />
-              <h3 className="text-xl font-semibold text-foreground">
-                Aucun article disponible
-              </h3>
-              <p className="text-muted-foreground">
-                Nos experts préparent du contenu de qualité pour vous. 
-                Revenez bientôt pour découvrir nos articles !
-              </p>
-              <Link href="/">
-                <Button variant="outline">
-                  Retour à l'accueil
-                </Button>
-              </Link>
-            </div>
-          )}
+              </div>
+            ) : (
+              <div className="text-center py-16 space-y-4">
+                <FileText className="h-16 w-16 text-muted-foreground mx-auto" />
+                <h3 className="text-xl font-semibold text-foreground">
+                  Aucun article disponible
+                </h3>
+                <p className="text-muted-foreground">
+                  Nos experts préparent du contenu de qualité pour vous. 
+                  Revenez bientôt pour découvrir nos articles !
+                </p>
+                <Link href="/">
+                  <Button variant="outline">
+                    Retour à l'accueil
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

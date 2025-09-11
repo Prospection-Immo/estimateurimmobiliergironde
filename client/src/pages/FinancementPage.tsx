@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CheckCircle, Shield, Clock, Euro, Users, TrendingUp, Lightbulb, Target, Compass, Mail, Phone, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import bordeaux_house from "@assets/generated_images/Bordeaux_house_property_photo_41cf0370.png";
 
 interface FinancementPageProps {
   domain?: string;
@@ -79,13 +80,34 @@ export default function FinancementPage({ domain = "estimation-immobilier-girond
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Main Content */}
-      <section className="py-8 bg-background">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl md:text-4xl font-bold">
-              Solutions de financement immobilier en Gironde pour votre projet
+      {/* Hero Section */}
+      <section className="relative min-h-[50vh] bg-gradient-to-br from-background to-muted flex items-center">
+        {/* Hero Background */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src={bordeaux_house}
+            alt="Belle propriété en Gironde"
+            className="w-full h-full object-cover opacity-20"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-900/90 to-blue-800/80"></div>
+        </div>
+
+        <div className="relative z-10 max-w-6xl mx-auto px-4 py-12 w-full">
+          {/* Centered Title */}
+          <div className="text-center mb-6">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight">
+              Solutions de financement immobilier
             </h1>
+            <p className="text-lg sm:text-xl text-white/90 mt-3">
+              Accompagnement personnalisé
+            </p>
+          </div>
+          
+          <div className="text-center">
+            <p className="text-base sm:text-lg text-white/80 max-w-3xl mx-auto leading-relaxed">
+              Profitez d'un accompagnement personnalisé pour votre projet immobilier en Gironde. 
+              Nos experts locaux vous aident à obtenir le financement adapté à votre situation.
+            </p>
           </div>
         </div>
       </section>

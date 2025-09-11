@@ -7,6 +7,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { ArrowRight, ArrowLeft, Home, Building, User, Building2, UserCog, Target } from "lucide-react";
+import bordeaux_house from "@assets/generated_images/Bordeaux_house_property_photo_41cf0370.png";
 
 interface FormData {
   propertyType: "house" | "apartment";
@@ -117,8 +118,43 @@ export default function PropertyEstimationForm() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
-      <Card className="p-6">
+    <div className="min-h-screen bg-background">
+      {/* Hero Section */}
+      <section className="relative min-h-[50vh] bg-gradient-to-br from-background to-muted flex items-center">
+        {/* Hero Background */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src={bordeaux_house}
+            alt="Belle propriété en Gironde"
+            className="w-full h-full object-cover opacity-20"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-900/90 to-blue-800/80"></div>
+        </div>
+
+        <div className="relative z-10 max-w-6xl mx-auto px-4 py-12 w-full">
+          {/* Centered Title */}
+          <div className="text-center mb-6">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight">
+              Estimation gratuite de votre bien
+            </h1>
+            <p className="text-lg sm:text-xl text-white/90 mt-3">
+              Service d'expertise immobilière
+            </p>
+          </div>
+          
+          <div className="text-center">
+            <p className="text-base sm:text-lg text-white/80 max-w-3xl mx-auto leading-relaxed">
+              Obtenez une estimation précise et gratuite de votre propriété en Gironde. 
+              Notre expertise locale vous garantit une évaluation fiable pour votre projet de vente.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Form Section */}
+      <section className="py-16 bg-background">
+        <div className="max-w-3xl mx-auto px-4">
+          <Card className="p-6">
         {/* Progress Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -485,6 +521,8 @@ export default function PropertyEstimationForm() {
           )}
         </div>
       </Card>
+        </div>
+      </section>
     </div>
   );
 }

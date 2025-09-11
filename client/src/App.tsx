@@ -24,6 +24,7 @@ import ConfidentialitePage from "@/pages/ConfidentialitePage";
 import CookiesPage from "@/pages/CookiesPage";
 import ActualitesPageComponent from "@/pages/ActualitesPage";
 import ArticleDetailPageComponent from "@/pages/ArticleDetailPage";
+import bordeaux_house from "@assets/generated_images/Bordeaux_house_property_photo_41cf0370.png";
 
 // Utility function to detect domain from Host header
 function getDomainFromHeaders(): string {
@@ -245,11 +246,6 @@ function EstimationPage() {
     <div className="min-h-screen bg-background">
       <Header domain={domain} />
       <main>
-        <section className="py-8">
-          <div className="max-w-3xl mx-auto px-4 text-center">
-            <h1 className="text-3xl font-bold mb-4">Estimez gratuitement votre bien immobilier en Gironde</h1>
-          </div>
-        </section>
         <PropertyEstimationForm />
       </main>
       <Footer domain={domain} />
@@ -314,16 +310,42 @@ function PrixM2Page() {
   return (
     <div className="min-h-screen bg-background">
       <Header domain={domain} />
-      <main className="py-8">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-4">Prix au m² en Gironde</h1>
-            <p className="text-muted-foreground">
+      
+      {/* Hero Section */}
+      <section className="relative min-h-[50vh] bg-gradient-to-br from-background to-muted flex items-center">
+        {/* Hero Background */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src={bordeaux_house}
+            alt="Belle propriété en Gironde"
+            className="w-full h-full object-cover opacity-20"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-900/90 to-blue-800/80"></div>
+        </div>
+
+        <div className="relative z-10 max-w-6xl mx-auto px-4 py-12 w-full">
+          {/* Centered Title */}
+          <div className="text-center mb-6">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight">
+              Prix au mètre carré en Gironde
+            </h1>
+            <p className="text-lg sm:text-xl text-white/90 mt-3">
+              Données du marché immobilier
+            </p>
+          </div>
+          
+          <div className="text-center">
+            <p className="text-base sm:text-lg text-white/80 max-w-3xl mx-auto leading-relaxed">
               Découvrez les prix immobiliers actuels dans les principales villes de la Gironde. 
               Données mises à jour régulièrement selon les transactions récentes.
             </p>
           </div>
-          
+        </div>
+      </section>
+
+      {/* Price Data Section */}
+      <section className="py-16 bg-background">
+        <div className="max-w-6xl mx-auto px-4">
           {loading ? (
             <div className="text-center py-8">
               <p>Chargement des données...</p>
@@ -344,7 +366,8 @@ function PrixM2Page() {
             </div>
           )}
         </div>
-      </main>
+      </section>
+      
       <Footer domain={domain} />
     </div>
   );
