@@ -4,6 +4,33 @@ import { storage } from "./storage";
 import { insertLeadSchema, insertEstimationSchema, insertContactSchema } from "@shared/schema";
 import { z } from "zod";
 
+// Specific validation schemas for different lead types
+const insertEstimationLeadSchema = insertLeadSchema.extend({
+  propertyType: z.string().min(1),
+  address: z.string().min(1),
+  city: z.string().min(1),
+  postalCode: z.string().min(1),
+  surface: z.number().positive()
+});
+
+const insertFinancingLeadSchema = insertLeadSchema.extend({
+  financingProjectType: z.string().trim().min(1).max(100),
+  projectAmount: z.string().trim().min(1).max(50)
+}).pick({
+  email: true,
+  phone: true,
+  firstName: true,
+  lastName: true,
+  financingProjectType: true,
+  projectAmount: true,
+  source: true
+}).extend({
+  email: z.string().email().trim().max(255),
+  firstName: z.string().trim().min(1).max(100),
+  lastName: z.string().trim().min(1).max(100),
+  phone: z.string().trim().max(20).optional()
+});
+
 // Estimation algorithm based on Gironde real estate data
 function calculateEstimation(propertyData: {
   propertyType: string;
@@ -81,8 +108,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const domain = req.headers['x-domain'] as string;
       
-      // Validate the request body
-      const validatedData = insertLeadSchema.parse({
+      // Validate the request body for estimation leads
+      const validatedData = insertEstimationLeadSchema.parse({
         ...req.body,
         source: domain
       });
@@ -129,6 +156,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('Error creating estimation:', error);
+      res.status(400).json({ error: 'Invalid data provided' });
+    }
+  });
+
+  // Create financing lead
+  app.post('/api/financement-leads', async (req, res) => {
+    try {
+      const domain = req.headers['x-domain'] as string;
+      
+      // Validate the request body for financing leads
+      const validatedData = insertFinancingLeadSchema.parse({
+        ...req.body,
+        source: domain
+      });
+
+      // Save financing lead (preserving domain as source)
+      const lead = await storage.createLead({
+        ...validatedData,
+        status: 'new'
+      });
+
+      res.json(lead);
+    } catch (error) {
+      console.error('Error creating financing lead:', error);
       res.status(400).json({ error: 'Invalid data provided' });
     }
   });
