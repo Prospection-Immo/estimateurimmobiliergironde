@@ -169,6 +169,7 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>(new Date());
   const [scheduledTime, setScheduledTime] = useState("09:00");
+  const [calendarPopoverOpen, setCalendarPopoverOpen] = useState(false);
 
   // Article generation form state
   const [articleForm, setArticleForm] = useState({
@@ -211,9 +212,11 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
         Boolean(query.queryKey[0] && typeof query.queryKey[0] === 'string' && 
         query.queryKey[0].startsWith('/api/admin/articles'))
       });
+      // Close all modals and reset state
       setShowPreviewModal(false);
       setPreviewArticle(null);
       setShowScheduleModal(false);
+      setCalendarPopoverOpen(false);
     }
   });
 
@@ -275,6 +278,9 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
     },
     onSuccess: (data: GeneratedArticle) => {
       setPreviewArticle(data);
+      // Ensure only preview modal is open
+      setShowScheduleModal(false);
+      setCalendarPopoverOpen(false);
       setShowPreviewModal(true);
       setGeneratingArticle(false);
       setGenerationProgress(0);
@@ -1072,6 +1078,10 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                                 variant="outline"
                                 size="sm"
                                 onClick={() => {
+                                  // Close any open modals before opening preview
+                                  setShowPreviewModal(false);
+                                  setShowScheduleModal(false);
+                                  setCalendarPopoverOpen(false);
                                   setPreviewingArticle(article);
                                   setShowArticlePreviewModal(true);
                                 }}
@@ -1278,73 +1288,83 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
         </Tabs>
 
         {/* Enhanced Preview Modal for Generated Articles */}
-        <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
-          <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
-            <DialogHeader>
+        <Dialog 
+          open={showPreviewModal} 
+          onOpenChange={(open) => {
+            setShowPreviewModal(open);
+            if (!open) {
+              setPreviewArticle(null);
+            }
+          }}
+        >
+          <DialogContent className="max-w-6xl max-h-[90vh]">
+            <DialogHeader className="flex-shrink-0">
               <DialogTitle data-testid="modal-preview-title" className="text-xl font-bold">
                 Prévisualisation de l'article généré
               </DialogTitle>
             </DialogHeader>
             
             {previewArticle && (
-              <div className="space-y-6">
-                {/* Article Metadata Section */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                      <Label className="text-sm font-semibold text-muted-foreground">TITRE DE L'ARTICLE</Label>
-                      <div className="font-semibold text-lg mt-1">{previewArticle.title}</div>
-                    </div>
-                    
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                      <Label className="text-sm font-semibold text-muted-foreground">URL DE L'ARTICLE</Label>
-                      <div className="text-sm text-blue-600 font-mono mt-1">/{previewArticle.slug}</div>
-                    </div>
-                    
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                      <Label className="text-sm font-semibold text-muted-foreground">MOTS-CLÉS</Label>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {previewArticle.keywords.map((keyword, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            {keyword}
-                          </Badge>
-                        ))}
+              <div className="flex flex-col h-full overflow-hidden">
+                {/* Fixed Header - Article Metadata Section */}
+                <div className="flex-shrink-0 space-y-4 pb-4 border-b">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <div className="p-3 bg-muted/50 rounded-lg">
+                        <Label className="text-xs font-semibold text-muted-foreground">TITRE</Label>
+                        <div className="font-semibold mt-1">{previewArticle.title}</div>
+                      </div>
+                      
+                      <div className="p-3 bg-muted/50 rounded-lg">
+                        <Label className="text-xs font-semibold text-muted-foreground">URL</Label>
+                        <div className="text-sm text-blue-600 font-mono mt-1">/{previewArticle.slug}</div>
                       </div>
                     </div>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                      <Label className="text-sm font-semibold text-muted-foreground">META DESCRIPTION</Label>
-                      <div className="text-sm mt-1 leading-relaxed">{previewArticle.metaDescription}</div>
-                    </div>
                     
-                    {previewArticle.summary && (
-                      <div className="p-4 bg-muted/50 rounded-lg">
-                        <Label className="text-sm font-semibold text-muted-foreground">RÉSUMÉ</Label>
-                        <div className="text-sm mt-1 leading-relaxed">{previewArticle.summary}</div>
+                    <div className="space-y-3">
+                      <div className="p-3 bg-muted/50 rounded-lg">
+                        <Label className="text-xs font-semibold text-muted-foreground">META DESCRIPTION</Label>
+                        <div className="text-sm mt-1 leading-relaxed">{previewArticle.metaDescription}</div>
                       </div>
-                    )}
+                      
+                      <div className="p-3 bg-muted/50 rounded-lg">
+                        <Label className="text-xs font-semibold text-muted-foreground">MOTS-CLÉS</Label>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {previewArticle.keywords.slice(0, 4).map((keyword, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {keyword}
+                            </Badge>
+                          ))}
+                          {previewArticle.keywords.length > 4 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{previewArticle.keywords.length - 4}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 
-                {/* Content Preview Section */}
-                <div className="space-y-3">
-                  <Label className="text-lg font-semibold">Aperçu du contenu</Label>
-                  <div className="border border-border rounded-lg overflow-hidden">
-                    <div className="bg-muted/30 px-4 py-2 border-b">
+                {/* Scrollable Content Preview Section */}
+                <div className="flex-1 overflow-hidden flex flex-col pt-4">
+                  <Label className="text-lg font-semibold mb-3 flex-shrink-0">Aperçu du contenu</Label>
+                  <div className="flex-1 border border-border rounded-lg overflow-hidden bg-white dark:bg-card">
+                    <div className="bg-muted/30 px-4 py-2 border-b flex-shrink-0">
                       <span className="text-sm text-muted-foreground">Contenu HTML généré</span>
                     </div>
-                    <div 
-                      className="prose prose-sm max-w-none p-6 max-h-80 overflow-y-auto bg-white dark:bg-card"
-                      dangerouslySetInnerHTML={{ __html: previewArticle.content }}
-                    />
+                    <div className="h-full overflow-y-auto">
+                      <div 
+                        className="prose prose-sm max-w-none p-6"
+                        dangerouslySetInnerHTML={{ __html: previewArticle.content }}
+                      />
+                    </div>
                   </div>
                 </div>
                 
-                {/* Action Buttons Section */}
-                <div className="border-t pt-6">
-                  <div className="flex flex-col sm:flex-row justify-between gap-4">
+                {/* Fixed Footer - Action Buttons Section */}
+                <div className="flex-shrink-0 border-t pt-4 mt-4">
+                  <div className="flex flex-col sm:flex-row justify-between gap-3">
                     <Button
                       variant="outline"
                       onClick={() => {
@@ -1372,19 +1392,22 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                         data-testid="button-save-draft"
                       >
                         <Save className="h-4 w-4 mr-2" />
-                        Sauvegarder brouillon
+                        Brouillon
                       </Button>
                       
                       <Button
                         variant="secondary"
                         onClick={() => {
+                          // Close preview modal and open schedule modal exclusively
+                          setShowPreviewModal(false);
                           setShowScheduleModal(true);
+                          setCalendarPopoverOpen(false);
                         }}
                         disabled={createArticleMutation.isPending}
                         data-testid="button-schedule-publication"
                       >
                         <Clock className="h-4 w-4 mr-2" />
-                        Planifier publication
+                        Planifier
                       </Button>
                       
                       <Button
@@ -1404,7 +1427,7 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                         ) : (
                           <Globe className="h-4 w-4 mr-2" />
                         )}
-                        Publier maintenant
+                        Publier
                       </Button>
                     </div>
                   </div>
@@ -1414,89 +1437,124 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
           </DialogContent>
         </Dialog>
         
-        {/* Publication Scheduling Modal */}
-        <Dialog open={showScheduleModal} onOpenChange={setShowScheduleModal}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle data-testid="modal-schedule-title">Planifier la publication</DialogTitle>
-            </DialogHeader>
-            
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Date de publication</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                      data-testid="button-select-date"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {scheduledDate ? scheduledDate.toLocaleDateString('fr-FR') : "Sélectionner une date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={scheduledDate}
-                      onSelect={setScheduledDate}
-                      disabled={(date) => date < new Date()}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
+        {/* Publication Scheduling Modal - Only render when showScheduleModal is true */}
+        {showScheduleModal && (
+          <Dialog 
+            open={showScheduleModal} 
+            onOpenChange={(open) => {
+              setShowScheduleModal(open);
+              if (!open) {
+                setCalendarPopoverOpen(false);
+                setScheduledDate(new Date());
+                setScheduledTime("09:00");
+              }
+            }}
+          >
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle data-testid="modal-schedule-title">Planifier la publication</DialogTitle>
+              </DialogHeader>
               
-              <div className="space-y-2">
-                <Label>Heure de publication</Label>
-                <Input
-                  type="time"
-                  value={scheduledTime}
-                  onChange={(e) => setScheduledTime(e.target.value)}
-                  data-testid="input-schedule-time"
-                />
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Date de publication</Label>
+                  <Popover open={calendarPopoverOpen} onOpenChange={setCalendarPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                        data-testid="button-select-date"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {scheduledDate ? scheduledDate.toLocaleDateString('fr-FR') : "Sélectionner une date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={scheduledDate}
+                        onSelect={(date) => {
+                          setScheduledDate(date);
+                          setCalendarPopoverOpen(false);
+                        }}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Heure de publication</Label>
+                  <Input
+                    type="time"
+                    value={scheduledTime}
+                    onChange={(e) => setScheduledTime(e.target.value)}
+                    data-testid="input-schedule-time"
+                  />
+                </div>
+                
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowScheduleModal(false);
+                      setCalendarPopoverOpen(false);
+                      // Re-open preview modal if article exists
+                      if (previewArticle) {
+                        setShowPreviewModal(true);
+                      }
+                    }}
+                    className="flex-1"
+                    data-testid="button-cancel-schedule"
+                  >
+                    Retour
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      if (scheduledDate && previewArticle) {
+                        const [hours, minutes] = scheduledTime.split(':');
+                        const scheduledDateTime = new Date(scheduledDate);
+                        scheduledDateTime.setHours(parseInt(hours), parseInt(minutes));
+                        
+                        createArticleMutation.mutate({
+                          ...previewArticle,
+                          status: 'published',
+                          publishedAt: scheduledDateTime.toISOString(),
+                          keywords: JSON.stringify(previewArticle.keywords)
+                        });
+                      }
+                    }}
+                    disabled={!scheduledDate || createArticleMutation.isPending}
+                    className="flex-1"
+                    data-testid="button-confirm-schedule"
+                  >
+                    {createArticleMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Clock className="h-4 w-4 mr-2" />
+                    )}
+                    Planifier
+                  </Button>
+                </div>
               </div>
-              
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowScheduleModal(false)}
-                  data-testid="button-cancel-schedule"
-                >
-                  Annuler
-                </Button>
-                <Button
-                  onClick={() => {
-                    if (scheduledDate && previewArticle) {
-                      const [hours, minutes] = scheduledTime.split(':');
-                      const scheduledDateTime = new Date(scheduledDate);
-                      scheduledDateTime.setHours(parseInt(hours), parseInt(minutes));
-                      
-                      createArticleMutation.mutate({
-                        ...previewArticle,
-                        status: 'scheduled',
-                        scheduledFor: scheduledDateTime.toISOString(),
-                        keywords: JSON.stringify(previewArticle.keywords)
-                      });
-                    }
-                  }}
-                  disabled={!scheduledDate || createArticleMutation.isPending}
-                  data-testid="button-confirm-schedule"
-                >
-                  {createArticleMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                  )}
-                  Planifier
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        )}
 
         {/* Article Preview Modal */}
-        <Dialog open={showArticlePreviewModal} onOpenChange={setShowArticlePreviewModal}>
+        <Dialog 
+          open={showArticlePreviewModal} 
+          onOpenChange={(open) => {
+            setShowArticlePreviewModal(open);
+            if (!open) {
+              setPreviewingArticle(null);
+              // Ensure other modals are closed
+              setShowScheduleModal(false);
+              setCalendarPopoverOpen(false);
+            }
+          }}
+        >
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle data-testid="modal-article-preview-title" className="text-xl font-bold">
