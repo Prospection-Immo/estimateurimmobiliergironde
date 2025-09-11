@@ -6,18 +6,24 @@ import {
   type Estimation, 
   type Contact,
   type Article,
+  type EmailTemplate,
+  type EmailHistory,
   type InsertUser, 
   type InsertLead, 
   type InsertEstimation, 
   type InsertContact,
   type InsertArticle,
+  type InsertEmailTemplate,
+  type InsertEmailHistory,
   users,
   leads,
   estimations,
   contacts,
-  articles
+  articles,
+  emailTemplates,
+  emailHistory
 } from "@shared/schema";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, and } from "drizzle-orm";
 
 // Database connection
 const connectionString = process.env.DATABASE_URL!;
@@ -51,6 +57,19 @@ export interface IStorage {
   getArticlesByCategory(category: string, limit?: number): Promise<Article[]>;
   updateArticle(id: string, updates: Partial<InsertArticle>): Promise<Article>;
   deleteArticle(id: string): Promise<void>;
+  
+  // Email Templates
+  createEmailTemplate(template: InsertEmailTemplate): Promise<EmailTemplate>;
+  getEmailTemplates(category?: string): Promise<EmailTemplate[]>;
+  getEmailTemplateById(id: string): Promise<EmailTemplate | undefined>;
+  getEmailTemplateByCategory(category: string): Promise<EmailTemplate | undefined>;
+  updateEmailTemplate(id: string, updates: Partial<InsertEmailTemplate>): Promise<EmailTemplate>;
+  deleteEmailTemplate(id: string): Promise<void>;
+  
+  // Email History
+  createEmailHistory(history: InsertEmailHistory): Promise<EmailHistory>;
+  getEmailHistory(limit?: number, status?: string): Promise<EmailHistory[]>;
+  updateEmailHistoryStatus(id: string, status: string, errorMessage?: string): Promise<void>;
 }
 
 export class SupabaseStorage implements IStorage {
@@ -119,8 +138,6 @@ export class SupabaseStorage implements IStorage {
   }
 
   async getAllArticles(limit = 50, status?: string, category?: string, searchQuery?: string): Promise<Article[]> {
-    let query = db.select().from(articles);
-
     // Apply filters
     const conditions = [];
     if (status && status !== 'all') {
@@ -137,14 +154,15 @@ export class SupabaseStorage implements IStorage {
     }
 
     if (conditions.length > 0) {
-      const combinedCondition = conditions.reduce((acc, condition, index) => 
-        index === 0 ? condition : sql`${acc} AND ${condition}`
-      );
-      query = query.where(combinedCondition);
+      return await db.select().from(articles)
+        .where(and(...conditions))
+        .orderBy(desc(articles.createdAt))
+        .limit(limit);
     }
 
-    const result = await query.orderBy(desc(articles.createdAt)).limit(limit);
-    return result;
+    return await db.select().from(articles)
+      .orderBy(desc(articles.createdAt))
+      .limit(limit);
   }
 
   async getArticleBySlug(slug: string): Promise<Article | undefined> {
@@ -169,6 +187,80 @@ export class SupabaseStorage implements IStorage {
 
   async deleteArticle(id: string): Promise<void> {
     await db.delete(articles).where(eq(articles.id, id));
+  }
+
+  // Email Templates
+  async createEmailTemplate(insertEmailTemplate: InsertEmailTemplate): Promise<EmailTemplate> {
+    const result = await db.insert(emailTemplates).values(insertEmailTemplate).returning();
+    return result[0];
+  }
+
+  async getEmailTemplates(category?: string): Promise<EmailTemplate[]> {
+    if (category) {
+      return await db.select().from(emailTemplates)
+        .where(eq(emailTemplates.category, category))
+        .orderBy(desc(emailTemplates.createdAt));
+    }
+    
+    return await db.select().from(emailTemplates)
+      .orderBy(desc(emailTemplates.createdAt));
+  }
+
+  async getEmailTemplateById(id: string): Promise<EmailTemplate | undefined> {
+    const result = await db.select().from(emailTemplates).where(eq(emailTemplates.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getEmailTemplateByCategory(category: string): Promise<EmailTemplate | undefined> {
+    const result = await db.select().from(emailTemplates)
+      .where(and(
+        eq(emailTemplates.category, category),
+        eq(emailTemplates.isActive, true)
+      ))
+      .limit(1);
+    return result[0];
+  }
+
+  async updateEmailTemplate(id: string, updates: Partial<InsertEmailTemplate>): Promise<EmailTemplate> {
+    const result = await db.update(emailTemplates)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(emailTemplates.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteEmailTemplate(id: string): Promise<void> {
+    await db.delete(emailTemplates).where(eq(emailTemplates.id, id));
+  }
+
+  // Email History
+  async createEmailHistory(insertEmailHistory: InsertEmailHistory): Promise<EmailHistory> {
+    const result = await db.insert(emailHistory).values(insertEmailHistory).returning();
+    return result[0];
+  }
+
+  async getEmailHistory(limit = 50, status?: string): Promise<EmailHistory[]> {
+    if (status) {
+      return await db.select().from(emailHistory)
+        .where(eq(emailHistory.status, status))
+        .orderBy(desc(emailHistory.createdAt))
+        .limit(limit);
+    }
+    
+    return await db.select().from(emailHistory)
+      .orderBy(desc(emailHistory.createdAt))
+      .limit(limit);
+  }
+
+  async updateEmailHistoryStatus(id: string, status: string, errorMessage?: string): Promise<void> {
+    const updates: { status: string; errorMessage?: string; sentAt?: Date } = { status };
+    if (errorMessage) {
+      updates.errorMessage = errorMessage;
+    }
+    if (status === 'sent') {
+      updates.sentAt = new Date();
+    }
+    await db.update(emailHistory).set(updates).where(eq(emailHistory.id, id));
   }
 }
 

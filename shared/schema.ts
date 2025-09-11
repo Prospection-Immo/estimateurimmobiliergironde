@@ -90,12 +90,42 @@ export const articles = pgTable("articles", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const emailTemplates = pgTable("email_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  subject: text("subject").notNull(),
+  htmlContent: text("html_content").notNull(),
+  textContent: text("text_content").notNull(),
+  category: text("category").notNull(), // "contact_confirmation", "estimation_confirmation", etc.
+  isActive: boolean("is_active").notNull().default(true),
+  variables: text("variables"), // JSON array of available variables for this template
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const emailHistory = pgTable("email_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  templateId: varchar("template_id").references(() => emailTemplates.id),
+  recipientEmail: text("recipient_email").notNull(),
+  recipientName: text("recipient_name"),
+  senderEmail: text("sender_email").notNull(),
+  subject: text("subject").notNull(),
+  htmlContent: text("html_content"),
+  textContent: text("text_content"),
+  status: text("status").notNull().default("pending"), // "pending" | "sent" | "failed" | "bounced"
+  errorMessage: text("error_message"),
+  sentAt: timestamp("sent_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertLeadSchema = createInsertSchema(leads).omit({ id: true, createdAt: true });
 export const insertEstimationSchema = createInsertSchema(estimations).omit({ id: true, createdAt: true });
 export const insertContactSchema = createInsertSchema(contacts).omit({ id: true, createdAt: true });
 export const insertArticleSchema = createInsertSchema(articles).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertEmailHistorySchema = createInsertSchema(emailHistory).omit({ id: true, createdAt: true });
 
 // Types
 export type User = typeof users.$inferSelect;
@@ -103,9 +133,13 @@ export type Lead = typeof leads.$inferSelect;
 export type Estimation = typeof estimations.$inferSelect;
 export type Contact = typeof contacts.$inferSelect;
 export type Article = typeof articles.$inferSelect;
+export type EmailTemplate = typeof emailTemplates.$inferSelect;
+export type EmailHistory = typeof emailHistory.$inferSelect;
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertLead = z.infer<typeof insertLeadSchema>;
 export type InsertEstimation = z.infer<typeof insertEstimationSchema>;
 export type InsertContact = z.infer<typeof insertContactSchema>;
 export type InsertArticle = z.infer<typeof insertArticleSchema>;
+export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
+export type InsertEmailHistory = z.infer<typeof insertEmailHistorySchema>;

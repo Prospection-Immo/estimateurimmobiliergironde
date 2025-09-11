@@ -15,7 +15,7 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 39867
+localPort = 38707
 externalPort = 3002
 
 [[ports]]
@@ -51,4 +51,4 @@ args = "npm run dev"
 waitForPort = 5000
 
 [agent]
-integrations = ["javascript_supabase:1.0.0", "javascript_openai:1.0.0", "perplexity_v0:1.0.0"]
+integrations = ["javascript_supabase:1.0.0", "javascript_openai:1.0.0", "perplexity_v0:1.0.0", "javascript_sendgrid:1.0.0"]

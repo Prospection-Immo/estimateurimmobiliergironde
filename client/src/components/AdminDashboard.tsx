@@ -39,7 +39,13 @@ import {
   Calendar as CalendarIcon,
   ChevronDown,
   CheckCircle,
-  Loader2
+  Loader2,
+  Send,
+  Settings,
+  History,
+  TestTube,
+  BarChart3,
+  Filter
 } from "lucide-react";
 
 interface Lead {
@@ -120,6 +126,41 @@ interface Article {
   createdAt?: string;
 }
 
+interface EmailTemplate {
+  id: string;
+  name: string;
+  subject: string;
+  htmlContent: string;
+  textContent: string;
+  category: string;
+  isActive: boolean;
+  variables?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface EmailHistory {
+  id: string;
+  templateId?: string;
+  recipientEmail: string;
+  recipientName?: string;
+  senderEmail: string;
+  subject: string;
+  htmlContent?: string;
+  textContent?: string;
+  status: 'pending' | 'sent' | 'failed' | 'bounced';
+  errorMessage?: string;
+  sentAt?: string;
+  createdAt?: string;
+}
+
+interface EmailStats {
+  totalSent: number;
+  totalFailed: number;
+  sentToday: number;
+  successRate: string;
+}
+
 interface GeneratedArticle {
   title: string;
   slug: string;
@@ -184,6 +225,34 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
   const [showArticlePreviewModal, setShowArticlePreviewModal] = useState(false);
   const [previewingArticle, setPreviewingArticle] = useState<Article | null>(null);
 
+  // Email management state
+  const [emailSearchTerm, setEmailSearchTerm] = useState("");
+  const [emailStatusFilter, setEmailStatusFilter] = useState("all");
+  const [emailCategoryFilter, setEmailCategoryFilter] = useState("all");
+  const [activeEmailTab, setActiveEmailTab] = useState("history");
+  const [emailStats, setEmailStats] = useState<EmailStats | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [showTestEmailModal, setShowTestEmailModal] = useState(false);
+  const [testEmailForm, setTestEmailForm] = useState({ email: "", name: "" });
+  const [emailHistory, setEmailHistory] = useState<EmailHistory[]>([]);
+  const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
+  const [templateForm, setTemplateForm] = useState({
+    name: "",
+    subject: "",
+    htmlContent: "",
+    textContent: "",
+    category: "contact_confirmation",
+    isActive: true,
+    variables: "[]"
+  });
+  const [showBulkEmailModal, setShowBulkEmailModal] = useState(false);
+  const [bulkEmailForm, setBulkEmailForm] = useState({
+    templateId: "",
+    recipients: "",
+    delay: 1000
+  });
+
   const queryClientInstance = useQueryClient();
 
   // React Query hooks for articles
@@ -197,6 +266,19 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
   
   const { data: articles = [], isLoading: articlesLoading, error: articlesError } = useQuery<Article[]>({
     queryKey: [articlesUrl],
+    enabled: isAuthenticated === true,
+    staleTime: 0
+  });
+
+  // Email React Query hooks
+  const { data: emailTemplatesData = [], isLoading: emailTemplatesLoading } = useQuery<EmailTemplate[]>({
+    queryKey: ['/api/admin/emails/templates', emailCategoryFilter],
+    enabled: isAuthenticated === true,
+    staleTime: 0
+  });
+
+  const { data: emailHistoryData = [], isLoading: emailHistoryLoading } = useQuery<EmailHistory[]>({
+    queryKey: ['/api/admin/emails/history', emailStatusFilter],
     enabled: isAuthenticated === true,
     staleTime: 0
   });
@@ -565,11 +647,12 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
 
         {/* Main Content */}
         <Tabs defaultValue="leads" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="leads" data-testid="tab-leads">Leads</TabsTrigger>
             <TabsTrigger value="estimations" data-testid="tab-estimations">Estimations</TabsTrigger>
             <TabsTrigger value="contacts" data-testid="tab-contacts">Messages</TabsTrigger>
             <TabsTrigger value="articles" data-testid="tab-articles">Articles</TabsTrigger>
+            <TabsTrigger value="emails" data-testid="tab-emails">Emails</TabsTrigger>
           </TabsList>
 
           <TabsContent value="leads" className="space-y-6">

@@ -1,9 +1,10 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertLeadSchema, insertEstimationSchema, insertContactSchema, insertArticleSchema } from "@shared/schema";
+import { insertLeadSchema, insertEstimationSchema, insertContactSchema, insertArticleSchema, insertEmailTemplateSchema, insertEmailHistorySchema } from "@shared/schema";
 import { sanitizeArticleContent } from "./services/htmlSanitizer";
 import { generateRealEstateArticle } from "./services/openai";
+import emailService from "./services/emailService";
 import { z } from "zod";
 
 // Specific validation schemas for different lead types
@@ -687,6 +688,242 @@ Réponds en JSON avec cette structure exacte :
     } catch (error) {
       console.error('Error generating article:', error);
       res.status(500).json({ error: 'Failed to generate article content' });
+    }
+  });
+
+  // Email Templates Management Routes
+  app.get('/api/admin/emails/templates', requireAuth, async (req, res) => {
+    try {
+      const { category } = req.query;
+      const templates = await storage.getEmailTemplates(category as string);
+      res.json(templates);
+    } catch (error) {
+      console.error('Error fetching email templates:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.get('/api/admin/emails/templates/:id', requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const template = await storage.getEmailTemplateById(id);
+      if (!template) {
+        return res.status(404).json({ error: 'Template not found' });
+      }
+      res.json(template);
+    } catch (error) {
+      console.error('Error fetching email template:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.post('/api/admin/emails/templates', requireAuth, async (req, res) => {
+    try {
+      const validation = insertEmailTemplateSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({
+          error: 'Validation failed',
+          details: validation.error.errors
+        });
+      }
+
+      const template = await storage.createEmailTemplate(validation.data);
+      res.status(201).json(template);
+    } catch (error) {
+      console.error('Error creating email template:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.put('/api/admin/emails/templates/:id', requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validation = insertEmailTemplateSchema.partial().safeParse(req.body);
+      
+      if (!validation.success) {
+        return res.status(400).json({
+          error: 'Validation failed',
+          details: validation.error.errors
+        });
+      }
+
+      const template = await storage.updateEmailTemplate(id, validation.data);
+      res.json(template);
+    } catch (error) {
+      console.error('Error updating email template:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.delete('/api/admin/emails/templates/:id', requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteEmailTemplate(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error deleting email template:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Email History Routes
+  app.get('/api/admin/emails/history', requireAuth, async (req, res) => {
+    try {
+      const { status, limit } = req.query;
+      const history = await storage.getEmailHistory(
+        limit ? parseInt(limit as string) : 50,
+        status as string
+      );
+      res.json(history);
+    } catch (error) {
+      console.error('Error fetching email history:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Email Test Route
+  app.post('/api/admin/emails/test', requireAuth, async (req, res) => {
+    try {
+      const { email, name } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ error: 'Email address is required' });
+      }
+
+      const result = await emailService.sendTestEmail(email, name);
+      
+      if (result.success) {
+        res.json({ 
+          success: true, 
+          message: 'Test email sent successfully',
+          messageId: result.messageId
+        });
+      } else {
+        res.status(500).json({ 
+          error: 'Failed to send test email',
+          details: result.error
+        });
+      }
+    } catch (error) {
+      console.error('Error sending test email:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Email Connection Test Route  
+  app.post('/api/admin/emails/test-connection', requireAuth, async (req, res) => {
+    try {
+      const result = await emailService.testConnection();
+      
+      if (result.success) {
+        res.json({ 
+          success: true, 
+          message: 'SMTP connection successful' 
+        });
+      } else {
+        res.status(500).json({ 
+          error: 'SMTP connection failed',
+          details: result.error
+        });
+      }
+    } catch (error) {
+      console.error('Error testing email connection:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Send Individual Email Route
+  app.post('/api/admin/emails/send', requireAuth, async (req, res) => {
+    try {
+      const { templateId, to, toName, variables } = req.body;
+      
+      if (!templateId || !to) {
+        return res.status(400).json({ 
+          error: 'Template ID and recipient email are required' 
+        });
+      }
+
+      const template = await storage.getEmailTemplateById(templateId);
+      if (!template) {
+        return res.status(404).json({ error: 'Template not found' });
+      }
+
+      const result = await emailService.sendTemplatedEmail(
+        template,
+        variables || {},
+        to,
+        toName
+      );
+
+      // Save to history
+      if (result.emailHistory) {
+        await storage.createEmailHistory(result.emailHistory);
+      }
+
+      if (result.success) {
+        res.json({ 
+          success: true, 
+          message: 'Email sent successfully',
+          messageId: result.messageId
+        });
+      } else {
+        res.status(500).json({ 
+          error: 'Failed to send email',
+          details: result.error
+        });
+      }
+    } catch (error) {
+      console.error('Error sending email:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Bulk Email Route
+  app.post('/api/admin/emails/bulk', requireAuth, async (req, res) => {
+    try {
+      const { templateId, recipients, delay = 1000 } = req.body;
+      
+      if (!templateId || !recipients || !Array.isArray(recipients)) {
+        return res.status(400).json({ 
+          error: 'Template ID and recipients array are required' 
+        });
+      }
+
+      const template = await storage.getEmailTemplateById(templateId);
+      if (!template) {
+        return res.status(404).json({ error: 'Template not found' });
+      }
+
+      const result = await emailService.sendBulkEmails(template, recipients, delay);
+      
+      // Save all results to history
+      for (const recipientResult of result.results) {
+        const emailHistory = {
+          templateId: template.id,
+          recipientEmail: recipientResult.email,
+          recipientName: recipients.find(r => r.email === recipientResult.email)?.name,
+          senderEmail: 'no-reply@estimation-immobilier-gironde.fr',
+          subject: template.subject,
+          htmlContent: template.htmlContent,
+          textContent: template.textContent,
+          status: recipientResult.success ? 'sent' : 'failed',
+          errorMessage: recipientResult.error,
+          sentAt: recipientResult.success ? new Date() : null
+        };
+        
+        await storage.createEmailHistory(emailHistory);
+      }
+
+      res.json({
+        success: true,
+        message: `Bulk email completed: ${result.sent} sent, ${result.failed} failed`,
+        sent: result.sent,
+        failed: result.failed,
+        results: result.results
+      });
+    } catch (error) {
+      console.error('Error sending bulk emails:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 
