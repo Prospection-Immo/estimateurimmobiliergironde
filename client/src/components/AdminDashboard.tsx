@@ -48,31 +48,9 @@ import {
   Filter
 } from "lucide-react";
 
-interface Lead {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone?: string;
-  propertyType: string;
-  address?: string;
-  city: string;
-  postalCode?: string;
-  surface?: number;
-  estimatedValue?: string;
-  leadType: string;
-  status: string;
-  createdAt?: string;
-}
+import type { Lead, Estimation, Contact, Article, EmailTemplate, EmailHistory } from "@shared/schema";
 
-interface Estimation {
-  id: string;
-  leadId: string;
-  propertyType: string;
-  address: string;
-  city: string;
-  surface: number;
-  rooms: number;
+interface EstimationDisplay extends Estimation {
   estimatedValue: string;
   pricePerM2: string;
   confidence: number;
@@ -280,20 +258,26 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
 
   // Email data state
   useEffect(() => {
-    if (emailHistoryQuery.data) {
+    if (emailHistoryQuery.data && Array.isArray(emailHistoryQuery.data)) {
       setEmailHistory(emailHistoryQuery.data);
+    } else {
+      setEmailHistory([]);
     }
   }, [emailHistoryQuery.data]);
 
   useEffect(() => {
-    if (emailTemplatesQuery.data) {
+    if (emailTemplatesQuery.data && Array.isArray(emailTemplatesQuery.data)) {
       setEmailTemplates(emailTemplatesQuery.data);
+    } else {
+      setEmailTemplates([]);
     }
   }, [emailTemplatesQuery.data]);
 
   useEffect(() => {
     if (emailStatsQuery.data) {
       setEmailStats(emailStatsQuery.data);
+    } else {
+      setEmailStats(null);
     }
   }, [emailStatsQuery.data]);
 
@@ -1093,8 +1077,7 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                       </div>
                     </div>
                     );
-                  })
-                  ))}
+                  })}
                   {estimations.length === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
                       <Calculator className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -1649,7 +1632,7 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                 <Card className="p-6">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold">Historique des emails ({emailHistoryQuery.data?.length || 0})</h3>
+                      <h3 className="text-lg font-semibold">Historique des emails ({Array.isArray(emailHistoryQuery.data) ? emailHistoryQuery.data.length : 0})</h3>
                       <Badge variant="outline" className="text-xs">
                         {emailStats && `${emailStats.totalSent} envoyés aujourd'hui`}
                       </Badge>
@@ -1752,7 +1735,7 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                 <Card className="p-6">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold">Templates d'email ({emailTemplatesQuery.data?.length || 0})</h3>
+                      <h3 className="text-lg font-semibold">Templates d'email ({Array.isArray(emailTemplatesQuery.data) ? emailTemplatesQuery.data.length : 0})</h3>
                       <Button 
                         onClick={() => {
                           setTemplateForm({
