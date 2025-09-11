@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
-import { ArrowRight, ArrowLeft, Home, Building } from "lucide-react";
+import { ArrowRight, ArrowLeft, Home, Building, User, Building2, UserCog, Target } from "lucide-react";
 
 interface FormData {
   propertyType: "house" | "apartment";
@@ -26,6 +26,7 @@ interface FormData {
   email: string;
   phone: string;
   saleTimeline: "3m" | "6m" | "immediate";
+  saleMethod: "self" | "agency" | "advisor" | "coach";
   wantsExpertContact: boolean;
 }
 
@@ -47,6 +48,7 @@ const INITIAL_FORM_DATA: FormData = {
   email: "",
   phone: "",
   saleTimeline: "6m",
+  saleMethod: "agency",
   wantsExpertContact: false,
 };
 
@@ -91,6 +93,7 @@ export default function PropertyEstimationForm() {
           bathrooms: parseInt(formData.bathrooms) || 0,
           constructionYear: parseInt(formData.constructionYear) || undefined,
           saleTimeline: formData.saleTimeline,
+          saleMethod: formData.saleMethod,
           wantsExpertContact: formData.wantsExpertContact,
         }),
       });
@@ -372,6 +375,57 @@ export default function PropertyEstimationForm() {
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="immediate" id="timeline-immediate" data-testid="radio-timeline-immediate" />
                   <Label htmlFor="timeline-immediate" className="cursor-pointer">Vente immédiate</Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            {/* Sale Method Section */}
+            <div className="space-y-4 pt-4 border-t border-border">
+              <Label>Comment comptez-vous vendre votre bien ?</Label>
+              <RadioGroup
+                value={formData.saleMethod}
+                onValueChange={(value) => updateFormData("saleMethod", value)}
+                className="grid grid-cols-1 md:grid-cols-2 gap-4"
+              >
+                <div className="flex items-center space-x-2 p-4 border border-border rounded-lg hover-elevate cursor-pointer">
+                  <RadioGroupItem value="self" id="sale-self" data-testid="radio-sale-self" />
+                  <Label htmlFor="sale-self" className="flex items-center space-x-3 cursor-pointer">
+                    <User className="h-6 w-6 text-primary" />
+                    <div>
+                      <p className="font-medium">Par moi-même</p>
+                      <p className="text-sm text-muted-foreground">Vente directe</p>
+                    </div>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 p-4 border border-border rounded-lg hover-elevate cursor-pointer">
+                  <RadioGroupItem value="agency" id="sale-agency" data-testid="radio-sale-agency" />
+                  <Label htmlFor="sale-agency" className="flex items-center space-x-3 cursor-pointer">
+                    <Building2 className="h-6 w-6 text-primary" />
+                    <div>
+                      <p className="font-medium">Avec une agence</p>
+                      <p className="text-sm text-muted-foreground">Agence immobilière</p>
+                    </div>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 p-4 border border-border rounded-lg hover-elevate cursor-pointer">
+                  <RadioGroupItem value="advisor" id="sale-advisor" data-testid="radio-sale-advisor" />
+                  <Label htmlFor="sale-advisor" className="flex items-center space-x-3 cursor-pointer">
+                    <UserCog className="h-6 w-6 text-primary" />
+                    <div>
+                      <p className="font-medium">Avec un conseiller</p>
+                      <p className="text-sm text-muted-foreground">Conseiller immobilier</p>
+                    </div>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 p-4 border border-border rounded-lg hover-elevate cursor-pointer">
+                  <RadioGroupItem value="coach" id="sale-coach" data-testid="radio-sale-coach" />
+                  <Label htmlFor="sale-coach" className="flex items-center space-x-3 cursor-pointer">
+                    <Target className="h-6 w-6 text-primary" />
+                    <div>
+                      <p className="font-medium">Avec un coach</p>
+                      <p className="text-sm text-muted-foreground">Coach immobilier</p>
+                    </div>
+                  </Label>
                 </div>
               </RadioGroup>
 
