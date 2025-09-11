@@ -6,6 +6,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Zap, MapPin, Search, Mail, Eye, EyeOff, Brain, Target, Rocket, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Link } from "wouter";
 
 // Components
 import Header from "@/components/Header";
@@ -38,6 +41,59 @@ function HomePage() {
       <Header domain={domain} />
       <main>
         <Hero domain={domain} />
+        
+        {/* Section Estimateur */}
+        <section className="py-16 bg-muted/20">
+          <div className="max-w-4xl mx-auto px-4">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl sm:text-3xl font-bold mb-4">Estimez votre bien gratuitement</h2>
+              <p className="text-muted-foreground">
+                Remplissez ces informations simples pour obtenir une estimation précise de votre propriété
+              </p>
+            </div>
+            <div className="max-w-2xl mx-auto">
+              <Card className="p-6 bg-card border-card-border">
+                <h3 className="text-xl font-semibold mb-6 text-card-foreground text-center">
+                  Découvrez la valeur réelle de votre bien sur le prix du marché
+                </h3>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-card-foreground block mb-2">Type de bien</label>
+                      <select className="w-full p-3 border border-border rounded-md bg-background" data-testid="select-property-type">
+                        <option>Maison</option>
+                        <option>Appartement</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-card-foreground block mb-2">Surface (m²)</label>
+                      <input
+                        type="number"
+                        placeholder="Ex: 120"
+                        className="w-full p-3 border border-border rounded-md bg-background"
+                        data-testid="input-surface"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-card-foreground block mb-2">Ville</label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Bordeaux"
+                      className="w-full p-3 border border-border rounded-md bg-background"
+                      data-testid="input-city"
+                    />
+                  </div>
+                  <Link href="/estimation" className="block mt-6">
+                    <Button className="w-full py-3 text-lg" data-testid="button-quick-estimate">
+                      Découvrir mes résultats maintenant
+                    </Button>
+                  </Link>
+                </div>
+              </Card>
+            </div>
+          </div>
+        </section>
         
         {/* 3 Blocs Section */}
         <section className="py-16 bg-background">

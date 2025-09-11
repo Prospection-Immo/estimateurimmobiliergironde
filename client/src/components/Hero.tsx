@@ -1,7 +1,3 @@
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Calculator, MapPin, Shield, BarChart3, Zap } from "lucide-react";
-import { Link } from "wouter";
 import bordeaux_house from "@assets/generated_images/Bordeaux_house_property_photo_41cf0370.png";
 
 interface HeroProps {
@@ -32,58 +28,11 @@ export default function Hero({ domain = "estimation-immobilier-gironde.fr" }: He
           </h1>
         </div>
         
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-start lg:items-center">
-          {/* Content */}
-          <div className="space-y-8">
-            <div className="space-y-6">
-              <p className="text-base sm:text-lg text-muted-foreground max-w-xl leading-relaxed">
-                Chaque mois en Gironde, des centaines de propriétaires comme vous perdent des milliers d'euros en vendant leur bien 15 à 30% sous sa vraie valeur. 
-                Notre nouvelle solution d'estimation vous garantit d'éviter cette erreur coûteuse.
-              </p>
-            </div>
-
-          </div>
-
-          {/* Quick Estimation Card */}
-          <Card className="p-6 bg-card/80 backdrop-blur-sm border-card-border">
-            <h3 className="text-xl font-semibold mb-4 text-card-foreground text-center">
-              Découvrez la valeur réelle de votre bien sur le prix du marché
-            </h3>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-card-foreground">Type</label>
-                  <select className="w-full mt-1 p-2 border border-border rounded-md bg-background" data-testid="select-property-type">
-                    <option>Maison</option>
-                    <option>Appartement</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-card-foreground">Surface</label>
-                  <input
-                    type="number"
-                    placeholder="m²"
-                    className="w-full mt-1 p-2 border border-border rounded-md bg-background"
-                    data-testid="input-surface"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-card-foreground">Ville</label>
-                <input
-                  type="text"
-                  placeholder="Ex: Bordeaux"
-                  className="w-full mt-1 p-2 border border-border rounded-md bg-background"
-                  data-testid="input-city"
-                />
-              </div>
-              <Link href="/estimation" className="block">
-                <Button className="w-full" data-testid="button-quick-estimate">
-                  Découvrir mes résultats maintenant
-                </Button>
-              </Link>
-            </div>
-          </Card>
+        <div className="text-center">
+          <p className="text-base sm:text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+            Chaque mois en Gironde, des centaines de propriétaires comme vous perdent des milliers d'euros en vendant leur bien 15 à 30% sous sa vraie valeur. 
+            Notre nouvelle solution d'estimation vous garantit d'éviter cette erreur coûteuse.
+          </p>
         </div>
       </div>
     </section>
