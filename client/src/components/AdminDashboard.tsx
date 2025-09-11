@@ -888,57 +888,212 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                     !searchTerm || 
                     estimation.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     estimation.address.toLowerCase().includes(searchTerm.toLowerCase())
-                  ).map((estimation) => (
+                  ).map((estimation) => {
+                    // Find the associated lead for this estimation
+                    const associatedLead = leads.find(lead => lead.id === estimation.leadId);
+                    
+                    return (
                     <div
                       key={estimation.id}
-                      className="flex items-center justify-between p-4 border border-border rounded-lg hover-elevate"
+                      className="p-6 border border-border rounded-lg hover-elevate space-y-4"
                       data-testid={`card-estimation-${estimation.id}`}
                     >
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center space-x-3">
-                          <h4 className="font-medium">
-                            {estimation.address}, {estimation.city}
-                          </h4>
-                          <Badge variant="outline" className="text-xs">
-                            {estimation.propertyType === 'house' ? 'Maison' : 'Appartement'}
-                          </Badge>
+                      {/* Header with main info and pricing */}
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center space-x-3">
+                            <h4 className="font-medium text-lg">
+                              {estimation.address}, {estimation.city}
+                            </h4>
+                            <Badge variant="outline" className="text-xs">
+                              {estimation.propertyType === 'house' ? 'Maison' : 'Appartement'}
+                            </Badge>
+                          </div>
+                          
+                          {/* Contact Information */}
+                          {associatedLead && (
+                            <div className="space-y-2">
+                              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                                <div className="flex items-center space-x-1">
+                                  <User className="h-3 w-3" />
+                                  <span className="font-medium text-foreground">
+                                    {associatedLead.firstName} {associatedLead.lastName}
+                                  </span>
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                  <Mail className="h-3 w-3" />
+                                  <span>{associatedLead.email}</span>
+                                </div>
+                                {associatedLead.phone && (
+                                  <div className="flex items-center space-x-1">
+                                    <Phone className="h-3 w-3" />
+                                    <span>{associatedLead.phone}</span>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              <div className="flex items-center space-x-2">
+                                <Badge 
+                                  variant={getLeadTypeBadge(associatedLead.leadType).variant}
+                                  className={`text-xs ${getLeadTypeBadge(associatedLead.leadType).color}`}
+                                >
+                                  {getLeadTypeBadge(associatedLead.leadType).label}
+                                </Badge>
+                                <Badge 
+                                  variant={getStatusBadge(associatedLead.status).variant}
+                                >
+                                  {getStatusBadge(associatedLead.status).label}
+                                </Badge>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                          <div className="flex items-center space-x-1">
-                            <div className="h-3 w-3 bg-primary rounded-full" />
-                            <span>{estimation.surface} m²</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <div className="h-3 w-3 bg-secondary rounded-full" />
-                            <span>{estimation.rooms} pièces</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <div className="h-3 w-3 bg-green-500 rounded-full" />
+                        
+                        <div className="text-right space-y-1">
+                          <p className="text-2xl font-bold text-primary">
+                            {parseFloat(estimation.estimatedValue).toLocaleString()} €
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {parseFloat(estimation.pricePerM2).toLocaleString()} €/m²
+                          </p>
+                          <div className="flex items-center justify-end space-x-1 text-xs text-muted-foreground">
+                            <div className="h-2 w-2 bg-green-500 rounded-full" />
                             <span>Confiance: {estimation.confidence}%</span>
                           </div>
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          Créée le {new Date(estimation.createdAt).toLocaleDateString('fr-FR', {
-                            day: '2-digit',
-                            month: '2-digit', 
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
+                      </div>
+
+                      {/* Property Details */}
+                      <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-border">
+                        <div className="space-y-3">
+                          <h5 className="font-medium text-sm text-foreground">Détails du bien</h5>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Surface:</span>
+                              <span className="font-medium">{estimation.surface} m²</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Pièces:</span>
+                              <span className="font-medium">{estimation.rooms}</span>
+                            </div>
+                            {associatedLead && (
+                              <>
+                                {associatedLead.bedrooms && (
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Chambres:</span>
+                                    <span className="font-medium">{associatedLead.bedrooms}</span>
+                                  </div>
+                                )}
+                                {associatedLead.bathrooms && (
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Salles de bain:</span>
+                                    <span className="font-medium">{associatedLead.bathrooms}</span>
+                                  </div>
+                                )}
+                                {associatedLead.constructionYear && (
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Année:</span>
+                                    <span className="font-medium">{associatedLead.constructionYear}</span>
+                                  </div>
+                                )}
+                                {associatedLead.postalCode && (
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Code postal:</span>
+                                    <span className="font-medium">{associatedLead.postalCode}</span>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+
+                          {/* Amenities */}
+                          {associatedLead && (associatedLead.hasGarden || associatedLead.hasParking || associatedLead.hasBalcony) && (
+                            <div className="space-y-2">
+                              <h6 className="font-medium text-xs text-foreground">Équipements</h6>
+                              <div className="flex flex-wrap gap-1">
+                                {associatedLead.hasGarden && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    🏡 Jardin
+                                  </Badge>
+                                )}
+                                {associatedLead.hasParking && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    🚗 Parking
+                                  </Badge>
+                                )}
+                                {associatedLead.hasBalcony && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    🏛️ Balcon
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="space-y-3">
+                          <h5 className="font-medium text-sm text-foreground">Informations complémentaires</h5>
+                          <div className="space-y-2 text-sm">
+                            {associatedLead && (
+                              <>
+                                {associatedLead.saleTimeline && (
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Timeline vente:</span>
+                                    <span className="font-medium">
+                                      {associatedLead.saleTimeline === '3m' ? '3 mois' : 
+                                       associatedLead.saleTimeline === '6m' ? '6 mois' : 
+                                       associatedLead.saleTimeline === 'immediate' ? 'Immédiat' : 
+                                       associatedLead.saleTimeline}
+                                    </span>
+                                  </div>
+                                )}
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Contact expert:</span>
+                                  <span className="font-medium">
+                                    {associatedLead.wantsExpertContact ? '✅ Oui' : '❌ Non'}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Source:</span>
+                                  <span className="font-medium text-xs">{associatedLead.source}</span>
+                                </div>
+                              </>
+                            )}
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Date création:</span>
+                              <span className="font-medium text-xs">
+                                {new Date(estimation.createdAt).toLocaleDateString('fr-FR', {
+                                  day: '2-digit',
+                                  month: '2-digit', 
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Notes */}
+                          {associatedLead && associatedLead.notes && (
+                            <div className="space-y-2">
+                              <h6 className="font-medium text-xs text-foreground">Notes</h6>
+                              <p className="text-xs text-muted-foreground bg-muted/30 p-2 rounded">
+                                {associatedLead.notes}
+                              </p>
+                            </div>
+                          )}
                         </div>
                       </div>
-                      <div className="text-right space-y-1">
-                        <p className="text-2xl font-bold text-primary">
-                          {parseFloat(estimation.estimatedValue).toLocaleString()} €
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {parseFloat(estimation.pricePerM2).toLocaleString()} €/m²
-                        </p>
+
+                      {/* Actions */}
+                      <div className="flex justify-end pt-2 border-t border-border">
+                        <Button variant="ghost" size="icon" data-testid={`button-estimation-actions-${estimation.id}`}>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <Button variant="ghost" size="icon" data-testid={`button-estimation-actions-${estimation.id}`}>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
                     </div>
+                    );
+                  })
                   ))}
                   {estimations.length === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
