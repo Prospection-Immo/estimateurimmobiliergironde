@@ -17,7 +17,7 @@ export default function Hero({ domain = "estimation-immobilier-gironde.fr" }: He
           alt="Belle propriété en Gironde"
           className="w-full h-full object-cover opacity-20"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-background/90 to-background/60"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-background/95 to-background/80"></div>
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 py-12 w-full">
