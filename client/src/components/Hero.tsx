@@ -25,13 +25,17 @@ export default function Hero({ domain = "estimation-immobilier-gironde.fr" }: He
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 py-16">
+        {/* Centered Title */}
+        <div className="text-center mb-12">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground leading-tight">
+            Estimation immobilière en Gironde
+          </h1>
+        </div>
+        
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-start lg:items-center">
           {/* Content */}
           <div className="space-y-8">
             <div className="space-y-6">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground leading-tight text-center">
-                Estimation immobilière en Gironde
-              </h1>
               <p className="text-base sm:text-lg text-muted-foreground max-w-xl leading-relaxed">
                 Chaque mois en Gironde, des centaines de propriétaires comme vous perdent des milliers d'euros en vendant leur bien 15 à 30% sous sa vraie valeur. 
                 Notre nouvelle solution d'estimation vous garantit d'éviter cette erreur coûteuse.
