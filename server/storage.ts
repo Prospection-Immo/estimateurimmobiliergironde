@@ -17,7 +17,7 @@ import {
   contacts,
   articles
 } from "@shared/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 
 // Database connection
 const connectionString = process.env.DATABASE_URL!;
@@ -91,6 +91,10 @@ export class SupabaseStorage implements IStorage {
 
   async getEstimationsByLeadId(leadId: string): Promise<Estimation[]> {
     return await db.select().from(estimations).where(eq(estimations.leadId, leadId));
+  }
+
+  async getEstimations(): Promise<Estimation[]> {
+    return await db.select().from(estimations).orderBy(desc(estimations.createdAt));
   }
 
   // Contacts

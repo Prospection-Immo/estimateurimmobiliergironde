@@ -35,6 +35,29 @@ interface Lead {
   createdAt?: string;
 }
 
+interface Estimation {
+  id: string;
+  leadId: string;
+  propertyType: string;
+  address: string;
+  city: string;
+  surface: number;
+  rooms: number;
+  estimatedValue: string;
+  pricePerM2: string;
+  confidence: number;
+  methodology?: string;
+  comparableProperties?: string;
+  createdAt: string;
+  lead?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone?: string;
+    leadType: string;
+  };
+}
+
 interface Stats {
   totalLeads: number;
   newLeads: number;
@@ -52,6 +75,7 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedLeadType, setSelectedLeadType] = useState("all");
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [estimations, setEstimations] = useState<Estimation[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -86,13 +110,14 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
 
   const fetchData = async () => {
     try {
-      const [leadsResponse, statsResponse] = await Promise.all([
+      const [leadsResponse, estimationsResponse, statsResponse] = await Promise.all([
         fetch('/api/leads'),
+        fetch('/api/estimations'),
         fetch('/api/stats')
       ]);
 
       // Check for authentication errors
-      if (leadsResponse.status === 401 || statsResponse.status === 401) {
+      if (leadsResponse.status === 401 || estimationsResponse.status === 401 || statsResponse.status === 401) {
         setIsAuthenticated(false);
         window.location.href = '/admin/login';
         return;
@@ -103,6 +128,13 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
         setLeads(leadsData);
       } else {
         setAuthError(`Erreur lors du chargement des leads: ${leadsResponse.status}`);
+      }
+
+      if (estimationsResponse.ok) {
+        const estimationsData = await estimationsResponse.json();
+        setEstimations(estimationsData);
+      } else {
+        setAuthError(`Erreur lors du chargement des estimations: ${estimationsResponse.status}`);
       }
 
       if (statsResponse.ok) {
@@ -473,9 +505,103 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
             </Card>
           </TabsContent>
 
-          <TabsContent value="estimations">
+          <TabsContent value="estimations" className="space-y-6">
+            {/* Filters for Estimations */}
             <Card className="p-6">
-              <p className="text-muted-foreground">Gestion des estimations - En cours de développement</p>
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Rechercher par ville ou adresse..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                      data-testid="input-search-estimations"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setSearchTerm("")}
+                    data-testid="button-clear-search"
+                  >
+                    Tout afficher
+                  </Button>
+                </div>
+              </div>
+            </Card>
+
+            {/* Estimations Table */}
+            <Card className="p-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Estimations récentes</h3>
+                <div className="space-y-4">
+                  {estimations.filter(estimation => 
+                    !searchTerm || 
+                    estimation.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    estimation.address.toLowerCase().includes(searchTerm.toLowerCase())
+                  ).map((estimation) => (
+                    <div
+                      key={estimation.id}
+                      className="flex items-center justify-between p-4 border border-border rounded-lg hover-elevate"
+                      data-testid={`card-estimation-${estimation.id}`}
+                    >
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center space-x-3">
+                          <h4 className="font-medium">
+                            {estimation.address}, {estimation.city}
+                          </h4>
+                          <Badge variant="outline" className="text-xs">
+                            {estimation.propertyType === 'house' ? 'Maison' : 'Appartement'}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                          <div className="flex items-center space-x-1">
+                            <div className="h-3 w-3 bg-primary rounded-full" />
+                            <span>{estimation.surface} m²</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <div className="h-3 w-3 bg-secondary rounded-full" />
+                            <span>{estimation.rooms} pièces</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <div className="h-3 w-3 bg-green-500 rounded-full" />
+                            <span>Confiance: {estimation.confidence}%</span>
+                          </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Créée le {new Date(estimation.createdAt).toLocaleDateString('fr-FR', {
+                            day: '2-digit',
+                            month: '2-digit', 
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </div>
+                      </div>
+                      <div className="text-right space-y-1">
+                        <p className="text-2xl font-bold text-primary">
+                          {parseFloat(estimation.estimatedValue).toLocaleString()} €
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {parseFloat(estimation.pricePerM2).toLocaleString()} €/m²
+                        </p>
+                      </div>
+                      <Button variant="ghost" size="icon" data-testid={`button-estimation-actions-${estimation.id}`}>
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  {estimations.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Calculator className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>Aucune estimation pour le moment</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </Card>
           </TabsContent>
 

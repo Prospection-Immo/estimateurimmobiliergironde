@@ -315,6 +315,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get estimations (admin)
+  app.get('/api/estimations', requireAuth, async (req, res) => {
+    try {
+      const estimations = await storage.getEstimations();
+      res.json(estimations);
+    } catch (error) {
+      console.error('Error fetching estimations:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   // Update lead status (admin)
   app.patch('/api/leads/:id/status', requireAuth, async (req, res) => {
     try {
