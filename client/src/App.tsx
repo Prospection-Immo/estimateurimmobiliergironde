@@ -43,7 +43,7 @@ function HomePage() {
         <section className="py-16 bg-muted/30">
           <div className="max-w-6xl mx-auto px-4">
             <div className="text-center mb-12">
-              <h1 className="text-3xl font-bold mb-4">Estimation immobilière en Gironde : vendez au meilleur prix</h1>
+              <h2 className="text-3xl font-bold mb-4">Estimation immobilière en Gironde : vendez au meilleur prix</h2>
               <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
                 Découvrez notre estimateur révolutionnaire qui combine l'IA et les prix réels DVF pour vous offrir des résultats précis garantis. Cette solution exclusive vous permet d'économiser du temps et de gagner en confiance pour vos décisions immobilières stratégiques en Gironde.
               </p>

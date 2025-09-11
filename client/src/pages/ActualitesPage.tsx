@@ -71,7 +71,7 @@ export default function ActualitesPage({ domain = "estimation-immobilier-gironde
           <div className="space-y-8">
             <div className="text-center space-y-4">
               <h1 className="text-3xl font-bold text-foreground">
-                Actualités immobilières {cityName}
+                Actualités de l'immobilier en Gironde : marché, tendances et conseils
               </h1>
               <div className="animate-pulse space-y-4">
                 {[1, 2, 3].map((i) => (
@@ -96,7 +96,7 @@ export default function ActualitesPage({ domain = "estimation-immobilier-gironde
         <div className="max-w-6xl mx-auto px-4 py-16">
           <div className="text-center space-y-4">
             <h1 className="text-3xl font-bold text-foreground">
-              Actualités immobilières {cityName}
+              Actualités de l'immobilier en Gironde : marché, tendances et conseils
             </h1>
             <div className="bg-destructive/10 text-destructive p-4 rounded-lg">
               <p>Erreur lors du chargement des articles. Veuillez réessayer plus tard.</p>
