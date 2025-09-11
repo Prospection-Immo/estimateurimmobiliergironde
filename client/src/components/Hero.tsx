@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Calculator, MapPin, Award, Users } from "lucide-react";
+import { Calculator, MapPin, Shield, BarChart3, Zap } from "lucide-react";
 import { Link } from "wouter";
 import bordeaux_house from "@assets/generated_images/Bordeaux_house_property_photo_41cf0370.png";
 
@@ -30,12 +30,14 @@ export default function Hero({ domain = "estimation-immobilier-gironde.fr" }: He
           <div className="space-y-6">
             <div className="space-y-4">
               <h1 className="text-4xl md:text-5xl font-bold text-foreground leading-tight">
-                Estimation gratuite de votre bien en{" "}
+                Estimez gratuitement votre bien immobilier en{" "}
                 <span className="text-primary">{cityName}</span>
               </h1>
               <p className="text-lg text-muted-foreground max-w-lg">
-                Obtenez une estimation précise et instantanée de votre propriété. 
-                Notre expertise locale vous garantit une évaluation fiable.
+                Obtenez une estimation fiable en quelques clics grâce à l'IA et aux données DVF officielles.
+              </p>
+              <p className="text-base text-muted-foreground max-w-lg">
+                Que vous soyez vendeur, investisseur ou simplement curieux, découvrez la vraie valeur de votre bien dans le marché actuel de la Gironde.
               </p>
             </div>
 
@@ -44,7 +46,7 @@ export default function Hero({ domain = "estimation-immobilier-gironde.fr" }: He
               <Link href="/estimation" data-testid="button-start-estimation">
                 <Button size="lg" className="w-full sm:w-auto">
                   <Calculator className="h-5 w-5 mr-2" />
-                  Estimer mon bien
+                  Recevez votre estimation gratuite maintenant
                 </Button>
               </Link>
               <Link href="/prix-m2" data-testid="button-price-m2">
@@ -59,24 +61,24 @@ export default function Hero({ domain = "estimation-immobilier-gironde.fr" }: He
             <div className="grid grid-cols-3 gap-4 pt-6">
               <div className="text-center">
                 <div className="bg-primary/10 p-3 rounded-lg w-fit mx-auto mb-2">
-                  <Users className="h-6 w-6 text-primary" />
+                  <Shield className="h-6 w-6 text-primary" />
                 </div>
-                <p className="text-sm font-medium">+2,500</p>
-                <p className="text-xs text-muted-foreground">Estimations</p>
+                <p className="text-sm font-medium" data-testid="text-trust-gratuit">100% gratuit</p>
+                <p className="text-xs text-muted-foreground">& confidentiel</p>
               </div>
               <div className="text-center">
                 <div className="bg-primary/10 p-3 rounded-lg w-fit mx-auto mb-2">
-                  <Award className="h-6 w-6 text-primary" />
+                  <BarChart3 className="h-6 w-6 text-primary" />
                 </div>
-                <p className="text-sm font-medium">Expert</p>
-                <p className="text-xs text-muted-foreground">Certifié</p>
+                <p className="text-sm font-medium" data-testid="text-trust-fiabilite">Fiabilité</p>
+                <p className="text-xs text-muted-foreground">DVF & IA</p>
               </div>
               <div className="text-center">
                 <div className="bg-primary/10 p-3 rounded-lg w-fit mx-auto mb-2">
-                  <MapPin className="h-6 w-6 text-primary" />
+                  <Zap className="h-6 w-6 text-primary" />
                 </div>
-                <p className="text-sm font-medium">Local</p>
-                <p className="text-xs text-muted-foreground">{cityName}</p>
+                <p className="text-sm font-medium" data-testid="text-trust-rapidite">Rapidité</p>
+                <p className="text-xs text-muted-foreground">&lt; 5 minutes</p>
               </div>
             </div>
           </div>

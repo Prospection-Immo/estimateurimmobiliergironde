@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { Zap, MapPin, Search, Mail } from "lucide-react";
 
 // Components
 import Header from "@/components/Header";
@@ -32,45 +33,54 @@ function HomePage() {
       <main>
         <Hero domain={domain} />
         
-        {/* Features Section */}
+        {/* Promise Section */}
         <section className="py-16 bg-muted/30">
           <div className="max-w-6xl mx-auto px-4">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold mb-4">Pourquoi choisir notre service ?</h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Notre expertise locale et notre méthodologie rigoureuse garantissent 
-                des estimations fiables et précises.
+              <h2 className="text-3xl font-bold mb-4">Estimation stratégique et locale</h2>
+              <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+                Notre estimateur combine l'intelligence artificielle et les prix réels des ventes (DVF) pour vous donner une estimation stratégique et locale, adaptée aux tendances 2025. Fini les approximations : vous avez un chiffre crédible pour décider de vendre, acheter ou investir.
               </p>
             </div>
             
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="text-center space-y-4 p-6">
                 <div className="bg-primary/10 p-4 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
-                  <span className="text-2xl">🏠</span>
+                  <Zap className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold">Expertise locale</h3>
-                <p className="text-muted-foreground">
-                  Connaissance approfondie du marché immobilier bordelais et girondin
+                <h3 className="text-lg font-semibold" data-testid="text-benefit-instantanee">Estimation instantanée</h3>
+                <p className="text-muted-foreground text-sm">
+                  basée sur les ventes réelles en Gironde
                 </p>
               </div>
               
               <div className="text-center space-y-4 p-6">
                 <div className="bg-primary/10 p-4 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
-                  <span className="text-2xl">📊</span>
+                  <MapPin className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold">Données fiables</h3>
-                <p className="text-muted-foreground">
-                  Analyse basée sur les transactions récentes et les tendances du marché
+                <h3 className="text-lg font-semibold" data-testid="text-benefit-quartiers">Analyse des quartiers</h3>
+                <p className="text-muted-foreground text-sm">
+                  les plus porteurs et tendances 2025
                 </p>
               </div>
               
               <div className="text-center space-y-4 p-6">
                 <div className="bg-primary/10 p-4 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
-                  <span className="text-2xl">⚡</span>
+                  <Search className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold">Résultat instantané</h3>
-                <p className="text-muted-foreground">
-                  Estimation gratuite et immédiate, rapport détaillé en quelques minutes
+                <h3 className="text-lg font-semibold" data-testid="text-benefit-comparaison">Comparaison</h3>
+                <p className="text-muted-foreground text-sm">
+                  avec les biens similaires vendus récemment
+                </p>
+              </div>
+              
+              <div className="text-center space-y-4 p-6">
+                <div className="bg-primary/10 p-4 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
+                  <Mail className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold" data-testid="text-benefit-rapport">Rapport clair</h3>
+                <p className="text-muted-foreground text-sm">
+                  envoyé par email pour préparer votre projet
                 </p>
               </div>
             </div>
@@ -403,8 +413,8 @@ function GuidesPage() {
 // Guide Detail Page
 function GuideDetailPage() {
   const domain = getDomainFromHeaders();
-  const [match] = useRoute("/guides/:slug");
-  const slug = match?.slug;
+  const [match, params] = useRoute("/guides/:slug");
+  const slug = match ? params.slug : undefined;
   
   // Guide content data
   const guidesData: Record<string, {
@@ -711,8 +721,8 @@ function ActualitesPage() {
 // Article Detail Page
 function ArticleDetailPage() {
   const domain = getDomainFromHeaders();
-  const [match] = useRoute("/actualites/:slug");
-  const slug = match?.slug;
+  const [match, params] = useRoute("/actualites/:slug");
+  const slug = match ? params.slug : undefined;
   
   // Articles content data
   const articlesData: Record<string, {
