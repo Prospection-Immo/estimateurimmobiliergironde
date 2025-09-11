@@ -25,7 +25,9 @@ interface Lead {
   email: string;
   phone?: string;
   propertyType: string;
+  address?: string;
   city: string;
+  postalCode?: string;
   surface?: number;
   estimatedValue?: string;
   status: string;
@@ -380,7 +382,7 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                           </div>
                           <div className="flex items-center space-x-1">
                             <MapPin className="h-3 w-3" />
-                            <span>{lead.city}</span>
+                            <span>{[lead.address, lead.city, lead.postalCode].filter(Boolean).join(', ')}</span>
                           </div>
                         </div>
                       </div>
