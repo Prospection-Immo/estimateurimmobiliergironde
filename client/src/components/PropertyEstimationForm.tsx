@@ -25,6 +25,8 @@ interface FormData {
   lastName: string;
   email: string;
   phone: string;
+  saleTimeline: "3m" | "6m" | "immediate";
+  wantsExpertContact: boolean;
 }
 
 const INITIAL_FORM_DATA: FormData = {
@@ -44,6 +46,8 @@ const INITIAL_FORM_DATA: FormData = {
   lastName: "",
   email: "",
   phone: "",
+  saleTimeline: "6m",
+  wantsExpertContact: false,
 };
 
 export default function PropertyEstimationForm() {
@@ -86,6 +90,8 @@ export default function PropertyEstimationForm() {
           bedrooms: parseInt(formData.bedrooms) || 0,
           bathrooms: parseInt(formData.bathrooms) || 0,
           constructionYear: parseInt(formData.constructionYear) || undefined,
+          saleTimeline: formData.saleTimeline,
+          wantsExpertContact: formData.wantsExpertContact,
         }),
       });
 
@@ -345,6 +351,51 @@ export default function PropertyEstimationForm() {
                   data-testid="input-phone-form"
                 />
               </div>
+            </div>
+
+            {/* Sales Timeline Section */}
+            <div className="space-y-4 pt-4 border-t border-border">
+              <Label>Projet de vente</Label>
+              <RadioGroup
+                value={formData.saleTimeline}
+                onValueChange={(value) => updateFormData("saleTimeline", value)}
+                className="grid grid-cols-1 gap-3"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="3m" id="timeline-3m" data-testid="radio-timeline-3m" />
+                  <Label htmlFor="timeline-3m" className="cursor-pointer">Dans 3 mois</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="6m" id="timeline-6m" data-testid="radio-timeline-6m" />
+                  <Label htmlFor="timeline-6m" className="cursor-pointer">Dans 6 mois</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="immediate" id="timeline-immediate" data-testid="radio-timeline-immediate" />
+                  <Label htmlFor="timeline-immediate" className="cursor-pointer">Vente immédiate</Label>
+                </div>
+              </RadioGroup>
+
+              {/* Expert Contact Message - shown when immediate sale is selected */}
+              {formData.saleTimeline === "immediate" && (
+                <div className="mt-4 space-y-3">
+                  <div className="p-3 bg-primary/10 border border-primary/20 rounded-md">
+                    <p className="text-sm text-primary font-medium" data-testid="text-immediate-expert-note">
+                      Un expert local vous appellera pour vous accompagner dans votre vente immédiate.
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="expertContact"
+                      checked={formData.wantsExpertContact}
+                      onCheckedChange={(checked) => updateFormData("wantsExpertContact", checked)}
+                      data-testid="checkbox-expert-consent"
+                    />
+                    <Label htmlFor="expertContact" className="text-sm cursor-pointer">
+                      J'accepte d'être contacté par un expert local
+                    </Label>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

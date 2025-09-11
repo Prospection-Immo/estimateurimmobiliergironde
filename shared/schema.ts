@@ -29,6 +29,8 @@ export const leads = pgTable("leads", {
   hasParking: boolean("has_parking").default(false),
   hasBalcony: boolean("has_balcony").default(false),
   constructionYear: integer("construction_year"),
+  saleTimeline: text("sale_timeline").notNull().default("6m"), // "3m" | "6m" | "immediate"
+  wantsExpertContact: boolean("wants_expert_contact").default(false),
   estimatedValue: decimal("estimated_value", { precision: 10, scale: 2 }),
   source: text("source").notNull(), // domain name
   status: text("status").notNull().default("new"), // "new" | "contacted" | "converted" | "archived"
