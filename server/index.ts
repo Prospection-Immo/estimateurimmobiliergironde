@@ -2,26 +2,35 @@ import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import MemoryStore from "memorystore";
 import { registerRoutes } from "./routes";
+
+// Configure session security
+const isProduction = process.env.NODE_ENV === 'production';
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Session configuration
+// Enhanced session configuration for 2FA security
 const MemoryStoreSession = MemoryStore(session);
 app.use(session({
   store: new MemoryStoreSession({
-    checkPeriod: 86400000 // prune expired entries every 24h
+    checkPeriod: 86400000, // prune expired entries every 24h
+    ttl: 24 * 60 * 60 * 1000, // Session TTL: 24 hours
+    dispose: (key, sess) => {
+      console.log('Session expired and cleaned up:', key);
+    }
   }),
   secret: process.env.SESSION_SECRET || 'admin-dev-secret-key-change-in-production',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false, // set to true if using HTTPS
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
+    secure: isProduction, // Use secure cookies in production (HTTPS)
+    httpOnly: true, // Prevent XSS attacks
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: isProduction ? 'strict' : 'lax' // CSRF protection
+  },
+  name: 'auth.sid' // Custom session name for security
 }));
 
 app.use((req, res, next) => {

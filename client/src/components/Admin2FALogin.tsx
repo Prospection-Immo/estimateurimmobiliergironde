@@ -16,7 +16,7 @@ export default function Admin2FALogin({ domain }: Admin2FALoginProps) {
   const [error, setError] = useState("");
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [step, setStep] = useState<'email' | 'sms' | 'code'>('email');
-  const [sessionId, setSessionId] = useState("");
+  const [phoneDisplay, setPhoneDisplay] = useState("");
 
   useEffect(() => {
     checkAuthentication();
@@ -24,7 +24,9 @@ export default function Admin2FALogin({ domain }: Admin2FALoginProps) {
 
   const checkAuthentication = async () => {
     try {
-      const response = await fetch('/api/auth/check');
+      const response = await fetch('/api/auth/check', {
+        credentials: 'include' // Important for session cookies
+      });
       if (response.ok) {
         const data = await response.json();
         if (data.authenticated) {
@@ -50,17 +52,18 @@ export default function Admin2FALogin({ domain }: Admin2FALoginProps) {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Important for session cookies
         body: JSON.stringify({ email, password }),
       });
       
       if (response.ok) {
         const data = await response.json();
         if (data.requiresSms) {
-          setSessionId(data.sessionId);
           setStep('sms');
         }
       } else {
-        setError("Email ou mot de passe incorrect");
+        const data = await response.json();
+        setError(data.error || "Email ou mot de passe incorrect");
       }
     } catch (error) {
       setError("Erreur de connexion. Veuillez réessayer.");
@@ -80,10 +83,15 @@ export default function Admin2FALogin({ domain }: Admin2FALoginProps) {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Important for session cookies
         body: JSON.stringify({ phoneNumber }),
       });
       
       if (response.ok) {
+        const data = await response.json();
+        if (data.phoneDisplay) {
+          setPhoneDisplay(data.phoneDisplay);
+        }
         setStep('code');
       } else {
         const data = await response.json();
@@ -107,11 +115,17 @@ export default function Admin2FALogin({ domain }: Admin2FALoginProps) {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Important for session cookies
         body: JSON.stringify({ code: verificationCode }),
       });
       
       if (response.ok) {
-        window.location.href = '/admin';
+        const data = await response.json();
+        if (data.redirectUrl) {
+          window.location.href = data.redirectUrl;
+        } else {
+          window.location.href = '/admin';
+        }
       } else {
         const data = await response.json();
         setError(data.error || "Code invalide");
@@ -232,7 +246,7 @@ export default function Admin2FALogin({ domain }: Admin2FALoginProps) {
           className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
           required
           data-testid="input-phone-number"
-          placeholder="+33785611700"
+          placeholder="+33 6 12 34 56 78 ou 06 12 34 56 78"
         />
       </div>
       <button
@@ -254,52 +268,121 @@ export default function Admin2FALogin({ domain }: Admin2FALoginProps) {
     </form>
   );
   
-  const renderCodeStep = () => (
-    <form className="space-y-4" onSubmit={handleVerifyCode}>
-      {error && (
-        <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-md">
-          {error}
+  const renderCodeStep = () => {
+    // Format phone number to show only last 4 digits
+    const formatPhoneForDisplay = (phone: string) => {
+      const cleanPhone = phone.replace(/\D/g, '');
+      return `Phone ending in ${cleanPhone.slice(-4)}`;
+    };
+    
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="text-center space-y-3">
+          <div className="flex justify-center">
+            <div className="bg-primary/10 p-3 rounded-full">
+              <Shield className="h-8 w-8 text-primary" />
+            </div>
+          </div>
+          <h1 className="text-2xl font-bold">Vérifiez votre identité</h1>
+          <p className="text-muted-foreground text-sm">
+            Nous avons envoyé un code de vérification à :
+          </p>
+          <p className="font-medium text-foreground">
+            {phoneDisplay || formatPhoneForDisplay(phoneNumber)}
+          </p>
         </div>
-      )}
-      <div className="text-center mb-4">
-        <p className="text-muted-foreground">
-          Saisissez le code reçu par SMS sur le {phoneNumber}
-        </p>
+
+        <form className="space-y-4" onSubmit={handleVerifyCode}>
+          <div className="space-y-1">
+            <label htmlFor="code" className="text-sm text-muted-foreground">
+              Entrez le code à 6 chiffres *
+            </label>
+            <input
+              id="code"
+              type="text"
+              value={verificationCode}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                setVerificationCode(value);
+                // Clear error when user starts typing
+                if (error && value.length > 0) {
+                  setError("");
+                }
+              }}
+              className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-center text-lg tracking-widest"
+              required
+              data-testid="input-verification-code"
+              placeholder=""
+              maxLength={6}
+            />
+          </div>
+          
+          {/* Remember browser checkbox */}
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="remember"
+              className="rounded border-border text-primary focus:ring-primary"
+              data-testid="checkbox-remember-browser"
+            />
+            <label htmlFor="remember" className="text-sm text-muted-foreground">
+              Se souvenir de ce navigateur pendant 30 jours
+            </label>
+          </div>
+
+          {error && (
+            <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+          
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+            data-testid="button-verify-code"
+          >
+            {isLoading ? "Vérification..." : "Continuer"}
+          </button>
+        </form>
+        
+        {/* Help links */}
+        <div className="text-center space-y-2">
+          <div className="text-sm">
+            <span className="text-muted-foreground">Vous n'avez pas reçu de code ? </span>
+            <button
+              type="button"
+              onClick={() => setStep('sms')}
+              className="text-primary hover:underline"
+              data-testid="button-resend-code"
+            >
+              Renvoyer
+            </button>
+            <span className="text-muted-foreground"> ou </span>
+            <Link href="/contact" className="text-primary hover:underline" data-testid="link-get-call">
+              obtenir un appel
+            </Link>
+          </div>
+          
+          <button
+            type="button"
+            onClick={() => setStep('email')}
+            className="text-sm text-primary hover:underline"
+            data-testid="button-try-another-method"
+          >
+            Essayer une autre méthode
+          </button>
+        </div>
+        
+        <div className="text-center pt-4 border-t border-border">
+          <Link href="/contact" className="text-sm text-muted-foreground hover:text-primary" data-testid="link-mfa-help">
+            Problème avec la double authentification ? Contactez-nous
+          </Link>
+        </div>
       </div>
-      <div className="space-y-2">
-        <label htmlFor="code" className="text-sm font-medium">
-          Code de vérification
-        </label>
-        <input
-          id="code"
-          type="text"
-          value={verificationCode}
-          onChange={(e) => setVerificationCode(e.target.value)}
-          className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-center text-lg tracking-widest"
-          required
-          data-testid="input-verification-code"
-          placeholder="123456"
-          maxLength={6}
-        />
-      </div>
-      <button
-        type="submit"
-        disabled={isLoading}
-        className="w-full bg-primary text-primary-foreground py-2 rounded-md hover:bg-primary/90 disabled:opacity-50"
-        data-testid="button-verify-code"
-      >
-        {isLoading ? "Vérification..." : "Valider"}
-      </button>
-      <button
-        type="button"
-        onClick={() => setStep('sms')}
-        className="w-full text-muted-foreground hover:text-foreground text-sm"
-        data-testid="button-back-sms"
-      >
-        ← Modifier le numéro
-      </button>
-    </form>
-  );
+    );
+  };
 
   if (checkingAuth) {
     return (
@@ -332,15 +415,10 @@ export default function Admin2FALogin({ domain }: Admin2FALoginProps) {
               </div>
             )}
             
-            {/* SMS/Code steps have titles */}
+            {/* SMS step has title */}
             {step === 'sms' && (
               <h1 className="text-2xl font-bold mb-6 text-center">
                 Vérification SMS
-              </h1>
-            )}
-            {step === 'code' && (
-              <h1 className="text-2xl font-bold mb-6 text-center">
-                Code de vérification
               </h1>
             )}
             

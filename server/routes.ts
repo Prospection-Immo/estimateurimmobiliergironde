@@ -6,6 +6,13 @@ import { sanitizeArticleContent } from "./services/htmlSanitizer";
 import { generateRealEstateArticle } from "./services/openai";
 import emailService from "./services/emailService";
 import { z } from "zod";
+import crypto from "crypto";
+import twilio from "twilio";
+import bcrypt from "bcrypt";
+
+// Initialize Twilio client
+const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+const TWILIO_VERIFY_SERVICE_SID = 'VA0562b4c0e460ba0c03268eb0e413b313';
 
 // Specific validation schemas for different lead types
 const insertEstimationLeadSchema = insertLeadSchema.extend({
@@ -95,6 +102,57 @@ function calculateEstimation(propertyData: {
     estimatedValue,
     pricePerM2: Math.round(pricePerM2),
     confidence: Math.round(confidence)
+  };
+}
+
+// Rate limiting store (simple in-memory for development)
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+
+// Phone number validation helper
+function validatePhoneNumber(phone: string): { isValid: boolean; formatted: string; error?: string } {
+  // Remove all non-digit characters
+  const cleaned = phone.replace(/\D/g, '');
+  
+  // Check for French mobile numbers (starting with 06, 07, or international +33)
+  if (cleaned.startsWith('33') && cleaned.length === 11) {
+    // International format +33...
+    const formatted = '+' + cleaned;
+    return { isValid: true, formatted };
+  } else if (cleaned.startsWith('0') && (cleaned.startsWith('06') || cleaned.startsWith('07')) && cleaned.length === 10) {
+    // National format 06... or 07...
+    const formatted = '+33' + cleaned.substring(1);
+    return { isValid: true, formatted };
+  } else if (cleaned.length >= 10 && cleaned.length <= 15) {
+    // Generic international format
+    const formatted = cleaned.startsWith('+') ? cleaned : '+' + cleaned;
+    return { isValid: true, formatted };
+  }
+  
+  return { 
+    isValid: false, 
+    formatted: phone,
+    error: "Numéro de téléphone invalide. Utilisez un numéro français (06/07) ou international." 
+  };
+}
+
+// Basic rate limiting middleware
+function rateLimit(maxRequests: number, windowMs: number) {
+  return (req: any, res: any, next: any) => {
+    const key = req.ip || req.connection.remoteAddress || 'unknown';
+    const now = Date.now();
+    const entry = rateLimitStore.get(key);
+    
+    if (!entry || now > entry.resetTime) {
+      rateLimitStore.set(key, { count: 1, resetTime: now + windowMs });
+      return next();
+    }
+    
+    if (entry.count >= maxRequests) {
+      return res.status(429).json({ error: "Trop de tentatives. Veuillez réessayer plus tard." });
+    }
+    
+    entry.count++;
+    next();
   };
 }
 
@@ -403,14 +461,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Authentication routes - Step 1: Email/Password verification
-  app.post("/api/auth/login-step1", async (req, res) => {
+  app.post("/api/auth/login-step1", rateLimit(5, 15 * 60 * 1000), async (req, res) => {
     try {
       const { email, password } = req.body;
       
-      // Simple hardcoded admin credentials for demo
-      if (email === "admin@test.fr" && password === "admin123") {
+      // Input validation
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email et mot de passe requis" });
+      }
+      
+      // Check credentials against database
+      const user = await storage.getUserByUsername(email);
+      
+      if (user && await bcrypt.compare(password, user.password)) {
         // Create auth session for 2FA
-        const sessionId = crypto.randomUUID();
         const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
         
         const authSession = await storage.createAuthSession({
@@ -419,20 +483,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           expiresAt
         });
         
-        // Store session ID in HTTP session
+        // Store session ID in HTTP session (more secure than sending in response)
         (req.session as any).authSessionId = authSession.id;
         
         res.json({ 
           success: true, 
           requiresSms: true,
-          sessionId: authSession.id
+          message: "Étape 1 réussie. Vérification SMS requise."
         });
       } else {
-        res.status(401).json({ error: "Invalid credentials" });
+        res.status(401).json({ error: "Email ou mot de passe incorrect" });
       }
     } catch (error) {
       console.error('Login step 1 error:', error);
-      res.status(500).json({ error: "Authentication error" });
+      res.status(500).json({ error: "Erreur d'authentification" });
     }
   });
 
@@ -443,46 +507,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Step 2: Send SMS verification code
-  app.post("/api/auth/send-sms", async (req, res) => {
+  app.post("/api/auth/send-sms", rateLimit(3, 5 * 60 * 1000), async (req, res) => {
     try {
       const { phoneNumber } = req.body;
       const authSessionId = (req.session as any).authSessionId;
       
       if (!authSessionId) {
-        return res.status(400).json({ error: "No active authentication session" });
+        return res.status(400).json({ error: "Aucune session d'authentification active" });
       }
       
       const authSession = await storage.getAuthSession(authSessionId);
       if (!authSession || authSession.expiresAt < new Date()) {
-        return res.status(400).json({ error: "Authentication session expired" });
+        return res.status(400).json({ error: "Session d'authentification expirée" });
       }
       
-      // Send SMS via Twilio Verify
-      const twilioResponse = await fetch(`https://verify.twilio.com/v2/Services/VA0562b4c0e460ba0c03268eb0e413b313/Verifications`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': `Basic ${Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64')}`
-        },
-        body: new URLSearchParams({
-          'To': phoneNumber,
-          'Channel': 'sms'
-        })
-      });
+      // Validate phone number
+      const phoneValidation = validatePhoneNumber(phoneNumber);
+      if (!phoneValidation.isValid) {
+        return res.status(400).json({ error: phoneValidation.error });
+      }
       
-      const twilioData = await twilioResponse.json();
-      
-      if (twilioResponse.ok) {
+      try {
+        // Send SMS using Twilio SDK
+        const verification = await twilioClient.verify.v2
+          .services(TWILIO_VERIFY_SERVICE_SID)
+          .verifications
+          .create({
+            to: phoneValidation.formatted,
+            channel: 'sms'
+          });
+        
         // Update auth session with phone number and verification SID
         await storage.updateAuthSession(authSessionId, {
-          phoneNumber,
-          verificationSid: twilioData.sid
+          phoneNumber: phoneValidation.formatted,
+          verificationSid: verification.sid
         });
         
-        res.json({ success: true, message: "Code SMS envoyé" });
-      } else {
-        console.error('Twilio error:', twilioData);
-        res.status(400).json({ error: "Erreur lors de l'envoi du SMS" });
+        res.json({ 
+          success: true, 
+          message: "Code de vérification envoyé par SMS",
+          phoneDisplay: phoneValidation.formatted.replace(/\d(?=\d{4})/g, '*')
+        });
+      } catch (twilioError: any) {
+        console.error('Twilio verification error:', twilioError);
+        const errorMessage = twilioError.message?.includes('not a valid phone number') 
+          ? "Numéro de téléphone invalide"
+          : "Erreur lors de l'envoi du SMS";
+        res.status(400).json({ error: errorMessage });
       }
     } catch (error) {
       console.error('Send SMS error:', error);
@@ -491,53 +562,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Step 3: Verify SMS code
-  app.post("/api/auth/verify-sms", async (req, res) => {
+  app.post("/api/auth/verify-sms", rateLimit(10, 5 * 60 * 1000), async (req, res) => {
     try {
       const { code } = req.body;
       const authSessionId = (req.session as any).authSessionId;
       
       if (!authSessionId) {
-        return res.status(400).json({ error: "No active authentication session" });
+        return res.status(400).json({ error: "Aucune session d'authentification active" });
+      }
+      
+      // Input validation
+      if (!code || !/^\d{6}$/.test(code)) {
+        return res.status(400).json({ error: "Code de vérification invalide (6 chiffres requis)" });
       }
       
       const authSession = await storage.getAuthSession(authSessionId);
       if (!authSession || authSession.expiresAt < new Date()) {
-        return res.status(400).json({ error: "Authentication session expired" });
+        return res.status(400).json({ error: "Session d'authentification expirée" });
       }
       
       if (!authSession.verificationSid || !authSession.phoneNumber) {
-        return res.status(400).json({ error: "SMS verification not initiated" });
+        return res.status(400).json({ error: "Vérification SMS non initiée" });
       }
       
-      // Verify code with Twilio
-      const twilioResponse = await fetch(`https://verify.twilio.com/v2/Services/VA0562b4c0e460ba0c03268eb0e413b313/VerificationCheck`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': `Basic ${Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64')}`
-        },
-        body: new URLSearchParams({
-          'To': authSession.phoneNumber,
-          'Code': code
-        })
-      });
-      
-      const twilioData = await twilioResponse.json();
-      
-      if (twilioResponse.ok && twilioData.status === 'approved') {
-        // Mark SMS as verified and complete authentication
-        await storage.updateAuthSession(authSessionId, {
-          isSmsVerified: true
-        });
+      try {
+        // Verify code using Twilio SDK
+        const verificationCheck = await twilioClient.verify.v2
+          .services(TWILIO_VERIFY_SERVICE_SID)
+          .verificationChecks
+          .create({
+            to: authSession.phoneNumber,
+            code: code
+          });
         
-        // Set final authentication in session
-        (req.session as any).isAuthenticated = true;
-        delete (req.session as any).authSessionId; // Clean up
-        
-        res.json({ success: true, message: "Authentification réussie" });
-      } else {
-        console.error('Twilio verification error:', twilioData);
-        res.status(400).json({ error: "Code invalide" });
+        if (verificationCheck.status === 'approved') {
+          // Mark SMS as verified and complete authentication
+          await storage.updateAuthSession(authSessionId, {
+            isSmsVerified: true
+          });
+          
+          // Set final authentication in session with security flags
+          (req.session as any).isAuthenticated = true;
+          (req.session as any).authenticatedAt = new Date().toISOString();
+          
+          // Clean up auth session
+          delete (req.session as any).authSessionId;
+          
+          res.json({ 
+            success: true, 
+            message: "Authentification réussie",
+            redirectUrl: "/admin"
+          });
+        } else {
+          res.status(400).json({ error: "Code de vérification incorrect" });
+        }
+      } catch (twilioError: any) {
+        console.error('Twilio verification check error:', twilioError);
+        const errorMessage = twilioError.message?.includes('max check attempts reached')
+          ? "Trop de tentatives. Demandez un nouveau code."
+          : "Code de vérification incorrect";
+        res.status(400).json({ error: errorMessage });
       }
     } catch (error) {
       console.error('Verify SMS error:', error);
@@ -550,8 +634,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { username, password } = req.body;
       
-      // Simple hardcoded admin credentials for demo
-      if (username === "admin" && password === "admin123") {
+      // Check credentials against database (legacy endpoint)
+      const legacyUser = await storage.getUserByUsername(username);
+      
+      if (legacyUser && await bcrypt.compare(password, legacyUser.password)) {
         (req.session as any).isAuthenticated = true;
         res.json({ success: true });
       } else {
@@ -1728,6 +1814,48 @@ Actions à effectuer:
       res.status(500).json({ error: 'Internal server error' });
     }
   });
+
+  // Commented out after successful account creation
+  /*
+  // Temporary endpoint to create admin user - REMOVED AFTER SETUP
+  app.post("/api/admin/create-account", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      // Basic validation
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email and password required" });
+      }
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByUsername(email);
+      if (existingUser) {
+        return res.status(409).json({ error: "User already exists" });
+      }
+      
+      // Hash password
+      const saltRounds = 12;
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+      
+      // Create user
+      const newUser = await storage.createUser({
+        username: email,
+        password: hashedPassword,
+        role: "admin"
+      });
+      
+      res.json({ 
+        success: true, 
+        message: "Admin account created successfully",
+        userId: newUser.id,
+        username: newUser.username
+      });
+    } catch (error) {
+      console.error('Error creating admin account:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+  */
 
   const httpServer = createServer(app);
   return httpServer;
