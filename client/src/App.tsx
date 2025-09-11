@@ -266,66 +266,58 @@ function AdminLoginPage() {
 
   if (checkingAuth) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header domain={domain} />
-        <main className="py-16">
-          <div className="max-w-md mx-auto px-4 text-center">
-            <p>Vérification de l'authentification...</p>
-          </div>
-        </main>
-        <Footer domain={domain} />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="max-w-md mx-auto px-4 text-center">
+          <p>Vérification de l'authentification...</p>
+        </div>
       </div>
     );
   }
   
   return (
-    <div className="min-h-screen bg-background">
-      <Header domain={domain} />
-      <main className="py-16">
-        <div className="max-w-md mx-auto px-4">
-          <div className="bg-card p-8 rounded-lg border border-card-border">
-            <h1 className="text-2xl font-bold mb-6 text-center">Connexion Admin</h1>
-            <form className="space-y-4" onSubmit={handleLogin}>
-              {error && (
-                <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-md">
-                  {error}
-                </div>
-              )}
-              <div>
-                <label className="block text-sm font-medium mb-2">Nom d'utilisateur</label>
-                <input 
-                  type="text" 
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="w-full p-3 border border-border rounded-md bg-background"
-                  data-testid="input-admin-username"
-                  required
-                />
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="max-w-md mx-auto px-4">
+        <div className="bg-card p-8 rounded-lg border border-card-border">
+          <h1 className="text-2xl font-bold mb-6 text-center">Connexion Admin</h1>
+          <form className="space-y-4" onSubmit={handleLogin}>
+            {error && (
+              <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-md">
+                {error}
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Mot de passe</label>
-                <input 
-                  type="password" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full p-3 border border-border rounded-md bg-background"
-                  data-testid="input-admin-password"
-                  required
-                />
-              </div>
-              <button 
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-primary text-primary-foreground p-3 rounded-md hover-elevate disabled:opacity-50"
-                data-testid="button-admin-login"
-              >
-                {isLoading ? "Connexion..." : "Se connecter"}
-              </button>
-            </form>
-          </div>
+            )}
+            <div>
+              <label className="block text-sm font-medium mb-2">Nom d'utilisateur</label>
+              <input 
+                type="text" 
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full p-3 border border-border rounded-md bg-background"
+                data-testid="input-admin-username"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Mot de passe</label>
+              <input 
+                type="password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full p-3 border border-border rounded-md bg-background"
+                data-testid="input-admin-password"
+                required
+              />
+            </div>
+            <button 
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-primary text-primary-foreground p-3 rounded-md hover-elevate disabled:opacity-50"
+              data-testid="button-admin-login"
+            >
+              {isLoading ? "Connexion..." : "Se connecter"}
+            </button>
+          </form>
         </div>
-      </main>
-      <Footer domain={domain} />
+      </div>
     </div>
   );
 }
