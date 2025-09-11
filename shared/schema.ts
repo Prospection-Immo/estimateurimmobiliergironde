@@ -163,3 +163,95 @@ export const insertAuthSessionSchema = createInsertSchema(authSessions).omit({
 
 export type InsertAuthSession = z.infer<typeof insertAuthSessionSchema>;
 export type AuthSession = typeof authSessions.$inferSelect;
+
+// Guides vendeurs system
+export const guides = pgTable('guides', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  title: text('title').notNull(),
+  slug: text('slug').notNull().unique(),
+  persona: text('persona').notNull(), // "presse", "maximisateur", "succession", "nouvelle_vie", "investisseur", "primo"
+  shortBenefit: text('short_benefit').notNull(), // Bénéfice en 1 phrase
+  readingTime: integer('reading_time').notNull(), // minutes
+  content: text('content').notNull(), // Contenu HTML du guide
+  summary: text('summary'), // Sommaire
+  pdfContent: text('pdf_content'), // Contenu spécifique pour PDF (avec bonus)
+  metaDescription: text('meta_description'),
+  seoTitle: text('seo_title'),
+  isActive: boolean('is_active').default(true),
+  sortOrder: integer('sort_order').default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const guideDownloads = pgTable('guide_downloads', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  guideId: varchar('guide_id').references(() => guides.id).notNull(),
+  leadEmail: text('lead_email').notNull(),
+  leadFirstName: text('lead_first_name').notNull(),
+  leadCity: text('lead_city'),
+  downloadType: text('download_type').notNull(), // "pdf", "web", "email"
+  downloadedAt: timestamp('downloaded_at').defaultNow(),
+  userAgent: text('user_agent'),
+  ipAddress: text('ip_address'),
+  utmSource: text('utm_source'),
+  utmMedium: text('utm_medium'),
+  utmCampaign: text('utm_campaign'),
+  utmContent: text('utm_content'),
+  utmTerm: text('utm_term'),
+});
+
+export const guideAnalytics = pgTable('guide_analytics', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  guideId: varchar('guide_id').references(() => guides.id).notNull(),
+  sessionId: varchar('session_id').notNull(), // Pour tracking utilisateur anonyme
+  leadEmail: text('lead_email'), // Si connecté/identifié
+  eventType: text('event_type').notNull(), // "page_view", "scroll_25", "scroll_50", "scroll_75", "scroll_90", "time_30s", "time_120s", "download_pdf", "download_checklist", "cta_click"
+  eventValue: text('event_value'), // Valeur additionnelle (ex: pourcentage scroll)
+  timestamp: timestamp('timestamp').defaultNow(),
+  userAgent: text('user_agent'),
+  ipAddress: text('ip_address'),
+});
+
+export const guideEmailSequences = pgTable('guide_email_sequences', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  guideId: varchar('guide_id').references(() => guides.id).notNull(),
+  leadEmail: text('lead_email').notNull(),
+  persona: text('persona').notNull(),
+  sequenceStep: integer('sequence_step').notNull(), // 0, 2, 5, 10 (jours)
+  emailType: text('email_type').notNull(), // "guide_delivery", "tip", "case_study", "soft_offer"
+  scheduledFor: timestamp('scheduled_for').notNull(),
+  sentAt: timestamp('sent_at'),
+  openedAt: timestamp('opened_at'),
+  clickedAt: timestamp('clicked_at'),
+  status: text('status').default('scheduled'), // "scheduled", "sent", "opened", "clicked", "failed"
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Insert schemas
+export const insertGuideSchema = createInsertSchema(guides).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertGuideDownloadSchema = createInsertSchema(guideDownloads).omit({ id: true, downloadedAt: true });
+export const insertGuideAnalyticsSchema = createInsertSchema(guideAnalytics).omit({ id: true, timestamp: true });
+export const insertGuideEmailSequenceSchema = createInsertSchema(guideEmailSequences).omit({ id: true, createdAt: true });
+
+// Types
+export type Guide = typeof guides.$inferSelect;
+export type GuideDownload = typeof guideDownloads.$inferSelect;
+export type GuideAnalytics = typeof guideAnalytics.$inferSelect;
+export type GuideEmailSequence = typeof guideEmailSequences.$inferSelect;
+
+export type InsertGuide = z.infer<typeof insertGuideSchema>;
+export type InsertGuideDownload = z.infer<typeof insertGuideDownloadSchema>;
+export type InsertGuideAnalytics = z.infer<typeof insertGuideAnalyticsSchema>;
+export type InsertGuideEmailSequence = z.infer<typeof insertGuideEmailSequenceSchema>;
+
+// Personas enum for frontend
+export const GUIDE_PERSONAS = {
+  presse: 'Pressé',
+  maximisateur: 'Maximisateur',
+  succession: 'Succession',
+  nouvelle_vie: 'Nouvelle vie',
+  investisseur: 'Investisseur',
+  primo: 'Primo-vendeur'
+} as const;
+
+export type GuidePersona = keyof typeof GUIDE_PERSONAS;

@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertLeadSchema, insertEstimationSchema, insertContactSchema, insertArticleSchema, insertEmailTemplateSchema, insertEmailHistorySchema } from "@shared/schema";
+import { insertLeadSchema, insertEstimationSchema, insertContactSchema, insertArticleSchema, insertEmailTemplateSchema, insertEmailHistorySchema, insertGuideSchema, insertGuideDownloadSchema, insertGuideAnalyticsSchema, GUIDE_PERSONAS } from "@shared/schema";
 import { sanitizeArticleContent } from "./services/htmlSanitizer";
 import { generateRealEstateArticle } from "./services/openai";
 import emailService from "./services/emailService";
@@ -1811,6 +1811,210 @@ Actions à effectuer:
       });
     } catch (error) {
       console.error('Error seeding email templates:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Guides routes
+  app.get('/api/guides', async (req, res) => {
+    try {
+      const { persona } = req.query;
+      const guides = await storage.getGuides(persona as string);
+      res.json(guides);
+    } catch (error) {
+      console.error('Error fetching guides:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.get('/api/guides/:slug', async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const guide = await storage.getGuideBySlug(slug);
+      
+      if (!guide) {
+        return res.status(404).json({ error: 'Guide not found' });
+      }
+      
+      res.json(guide);
+    } catch (error) {
+      console.error('Error fetching guide:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.post('/api/guides/download', async (req, res) => {
+    try {
+      const validatedData = insertGuideDownloadSchema.parse(req.body);
+      
+      const download = await storage.createGuideDownload({
+        ...validatedData,
+        userAgent: req.headers['user-agent'] || '',
+        ipAddress: req.ip || req.connection.remoteAddress || ''
+      });
+      
+      res.json(download);
+    } catch (error) {
+      console.error('Error creating guide download:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.post('/api/guides/analytics', async (req, res) => {
+    try {
+      const validatedData = insertGuideAnalyticsSchema.parse(req.body);
+      
+      const analytics = await storage.createGuideAnalytics({
+        ...validatedData,
+        userAgent: req.headers['user-agent'] || '',
+        ipAddress: req.ip || req.connection.remoteAddress || ''
+      });
+      
+      res.json(analytics);
+    } catch (error) {
+      console.error('Error creating guide analytics:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Admin guides routes
+  app.post('/api/admin/guides', requireAuth, async (req, res) => {
+    try {
+      const validatedData = insertGuideSchema.parse(req.body);
+      const guide = await storage.createGuide(validatedData);
+      res.json(guide);
+    } catch (error) {
+      console.error('Error creating guide:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.get('/api/admin/guides', requireAuth, async (req, res) => {
+    try {
+      const guides = await storage.getGuides();
+      res.json(guides);
+    } catch (error) {
+      console.error('Error fetching admin guides:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.get('/api/admin/guides/:id/downloads', requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const downloads = await storage.getGuideDownloads(id);
+      res.json(downloads);
+    } catch (error) {
+      console.error('Error fetching guide downloads:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.get('/api/admin/guides/:id/analytics', requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const analytics = await storage.getGuideAnalytics(id);
+      res.json(analytics);
+    } catch (error) {
+      console.error('Error fetching guide analytics:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Seed default guides endpoint (temporary)
+  app.post('/api/admin/seed-guides', requireAuth, async (req, res) => {
+    try {
+      const defaultGuides = [
+        {
+          title: "Guide du Vendeur Pressé - Vendre en moins de 60 jours",
+          slug: "guide-vendeur-presse",
+          persona: "presse",
+          shortBenefit: "Vendez rapidement sans sacrifier le prix grâce à notre méthode éprouvée",
+          readingTime: 15,
+          content: `<h1>Guide du Vendeur Pressé</h1>
+            <p>Vous devez vendre rapidement ? Ce guide vous révèle les 5 stratégies pour vendre en moins de 60 jours sans brader votre prix.</p>
+            <h2>1. Fixez le bon prix dès le départ</h2>
+            <p>En Gironde, 80% des biens qui se vendent rapidement sont prix correctement dès la mise sur le marché...</p>
+            <h2>2. Optimisez votre bien pour les visites</h2>
+            <p>Les acheteurs décident en moyenne en 30 secondes. Voici comment maximiser l'impact...</p>`,
+          summary: "Introduction, Stratégie prix, Home staging, Marketing digital, Négociation express",
+          pdfContent: `Contenu PDF avec checklist bonus pour vendeurs pressés`,
+          metaDescription: "Guide pour vendre rapidement son bien immobilier en Gironde en moins de 60 jours",
+          seoTitle: "Guide Vendeur Pressé Gironde - Vendre en 60 jours",
+          sortOrder: 1
+        },
+        {
+          title: "Guide du Maximisateur - Obtenir le meilleur prix",
+          slug: "guide-maximisateur-prix",
+          persona: "maximisateur",
+          shortBenefit: "Maximisez la valeur de votre bien avec nos techniques d'optimisation",
+          readingTime: 20,
+          content: `<h1>Guide du Maximisateur</h1>
+            <p>Vous voulez obtenir le meilleur prix ? Découvrez comment augmenter la valeur perçue de votre bien.</p>
+            <h2>1. Analysez finement le marché local</h2>
+            <p>En Gironde, certains quartiers permettent des plus-values de 15% avec les bonnes techniques...</p>`,
+          summary: "Analyse marché, Valorisation, Travaux rentables, Timing optimal, Négociation avancée",
+          sortOrder: 2
+        },
+        {
+          title: "Guide Succession - Vendre un bien hérité",
+          slug: "guide-succession-heritage",
+          persona: "succession",
+          shortBenefit: "Simplifiez la vente d'un bien en succession avec notre accompagnement",
+          readingTime: 25,
+          content: `<h1>Guide Succession</h1>
+            <p>Vendre un bien en succession nécessite une approche spécifique. Ce guide vous accompagne étape par étape.</p>`,
+          summary: "Aspects légaux, Évaluation succession, Fiscalité, Partage, Vente optimisée",
+          sortOrder: 3
+        },
+        {
+          title: "Guide Nouvelle Vie - Vendre pour un nouveau projet",
+          slug: "guide-nouvelle-vie",
+          persona: "nouvelle_vie",
+          shortBenefit: "Financez votre nouveau projet de vie grâce à une vente optimisée",
+          readingTime: 18,
+          content: `<h1>Guide Nouvelle Vie</h1>
+            <p>Changement de vie, déménagement, nouveau projet ? Vendez dans les meilleures conditions.</p>`,
+          summary: "Planification, Timing, Financement pont, Démarchage, Accompagnement émotionnel",
+          sortOrder: 4
+        },
+        {
+          title: "Guide Investisseur - Optimiser la revente",
+          slug: "guide-investisseur-revente",
+          persona: "investisseur",
+          shortBenefit: "Maximisez votre ROI avec notre stratégie de sortie d'investissement",
+          readingTime: 22,
+          content: `<h1>Guide Investisseur</h1>
+            <p>Optimisez la revente de votre investissement locatif en Gironde.</p>`,
+          summary: "Fiscalité investissement, Plus-values, Timing marché, Stratégie patrimoniale",
+          sortOrder: 5
+        },
+        {
+          title: "Guide Primo-Vendeur - Réussir sa première vente",
+          slug: "guide-primo-vendeur",
+          persona: "primo",
+          shortBenefit: "Évitez les pièges de la première vente avec notre guide complet",
+          readingTime: 30,
+          content: `<h1>Guide Primo-Vendeur</h1>
+            <p>Première vente ? Ce guide vous évite tous les pièges et vous accompagne pas à pas.</p>`,
+          summary: "Processus vente, Documents, Négociation, Pièges à éviter, Checklist complète",
+          sortOrder: 6
+        }
+      ];
+
+      const createdGuides = [];
+      for (const guideData of defaultGuides) {
+        const guide = await storage.createGuide(guideData);
+        createdGuides.push(guide);
+      }
+
+      res.json({ 
+        success: true, 
+        message: 'Default guides created successfully',
+        guides: createdGuides
+      });
+    } catch (error) {
+      console.error('Error seeding guides:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   });

@@ -9,6 +9,10 @@ import {
   type EmailTemplate,
   type EmailHistory,
   type AuthSession,
+  type Guide,
+  type GuideDownload,
+  type GuideAnalytics,
+  type GuideEmailSequence,
   type InsertUser, 
   type InsertLead, 
   type InsertEstimation, 
@@ -17,6 +21,10 @@ import {
   type InsertEmailTemplate,
   type InsertEmailHistory,
   type InsertAuthSession,
+  type InsertGuide,
+  type InsertGuideDownload,
+  type InsertGuideAnalytics,
+  type InsertGuideEmailSequence,
   users,
   leads,
   estimations,
@@ -24,7 +32,11 @@ import {
   articles,
   emailTemplates,
   emailHistory,
-  authSessions
+  authSessions,
+  guides,
+  guideDownloads,
+  guideAnalytics,
+  guideEmailSequences
 } from "@shared/schema";
 import { eq, desc, sql, and } from "drizzle-orm";
 
@@ -78,6 +90,24 @@ export interface IStorage {
   createAuthSession(session: InsertAuthSession): Promise<AuthSession>;
   getAuthSession(id: string): Promise<AuthSession | undefined>;
   updateAuthSession(id: string, updates: Partial<InsertAuthSession>): Promise<void>;
+  
+  // Guides
+  createGuide(guide: InsertGuide): Promise<Guide>;
+  getGuides(persona?: string): Promise<Guide[]>;
+  getGuideBySlug(slug: string): Promise<Guide | undefined>;
+  updateGuide(id: string, updates: Partial<InsertGuide>): Promise<Guide>;
+  deleteGuide(id: string): Promise<void>;
+  
+  // Guide Downloads & Analytics
+  createGuideDownload(download: InsertGuideDownload): Promise<GuideDownload>;
+  getGuideDownloads(guideId?: string): Promise<GuideDownload[]>;
+  createGuideAnalytics(analytics: InsertGuideAnalytics): Promise<GuideAnalytics>;
+  getGuideAnalytics(guideId: string): Promise<GuideAnalytics[]>;
+  
+  // Guide Email Sequences
+  createGuideEmailSequence(sequence: InsertGuideEmailSequence): Promise<GuideEmailSequence>;
+  getGuideEmailSequences(leadEmail?: string): Promise<GuideEmailSequence[]>;
+  updateGuideEmailSequence(id: string, updates: Partial<InsertGuideEmailSequence>): Promise<void>;
 }
 
 export class SupabaseStorage implements IStorage {
@@ -294,6 +324,124 @@ export class SupabaseStorage implements IStorage {
       .update(authSessions)
       .set(updates)
       .where(eq(authSessions.id, id));
+  }
+
+  // Guides
+  async createGuide(guide: InsertGuide): Promise<Guide> {
+    const [newGuide] = await db
+      .insert(guides)
+      .values({ ...guide, updatedAt: new Date() })
+      .returning();
+    return newGuide;
+  }
+
+  async getGuides(persona?: string): Promise<Guide[]> {
+    if (persona) {
+      return await db
+        .select()
+        .from(guides)
+        .where(and(eq(guides.isActive, true), eq(guides.persona, persona)))
+        .orderBy(guides.sortOrder, guides.createdAt);
+    }
+    
+    return await db
+      .select()
+      .from(guides)
+      .where(eq(guides.isActive, true))
+      .orderBy(guides.sortOrder, guides.createdAt);
+  }
+
+  async getGuideBySlug(slug: string): Promise<Guide | undefined> {
+    const [guide] = await db
+      .select()
+      .from(guides)
+      .where(and(eq(guides.slug, slug), eq(guides.isActive, true)))
+      .limit(1);
+    return guide;
+  }
+
+  async updateGuide(id: string, updates: Partial<InsertGuide>): Promise<Guide> {
+    const [updatedGuide] = await db
+      .update(guides)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(guides.id, id))
+      .returning();
+    return updatedGuide;
+  }
+
+  async deleteGuide(id: string): Promise<void> {
+    await db.delete(guides).where(eq(guides.id, id));
+  }
+
+  // Guide Downloads & Analytics
+  async createGuideDownload(download: InsertGuideDownload): Promise<GuideDownload> {
+    const [newDownload] = await db
+      .insert(guideDownloads)
+      .values(download)
+      .returning();
+    return newDownload;
+  }
+
+  async getGuideDownloads(guideId?: string): Promise<GuideDownload[]> {
+    if (guideId) {
+      return await db
+        .select()
+        .from(guideDownloads)
+        .where(eq(guideDownloads.guideId, guideId))
+        .orderBy(desc(guideDownloads.downloadedAt));
+    }
+    
+    return await db
+      .select()
+      .from(guideDownloads)
+      .orderBy(desc(guideDownloads.downloadedAt));
+  }
+
+  async createGuideAnalytics(analytics: InsertGuideAnalytics): Promise<GuideAnalytics> {
+    const [newAnalytics] = await db
+      .insert(guideAnalytics)
+      .values(analytics)
+      .returning();
+    return newAnalytics;
+  }
+
+  async getGuideAnalytics(guideId: string): Promise<GuideAnalytics[]> {
+    return await db
+      .select()
+      .from(guideAnalytics)
+      .where(eq(guideAnalytics.guideId, guideId))
+      .orderBy(desc(guideAnalytics.timestamp));
+  }
+
+  // Guide Email Sequences
+  async createGuideEmailSequence(sequence: InsertGuideEmailSequence): Promise<GuideEmailSequence> {
+    const [newSequence] = await db
+      .insert(guideEmailSequences)
+      .values(sequence)
+      .returning();
+    return newSequence;
+  }
+
+  async getGuideEmailSequences(leadEmail?: string): Promise<GuideEmailSequence[]> {
+    if (leadEmail) {
+      return await db
+        .select()
+        .from(guideEmailSequences)
+        .where(eq(guideEmailSequences.leadEmail, leadEmail))
+        .orderBy(desc(guideEmailSequences.createdAt));
+    }
+    
+    return await db
+      .select()
+      .from(guideEmailSequences)
+      .orderBy(desc(guideEmailSequences.createdAt));
+  }
+
+  async updateGuideEmailSequence(id: string, updates: Partial<InsertGuideEmailSequence>): Promise<void> {
+    await db
+      .update(guideEmailSequences)
+      .set(updates)
+      .where(eq(guideEmailSequences.id, id));
   }
 }
 

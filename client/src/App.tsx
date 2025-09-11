@@ -25,6 +25,7 @@ import CookiesPage from "@/pages/CookiesPage";
 import ActualitesPageComponent from "@/pages/ActualitesPage";
 import ArticleDetailPageComponent from "@/pages/ArticleDetailPage";
 import LexiquePageComponent from "@/pages/LexiquePage";
+import GuidesPageComponent from "@/pages/GuidesPage";
 import Admin2FALogin from "@/components/Admin2FALogin";
 import bordeaux_house from "@assets/generated_images/Bordeaux_house_property_photo_41cf0370.png";
 
@@ -518,81 +519,9 @@ function AdminDashboardPage() {
   );
 }
 
-// Guides Page
+// Guides Page (using the new component)
 function GuidesPage() {
-  const domain = getDomainFromHeaders();
-  
-  const guides = [
-    {
-      slug: "acheter-premiere-fois",
-      title: "Guide complet : Acheter pour la première fois",
-      excerpt: "Tous les conseils pour réussir votre premier achat immobilier en Gironde",
-      category: "Achat",
-      readTime: "8 min"
-    },
-    {
-      slug: "vendre-rapidement",
-      title: "Comment vendre son bien rapidement",
-      excerpt: "Les meilleures stratégies pour vendre votre propriété au meilleur prix",
-      category: "Vente",
-      readTime: "6 min"
-    },
-    {
-      slug: "investissement-locatif",
-      title: "Investissement locatif : le guide complet",
-      excerpt: "Tout savoir sur l'investissement immobilier locatif en Gironde",
-      category: "Investissement",
-      readTime: "12 min"
-    },
-    {
-      slug: "estimation-juste-prix",
-      title: "Comment estimer le juste prix de votre bien",
-      excerpt: "Méthodologie et critères pour une estimation immobilière précise",
-      category: "Estimation",
-      readTime: "5 min"
-    }
-  ];
-  
-  return (
-    <div className="min-h-screen bg-background">
-      <Header domain={domain} />
-      <main className="py-8">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="mb-12">
-            <h1 className="text-4xl font-bold mb-4">Guide complet de l'estimation et de la vente immobilière en Gironde</h1>
-            <p className="text-xl text-muted-foreground">
-              Découvrez nos guides pratiques pour vous accompagner dans vos projets immobiliers
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {guides.map((guide) => (
-              <div key={guide.slug} className="bg-card p-6 rounded-lg border border-card-border hover-elevate">
-                <div className="mb-4">
-                  <span className="inline-block bg-primary/10 text-primary px-2 py-1 rounded-md text-sm font-medium">
-                    {guide.category}
-                  </span>
-                  <span className="float-right text-sm text-muted-foreground">
-                    {guide.readTime}
-                  </span>
-                </div>
-                <h2 className="text-xl font-semibold mb-3">{guide.title}</h2>
-                <p className="text-muted-foreground mb-4">{guide.excerpt}</p>
-                <a
-                  href={`/guides/${guide.slug}`}
-                  className="inline-flex items-center text-primary hover:underline font-medium"
-                  data-testid={`link-guide-${guide.slug}`}
-                >
-                  Lire le guide →
-                </a>
-              </div>
-            ))}
-          </div>
-        </div>
-      </main>
-      <Footer domain={domain} />
-    </div>
-  );
+  return <GuidesPageComponent />;
 }
 
 // Guide Detail Page
