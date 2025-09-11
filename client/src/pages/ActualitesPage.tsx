@@ -114,7 +114,7 @@ export default function ActualitesPage({ domain = "estimation-immobilier-gironde
           {/* Header */}
           <div className="text-center space-y-4">
             <h1 className="text-3xl sm:text-4xl font-bold text-foreground" data-testid="title-actualites">
-              Actualités immobilières {cityName}
+              Actualités de l'immobilier en Gironde : marché, tendances et conseils
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Découvrez nos derniers articles, analyses de marché et conseils d'experts 

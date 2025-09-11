@@ -86,7 +86,7 @@ export default function FinancementPage({ domain = "estimation-immobilier-girond
             <div className="flex items-center justify-center gap-2 mb-6">
               <AlertTriangle className="h-8 w-8 text-destructive" />
               <h1 className="text-3xl md:text-4xl font-bold">
-                Et si votre nouvelle solution de financement vous permettait de gagner plus ?
+                Solutions de financement immobilier en Gironde pour votre projet
               </h1>
             </div>
             <div className="max-w-3xl mx-auto space-y-4">

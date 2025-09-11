@@ -43,7 +43,7 @@ function HomePage() {
         <section className="py-16 bg-muted/30">
           <div className="max-w-6xl mx-auto px-4">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold mb-4">Votre nouvelle solution d'estimation gratuite et fiable</h2>
+              <h1 className="text-3xl font-bold mb-4">Estimation immobilière en Gironde : vendez au meilleur prix</h1>
               <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
                 Découvrez notre estimateur révolutionnaire qui combine l'IA et les prix réels DVF pour vous offrir des résultats précis garantis. Cette solution exclusive vous permet d'économiser du temps et de gagner en confiance pour vos décisions immobilières stratégiques en Gironde.
               </p>
@@ -106,6 +106,11 @@ function EstimationPage() {
     <div className="min-h-screen bg-background">
       <Header domain={domain} />
       <main>
+        <section className="py-8">
+          <div className="max-w-3xl mx-auto px-4 text-center">
+            <h1 className="text-3xl font-bold mb-4">Estimez gratuitement votre bien immobilier en Gironde</h1>
+          </div>
+        </section>
         <PropertyEstimationForm />
       </main>
       <Footer domain={domain} />
@@ -383,7 +388,7 @@ function GuidesPage() {
       <main className="py-8">
         <div className="max-w-6xl mx-auto px-4">
           <div className="mb-12">
-            <h1 className="text-4xl font-bold mb-4">Guides Immobiliers</h1>
+            <h1 className="text-4xl font-bold mb-4">Guide complet de l'estimation et de la vente immobilière en Gironde</h1>
             <p className="text-xl text-muted-foreground">
               Découvrez nos guides pratiques pour vous accompagner dans vos projets immobiliers
             </p>
