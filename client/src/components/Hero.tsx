@@ -42,77 +42,80 @@ export default function Hero({ domain = "estimation-immobilier-gironde.fr" }: He
               </p>
             </div>
 
-            {/* Ce que vous ressentez */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="bg-orange-500/10 p-2 rounded-lg">
-                  <Brain className="h-5 w-5 text-orange-500" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground">Ce que vous ressentez aujourd'hui</h3>
-              </div>
-              <ul className="space-y-2 ml-10">
-                <li className="text-sm text-muted-foreground">• Vous ne savez pas si votre agent vous dit la vérité sur le prix</li>
-                <li className="text-sm text-muted-foreground">• Vous avez peur de vendre trop bas et de perdre de l'argent</li>
-                <li className="text-sm text-muted-foreground">• Vous voulez une solution gratuite, objective, sans arrière-pensée</li>
-              </ul>
-            </div>
-
-            {/* Ce que vous méritez */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="bg-primary/10 p-2 rounded-lg">
-                  <Target className="h-5 w-5 text-primary" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground">La solution que vous méritez</h3>
-              </div>
-              <ul className="space-y-2 ml-10">
-                <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                  Des résultats garantis basés sur les vraies ventes DVF de votre quartier
-                </li>
-                <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                  Notre nouvelle analyse IA exclusive de 50+ critères prix
-                </li>
-                <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                  Un rapport détaillé gratuit pour vous faire économiser et gagner en négociation
-                </li>
-                <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                  Solution 100% gratuite, sans engagement, résultats garantis en 3 minutes
-                </li>
-              </ul>
-            </div>
-
-            {/* Comment ça fonctionne */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="bg-green-500/10 p-2 rounded-lg">
-                  <Rocket className="h-5 w-5 text-green-500" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground">Comment ça fonctionne (plan en 3 étapes)</h3>
-              </div>
-              <div className="grid gap-4 ml-10">
-                <div className="flex items-start gap-3">
-                  <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-semibold">1</div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Décrivez votre bien</p>
-                    <p className="text-xs text-muted-foreground">Type, surface, ville, état général (2 minutes)</p>
+            {/* Grille 3 colonnes pour les 3 blocs */}
+            <div className="grid md:grid-cols-3 gap-6">
+              {/* Ce que vous ressentez */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-orange-500/10 p-2 rounded-lg">
+                    <Brain className="h-5 w-5 text-orange-500" />
                   </div>
+                  <h3 className="text-base font-semibold text-foreground">Ce que vous ressentez aujourd'hui</h3>
                 </div>
-                <div className="flex items-start gap-3">
-                  <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-semibold">2</div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Notre IA analyse</p>
-                    <p className="text-xs text-muted-foreground">Croisement des données DVF + critères marché local</p>
+                <ul className="space-y-2">
+                  <li className="text-sm text-muted-foreground">• Vous ne savez pas si votre agent vous dit la vérité sur le prix</li>
+                  <li className="text-sm text-muted-foreground">• Vous avez peur de vendre trop bas et de perdre de l'argent</li>
+                  <li className="text-sm text-muted-foreground">• Vous voulez une solution gratuite, objective, sans arrière-pensée</li>
+                </ul>
+              </div>
+
+              {/* Ce que vous méritez */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-primary/10 p-2 rounded-lg">
+                    <Target className="h-5 w-5 text-primary" />
                   </div>
+                  <h3 className="text-base font-semibold text-foreground">La solution que vous méritez</h3>
                 </div>
-                <div className="flex items-start gap-3">
-                  <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-semibold">3</div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Recevez votre estimation</p>
-                    <p className="text-xs text-muted-foreground">Fourchette précise + rapport détaillé par email</p>
+                <ul className="space-y-2">
+                  <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+                    <span>Des résultats garantis basés sur les vraies ventes DVF de votre quartier</span>
+                  </li>
+                  <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+                    <span>Notre nouvelle analyse IA exclusive de 50+ critères prix</span>
+                  </li>
+                  <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+                    <span>Un rapport détaillé gratuit pour vous faire économiser et gagner en négociation</span>
+                  </li>
+                  <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+                    <span>Solution 100% gratuite, sans engagement, résultats garantis en 3 minutes</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Comment ça fonctionne */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-green-500/10 p-2 rounded-lg">
+                    <Rocket className="h-5 w-5 text-green-500" />
+                  </div>
+                  <h3 className="text-base font-semibold text-foreground">Comment ça fonctionne (plan en 3 étapes)</h3>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-semibold">1</div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Décrivez votre bien</p>
+                      <p className="text-xs text-muted-foreground">Type, surface, ville, état général (2 minutes)</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-semibold">2</div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Notre IA analyse</p>
+                      <p className="text-xs text-muted-foreground">Croisement des données DVF + critères marché local</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-semibold">3</div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Recevez votre estimation</p>
+                      <p className="text-xs text-muted-foreground">Fourchette précise + rapport détaillé par email</p>
+                    </div>
                   </div>
                 </div>
               </div>
