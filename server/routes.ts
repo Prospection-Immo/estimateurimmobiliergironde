@@ -105,12 +105,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   });
 
-  // Create estimation and lead
-  app.post('/api/estimations', async (req, res) => {
+  // Create quick estimation (from homepage)
+  app.post('/api/estimations-quick', async (req, res) => {
     try {
       const domain = req.headers['x-domain'] as string;
       
-      // Validate the request body for estimation leads
+      // Validate the request body for quick estimation leads
       const validatedData = insertEstimationLeadSchema.parse({
         ...req.body,
         source: domain
@@ -130,10 +130,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         constructionYear: validatedData.constructionYear || undefined
       });
 
-      // Save lead
+      // Save lead with quick type
       const lead = await storage.createLead({
         ...validatedData,
         estimatedValue: estimation.estimatedValue.toString(),
+        leadType: 'estimation_quick',
         status: 'new'
       });
 
@@ -148,7 +149,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
         estimatedValue: estimation.estimatedValue.toString(),
         pricePerM2: estimation.pricePerM2.toString(),
         confidence: estimation.confidence,
-        methodology: "Analyse comparative basée sur les transactions récentes en Gironde"
+        methodology: "Estimation rapide basée sur les données du marché"
+      });
+
+      res.json({
+        lead,
+        estimation: savedEstimation,
+        calculatedData: estimation
+      });
+    } catch (error) {
+      console.error('Error creating quick estimation:', error);
+      res.status(400).json({ error: 'Invalid data provided' });
+    }
+  });
+
+  // Create detailed estimation (from estimation page)
+  app.post('/api/estimations', async (req, res) => {
+    try {
+      const domain = req.headers['x-domain'] as string;
+      
+      // Validate the request body for detailed estimation leads
+      const validatedData = insertEstimationLeadSchema.parse({
+        ...req.body,
+        source: domain
+      });
+
+      // Calculate estimation
+      const estimation = calculateEstimation({
+        propertyType: validatedData.propertyType,
+        city: validatedData.city,
+        surface: validatedData.surface || 0,
+        rooms: validatedData.rooms || undefined,
+        bedrooms: validatedData.bedrooms || undefined,
+        bathrooms: validatedData.bathrooms || undefined,
+        hasGarden: validatedData.hasGarden || false,
+        hasParking: validatedData.hasParking || false,
+        hasBalcony: validatedData.hasBalcony || false,
+        constructionYear: validatedData.constructionYear || undefined
+      });
+
+      // Save lead with detailed type
+      const lead = await storage.createLead({
+        ...validatedData,
+        estimatedValue: estimation.estimatedValue.toString(),
+        leadType: 'estimation_detailed',
+        status: 'new'
+      });
+
+      // Save estimation
+      const savedEstimation = await storage.createEstimation({
+        leadId: lead.id,
+        propertyType: validatedData.propertyType,
+        address: validatedData.address,
+        city: validatedData.city,
+        surface: validatedData.surface || 0,
+        rooms: validatedData.rooms || 0,
+        estimatedValue: estimation.estimatedValue.toString(),
+        pricePerM2: estimation.pricePerM2.toString(),
+        confidence: estimation.confidence,
+        methodology: "Analyse comparative détaillée basée sur les transactions récentes en Gironde"
       });
 
       res.json({
@@ -158,6 +217,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('Error creating estimation:', error);
+      res.status(400).json({ error: 'Invalid data provided' });
+    }
+  });
+
+  // Create guide download lead
+  app.post('/api/guide-leads', async (req, res) => {
+    try {
+      const domain = req.headers['x-domain'] as string;
+      
+      // Validate the request body for guide download leads
+      const validatedData = insertLeadSchema.parse({
+        ...req.body,
+        source: domain,
+        leadType: 'guide_download'
+      });
+
+      // Save guide download lead
+      const lead = await storage.createLead(validatedData);
+
+      res.json(lead);
+    } catch (error) {
+      console.error('Error creating guide lead:', error);
       res.status(400).json({ error: 'Invalid data provided' });
     }
   });
@@ -176,6 +257,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Save financing lead (preserving domain as source)
       const lead = await storage.createLead({
         ...validatedData,
+        leadType: 'financing',
         status: 'new'
       });
 

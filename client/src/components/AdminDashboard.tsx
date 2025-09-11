@@ -30,6 +30,7 @@ interface Lead {
   postalCode?: string;
   surface?: number;
   estimatedValue?: string;
+  leadType: string;
   status: string;
   createdAt?: string;
 }
@@ -49,6 +50,7 @@ interface AdminDashboardProps {
 export default function AdminDashboard({ domain = "estimation-immobilier-gironde.fr" }: AdminDashboardProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedLeadType, setSelectedLeadType] = useState("all");
   const [leads, setLeads] = useState<Lead[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -127,6 +129,16 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
     return variants[status as keyof typeof variants] || variants.new;
   };
 
+  const getLeadTypeBadge = (leadType: string) => {
+    const variants = {
+      estimation_quick: { variant: "secondary" as const, label: "Estimation Rapide", color: "bg-blue-100 text-blue-800" },
+      estimation_detailed: { variant: "default" as const, label: "Estimation Détaillée", color: "bg-green-100 text-green-800" },
+      financing: { variant: "secondary" as const, label: "Financement", color: "bg-purple-100 text-purple-800" },
+      guide_download: { variant: "outline" as const, label: "Guide Téléchargé", color: "bg-orange-100 text-orange-800" }
+    };
+    return variants[leadType as keyof typeof variants] || { variant: "outline" as const, label: leadType, color: "bg-gray-100 text-gray-800" };
+  };
+
   const updateLeadStatus = async (leadId: string, newStatus: string) => {
     try {
       const response = await fetch(`/api/leads/${leadId}/status`, {
@@ -186,8 +198,9 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
       lead.city.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = selectedStatus === "all" || lead.status === selectedStatus;
+    const matchesLeadType = selectedLeadType === "all" || lead.leadType === selectedLeadType;
     
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesLeadType;
   });
 
   if (isAuthenticated === null || loading) {
@@ -309,40 +322,87 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
           <TabsContent value="leads" className="space-y-6">
             {/* Filters */}
             <Card className="p-6">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Rechercher par nom, email ou ville..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                      data-testid="input-search-leads"
-                    />
+              <div className="space-y-4">
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="flex-1">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Rechercher par nom, email ou ville..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                        data-testid="input-search-leads"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={selectedStatus === "all" ? "default" : "outline"}
+                      onClick={() => setSelectedStatus("all")}
+                      data-testid="button-filter-all"
+                    >
+                      Tous
+                    </Button>
+                    <Button
+                      variant={selectedStatus === "new" ? "default" : "outline"}
+                      onClick={() => setSelectedStatus("new")}
+                      data-testid="button-filter-new"
+                    >
+                      Nouveaux
+                    </Button>
+                    <Button
+                      variant={selectedStatus === "contacted" ? "default" : "outline"}
+                      onClick={() => setSelectedStatus("contacted")}
+                      data-testid="button-filter-contacted"
+                    >
+                      Contactés
+                    </Button>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                
+                {/* Lead Type Filters */}
+                <div className="flex flex-wrap gap-2">
+                  <p className="text-sm text-muted-foreground self-center">Type de lead :</p>
                   <Button
-                    variant={selectedStatus === "all" ? "default" : "outline"}
-                    onClick={() => setSelectedStatus("all")}
-                    data-testid="button-filter-all"
+                    size="sm"
+                    variant={selectedLeadType === "all" ? "default" : "outline"}
+                    onClick={() => setSelectedLeadType("all")}
+                    data-testid="button-filter-leadtype-all"
                   >
                     Tous
                   </Button>
                   <Button
-                    variant={selectedStatus === "new" ? "default" : "outline"}
-                    onClick={() => setSelectedStatus("new")}
-                    data-testid="button-filter-new"
+                    size="sm"
+                    variant={selectedLeadType === "estimation_quick" ? "default" : "outline"}
+                    onClick={() => setSelectedLeadType("estimation_quick")}
+                    data-testid="button-filter-leadtype-quick"
                   >
-                    Nouveaux
+                    Estimation Rapide
                   </Button>
                   <Button
-                    variant={selectedStatus === "contacted" ? "default" : "outline"}
-                    onClick={() => setSelectedStatus("contacted")}
-                    data-testid="button-filter-contacted"
+                    size="sm"
+                    variant={selectedLeadType === "estimation_detailed" ? "default" : "outline"}
+                    onClick={() => setSelectedLeadType("estimation_detailed")}
+                    data-testid="button-filter-leadtype-detailed"
                   >
-                    Contactés
+                    Estimation Détaillée
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={selectedLeadType === "financing" ? "default" : "outline"}
+                    onClick={() => setSelectedLeadType("financing")}
+                    data-testid="button-filter-leadtype-financing"
+                  >
+                    Financement
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={selectedLeadType === "guide_download" ? "default" : "outline"}
+                    onClick={() => setSelectedLeadType("guide_download")}
+                    data-testid="button-filter-leadtype-guide"
+                  >
+                    Guide Téléchargé
                   </Button>
                 </div>
               </div>
@@ -364,12 +424,21 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                           <h4 className="font-medium">
                             {lead.firstName} {lead.lastName}
                           </h4>
-                          <Badge 
-                            variant={getStatusBadge(lead.status).variant}
-                            data-testid={`badge-status-${lead.id}`}
-                          >
-                            {getStatusBadge(lead.status).label}
-                          </Badge>
+                          <div className="flex items-center space-x-2">
+                            <Badge 
+                              variant={getLeadTypeBadge(lead.leadType).variant}
+                              className={`text-xs ${getLeadTypeBadge(lead.leadType).color}`}
+                              data-testid={`badge-leadtype-${lead.id}`}
+                            >
+                              {getLeadTypeBadge(lead.leadType).label}
+                            </Badge>
+                            <Badge 
+                              variant={getStatusBadge(lead.status).variant}
+                              data-testid={`badge-status-${lead.id}`}
+                            >
+                              {getStatusBadge(lead.status).label}
+                            </Badge>
+                          </div>
                         </div>
                         <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                           <div className="flex items-center space-x-1">

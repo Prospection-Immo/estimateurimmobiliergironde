@@ -37,6 +37,7 @@ export const leads = pgTable("leads", {
   financingProjectType: text("financing_project_type"), // For financing leads: "Achat résidence principale", "Investissement locatif", etc.
   projectAmount: text("project_amount"), // Amount as text (e.g., "250 000 €")
   source: text("source").notNull(), // domain name
+  leadType: text("lead_type").notNull().default("estimation_quick"), // "estimation_quick" | "estimation_detailed" | "financing" | "guide_download"
   status: text("status").notNull().default("new"), // "new" | "contacted" | "converted" | "archived"
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
