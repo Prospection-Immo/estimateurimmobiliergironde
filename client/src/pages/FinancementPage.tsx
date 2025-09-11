@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle, Shield, Clock, Euro } from "lucide-react";
+import { CheckCircle, Shield, Clock, Euro, Users, TrendingUp, Lightbulb, Target, Compass, Mail, Phone, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -79,66 +79,241 @@ export default function FinancementPage({ domain = "estimation-immobilier-girond
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Hero Section */}
-      <section className="relative py-16 bg-gradient-to-br from-background to-muted">
+      {/* Hero Section - Emotional Hook */}
+      <section className="relative py-16 bg-gradient-to-br from-destructive/5 to-destructive/10">
         <div className="max-w-4xl mx-auto px-4">
           <div className="text-center mb-12">
-            <h1 className="text-3xl md:text-4xl font-bold mb-6">
-              Un projet immobilier ? Besoin d'une solution de financement fiable ?
-            </h1>
-            <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              Profitez d'un accompagnement personnalisé pour trouver le meilleur financement, 
-              adapté à votre situation et à votre projet en Gironde.
+            <div className="flex items-center justify-center gap-2 mb-6">
+              <AlertTriangle className="h-8 w-8 text-destructive" />
+              <h1 className="text-3xl md:text-4xl font-bold">
+                Et si le vrai frein à votre projet immobilier… c'était le financement ?
+              </h1>
+            </div>
+            <div className="max-w-3xl mx-auto space-y-4">
+              <p className="text-lg leading-relaxed">
+                En Gironde, chaque semaine, des acheteurs sérieux voient leur rêve s'effondrer. 
+                Non pas parce qu'ils n'ont pas trouvé le bon bien. 
+                Mais parce qu'ils n'ont pas su défendre leur dossier ou présenter leur projet sous le bon angle aux banques.
+              </p>
+              <p className="text-lg font-semibold text-destructive">
+                Et ça, c'est injuste.
+              </p>
+              <p className="text-lg font-medium">
+                Vous avez un projet solide. Vous méritez un financement à la hauteur de votre ambition.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Accompagnement Section */}
+      <section className="py-16 bg-background">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <Lightbulb className="h-8 w-8 text-primary" />
+              <h2 className="text-2xl md:text-3xl font-bold">
+                Un accompagnement humain, local… et stratégique
+              </h2>
+            </div>
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+              Grâce à notre réseau de courtiers partenaires experts en Gironde, 
+              vous bénéficiez d'un soutien personnalisé, quel que soit votre profil :
             </p>
           </div>
 
-          {/* Promesses Section */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-            <div className="text-center space-y-3">
-              <div className="bg-primary/10 p-4 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
-                <CheckCircle className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="font-semibold" data-testid="text-promise-analyse">Analyse gratuite</h3>
-              <p className="text-sm text-muted-foreground">de votre profil financier</p>
-            </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card className="text-center hover-elevate">
+              <CardContent className="p-6">
+                <CheckCircle className="h-12 w-12 text-primary mx-auto mb-4" />
+                <h3 className="font-semibold mb-2">Primo-accédant</h3>
+                <p className="text-sm text-muted-foreground">
+                  Premier achat ? Nous vous accompagnons dans cette étape cruciale.
+                </p>
+              </CardContent>
+            </Card>
 
-            <div className="text-center space-y-3">
-              <div className="bg-primary/10 p-4 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
-                <Clock className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="font-semibold" data-testid="text-promise-rapide">Étude rapide</h3>
-              <p className="text-sm text-muted-foreground">de faisabilité de votre projet</p>
-            </div>
+            <Card className="text-center hover-elevate">
+              <CardContent className="p-6">
+                <Users className="h-12 w-12 text-primary mx-auto mb-4" />
+                <h3 className="font-semibold mb-2">Indépendant / freelance</h3>
+                <p className="text-sm text-muted-foreground">
+                  Profil atypique ? Nous savons valoriser votre situation.
+                </p>
+              </CardContent>
+            </Card>
 
-            <div className="text-center space-y-3">
-              <div className="bg-primary/10 p-4 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
-                <Euro className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="font-semibold" data-testid="text-promise-solutions">Solutions adaptées</h3>
-              <p className="text-sm text-muted-foreground">achat, investissement, regroupement</p>
-            </div>
+            <Card className="text-center hover-elevate">
+              <CardContent className="p-6">
+                <TrendingUp className="h-12 w-12 text-primary mx-auto mb-4" />
+                <h3 className="font-semibold mb-2">Investisseur locatif</h3>
+                <p className="text-sm text-muted-foreground">
+                  Optimisez votre stratégie d'investissement immobilier.
+                </p>
+              </CardContent>
+            </Card>
 
-            <div className="text-center space-y-3">
-              <div className="bg-primary/10 p-4 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
-                <Shield className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="font-semibold" data-testid="text-promise-reponse">Réponse sous 24h</h3>
-              <p className="text-sm text-muted-foreground">sans engagement</p>
+            <Card className="text-center hover-elevate">
+              <CardContent className="p-6">
+                <Clock className="h-12 w-12 text-primary mx-auto mb-4" />
+                <h3 className="font-semibold mb-2">Projet atypique ou urgent</h3>
+                <p className="text-sm text-muted-foreground">
+                  Situation complexe ? Nous trouvons des solutions adaptées.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* 3 Étapes Section */}
+      <section className="py-16 bg-muted/30">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <Compass className="h-8 w-8 text-primary" />
+              <h2 className="text-2xl md:text-3xl font-bold">
+                3 étapes simples pour débloquer votre financement
+              </h2>
             </div>
           </div>
 
-          {/* Réassurance */}
-          <div className="bg-muted/50 p-6 rounded-lg border border-border mb-12">
-            <div className="flex items-start space-x-3">
-              <Shield className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
-              <div>
-                <h4 className="font-semibold mb-2">Vos données sont protégées</h4>
+          <div className="space-y-8">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm">
+                    1
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg mb-2">Analyse confidentielle de votre profil financier</h3>
+                    <p className="text-muted-foreground">gratuite, sans engagement</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm">
+                    2
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg mb-2">Étude de faisabilité express sous 24h</h3>
+                    <p className="text-muted-foreground">avec recommandations concrètes pour optimiser votre dossier</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm">
+                    3
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg mb-2">Proposition de solutions sur-mesure</h3>
+                    <p className="text-muted-foreground">achat, regroupement, investissement</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Statistiques Section */}
+      <section className="py-16 bg-primary/5">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <TrendingUp className="h-8 w-8 text-primary" />
+              <h2 className="text-2xl md:text-3xl font-bold">
+                Ce que nos partenaires ont déjà permis
+              </h2>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <Card className="text-center hover-elevate">
+              <CardContent className="p-6">
+                <div className="text-3xl font-bold text-primary mb-2">87%</div>
                 <p className="text-sm text-muted-foreground">
-                  Nous travaillons uniquement avec des experts de confiance et ne diffusons jamais vos données. 
-                  Toutes les informations sont traitées de manière confidentielle.
+                  des projets financés dès le 1er passage en banque
                 </p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center hover-elevate">
+              <CardContent className="p-6">
+                <div className="text-3xl font-bold text-primary mb-2">0,6%</div>
+                <p className="text-sm text-muted-foreground">
+                  Taux négociés jusqu'à 0,6% plus bas que la moyenne
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center hover-elevate">
+              <CardContent className="p-6">
+                <div className="text-3xl font-bold text-primary mb-2">100%</div>
+                <p className="text-sm text-muted-foreground">
+                  Dossiers acceptés pour des profils atypiques (CDD, indépendants…)
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Ce que vous obtenez Section */}
+      <section className="py-16 bg-background">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <Target className="h-8 w-8 text-primary" />
+              <h2 className="text-2xl md:text-3xl font-bold">
+                Ce que vous obtenez
+              </h2>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div className="flex items-start gap-4">
+              <CheckCircle className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
+              <div>
+                <h3 className="font-semibold text-lg mb-1" data-testid="text-promise-analyse">Une vision claire de ce que vous pouvez financer</h3>
               </div>
             </div>
+
+            <div className="flex items-start gap-4">
+              <CheckCircle className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
+              <div>
+                <h3 className="font-semibold text-lg mb-1" data-testid="text-promise-rapide">Des options concrètes pour faire avancer votre projet</h3>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <CheckCircle className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
+              <div>
+                <h3 className="font-semibold text-lg mb-1" data-testid="text-promise-solutions">La confiance de savoir que vous êtes bien accompagné(e)</h3>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Projet de vie Section */}
+      <section className="py-16 bg-primary/10">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <h2 className="text-2xl md:text-3xl font-bold mb-6" data-testid="text-promise-reponse">
+            Ce n'est pas qu'un prêt. C'est un projet de vie qui avance.
+          </h2>
+          <div className="space-y-4 text-lg">
+            <p>En quelques clics, vous passez de l'incertitude à l'action.</p>
+            <p>Vous montrez que vous prenez votre projet au sérieux.</p>
+            <p className="font-semibold">Et surtout… vous reprenez le pouvoir sur votre parcours immobilier.</p>
           </div>
         </div>
       </section>
@@ -147,11 +322,14 @@ export default function FinancementPage({ domain = "estimation-immobilier-girond
       <section className="py-16 bg-gradient-to-br from-primary/5 to-primary/10">
         <div className="max-w-3xl mx-auto px-4">
           <div className="text-center mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold mb-4">
-              Obtenez une étude de financement gratuite
-            </h2>
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <Mail className="h-8 w-8 text-primary" />
+              <h2 className="text-2xl md:text-3xl font-bold">
+                Recevez votre étude de financement personnalisée (et confidentielle)
+              </h2>
+            </div>
             <p className="text-muted-foreground">
-              Remplissez ce formulaire et recevez une réponse personnalisée sous 24h.
+              Remplissez ce formulaire, et recevez une réponse claire en 24h, sans aucun engagement.
             </p>
           </div>
 
@@ -185,7 +363,7 @@ export default function FinancementPage({ domain = "estimation-immobilier-girond
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="telephone">Téléphone (optionnel)</Label>
+                  <Label htmlFor="telephone">Téléphone (facultatif)</Label>
                   <Input
                     id="telephone"
                     type="tel"
@@ -212,7 +390,7 @@ export default function FinancementPage({ domain = "estimation-immobilier-girond
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="montant">Montant du projet (approx.)</Label>
+                  <Label htmlFor="montant">Montant estimé du projet</Label>
                   <Input
                     id="montant"
                     type="text"
@@ -232,12 +410,52 @@ export default function FinancementPage({ domain = "estimation-immobilier-girond
                   {isSubmitting ? "Envoi en cours..." : "Demander une étude gratuite"}
                 </Button>
 
-                <p className="text-xs text-muted-foreground text-center">
-                  📧 Réponse sous 24h • Aucune donnée transmise à des tiers
-                </p>
+                <div className="bg-muted/50 p-4 rounded-lg border border-border">
+                  <div className="flex items-start space-x-3">
+                    <Shield className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-muted-foreground">
+                      Vos données sont strictement confidentielles. Aucune revente. Aucun spam.
+                      Réponse sous 24h • Aucune donnée transmise à des tiers
+                    </p>
+                  </div>
+                </div>
               </form>
             </CardContent>
           </Card>
+        </div>
+      </section>
+
+      {/* Contact Section */}
+      <section className="py-16 bg-muted/30">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <h2 className="text-xl font-bold mb-6">Encore des doutes ?</h2>
+          
+          <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+            <Card className="hover-elevate">
+              <CardContent className="p-6">
+                <Phone className="h-8 w-8 text-primary mx-auto mb-4" />
+                <h3 className="font-semibold mb-2">Contactez-nous par téléphone</h3>
+                <p className="text-muted-foreground text-sm">05 56 XX XX XX</p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate">
+              <CardContent className="p-6">
+                <Mail className="h-8 w-8 text-primary mx-auto mb-4" />
+                <h3 className="font-semibold mb-2">Écrivez-nous par email</h3>
+                <p className="text-muted-foreground text-sm">contact@estimation-immobilier-gironde.fr</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="mt-12 pt-8 border-t border-border">
+            <div className="flex items-center justify-center gap-2">
+              <Target className="h-6 w-6 text-primary" />
+              <p className="font-semibold text-lg">
+                Estimation Gironde — Bien plus que l'estimation de votre bien : le partenaire local de vos projets immobiliers.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
     </div>
