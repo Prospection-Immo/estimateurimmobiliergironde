@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Switch, Route, useRoute } from "wouter";
+import { Switch, Route, useRoute, useParams, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -772,6 +772,26 @@ function CookiesPageComponent() {
   );
 }
 
+// Article Redirect Component
+function ArticleRedirect() {
+  const params = useParams<{ slug: string }>();
+  
+  useEffect(() => {
+    if (params.slug) {
+      // Redirect to the new article URL format
+      window.location.replace(`/actualites/${params.slug}`);
+    }
+  }, [params.slug]);
+  
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="text-center">
+        <p className="text-lg">Redirection en cours...</p>
+      </div>
+    </div>
+  );
+}
+
 // Router Component
 function Router() {
   return (
@@ -786,6 +806,8 @@ function Router() {
       <Route path="/guides/:slug" component={GuideDetailPage} />
       <Route path="/actualites" component={ActualitesPage} />
       <Route path="/actualites/:slug" component={ArticleDetailPage} />
+      {/* Redirect old article URLs to new format */}
+      <Route path="/articles/:slug" component={ArticleRedirect} />
       <Route path="/login" component={AdminLoginPage} />
       <Route path="/admin/login" component={AdminLoginPage} />
       <Route path="/admin" component={AdminDashboardPage} />

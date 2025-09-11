@@ -16,6 +16,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { 
   Users, 
+  User,
   Calculator, 
   Phone, 
   TrendingUp, 
@@ -177,6 +178,10 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
     audience: "proprietaires",
     tone: "professionnel"
   });
+
+  // Article preview state (for existing articles)
+  const [showArticlePreviewModal, setShowArticlePreviewModal] = useState(false);
+  const [previewingArticle, setPreviewingArticle] = useState<Article | null>(null);
 
   const queryClientInstance = useQueryClient();
 
@@ -1063,11 +1068,23 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                               </div>
                             </div>
                             <div className="flex items-center space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setPreviewingArticle(article);
+                                  setShowArticlePreviewModal(true);
+                                }}
+                                data-testid={`button-preview-article-${article.id}`}
+                              >
+                                <Eye className="h-3 w-3 mr-1" />
+                                Prévisualiser
+                              </Button>
                               {article.status === 'published' && (
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => window.open(`/articles/${article.slug}`, '_blank')}
+                                  onClick={() => window.open(`/actualites/${article.slug}`, '_blank')}
                                   data-testid={`button-view-article-${article.id}`}
                                 >
                                   <Globe className="h-3 w-3 mr-1" />
@@ -1475,6 +1492,133 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                 </Button>
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Article Preview Modal */}
+        <Dialog open={showArticlePreviewModal} onOpenChange={setShowArticlePreviewModal}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle data-testid="modal-article-preview-title" className="text-xl font-bold">
+                Prévisualisation de l'article
+              </DialogTitle>
+            </DialogHeader>
+            
+            {previewingArticle && (
+              <div className="space-y-6">
+                {/* Article Header Section */}
+                <div className="border-b pb-4">
+                  <div className="flex items-center gap-4 mb-3">
+                    <Badge 
+                      variant={previewingArticle.status === 'published' ? 'default' : 'secondary'}
+                      data-testid="badge-preview-status"
+                    >
+                      {previewingArticle.status === 'published' ? 'Publié' : 'Brouillon'}
+                    </Badge>
+                    {previewingArticle.category && (
+                      <Badge variant="outline" className="text-xs">
+                        {previewingArticle.category.charAt(0).toUpperCase() + previewingArticle.category.slice(1)}
+                      </Badge>
+                    )}
+                  </div>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2" data-testid="text-preview-title">
+                    {previewingArticle.title}
+                  </h1>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center">
+                      <Calendar className="h-4 w-4 mr-2" />
+                      {previewingArticle.publishedAt ? 
+                        new Date(previewingArticle.publishedAt).toLocaleDateString('fr-FR', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        }) : 
+                        'Non publié'
+                      }
+                    </div>
+                    {previewingArticle.authorName && (
+                      <div className="flex items-center">
+                        <User className="h-4 w-4 mr-2" />
+                        Par {previewingArticle.authorName}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Meta Description */}
+                {previewingArticle.metaDescription && (
+                  <div className="bg-muted/30 p-4 rounded-lg">
+                    <p className="text-lg text-muted-foreground leading-relaxed">
+                      {previewingArticle.metaDescription}
+                    </p>
+                  </div>
+                )}
+
+                {/* Article Content */}
+                <div className="space-y-6">
+                  <div className="bg-background border rounded-lg">
+                    <div className="p-4 border-b">
+                      <Label className="text-sm font-semibold text-muted-foreground">CONTENU DE L'ARTICLE</Label>
+                    </div>
+                    <div 
+                      className="prose prose-sm lg:prose-base max-w-none p-6 bg-white dark:bg-card"
+                      dangerouslySetInnerHTML={{ __html: previewingArticle.content }}
+                      data-testid="content-preview-article"
+                    />
+                  </div>
+                </div>
+
+                {/* Preview Actions */}
+                <div className="flex justify-between items-center pt-4 border-t gap-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowArticlePreviewModal(false);
+                      setPreviewingArticle(null);
+                    }}
+                    data-testid="button-close-preview"
+                  >
+                    Fermer
+                  </Button>
+                  
+                  <div className="flex gap-2">
+                    {previewingArticle.status === 'published' && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          window.open(`/actualites/${previewingArticle.slug}`, '_blank');
+                        }}
+                        data-testid="button-view-live-article"
+                      >
+                        <Globe className="h-4 w-4 mr-2" />
+                        Voir en direct
+                      </Button>
+                    )}
+                    
+                    <Button
+                      onClick={() => {
+                        const newStatus = previewingArticle.status === 'published' ? 'draft' : 'published';
+                        updateArticleMutation.mutate({ 
+                          id: previewingArticle.id, 
+                          status: newStatus,
+                          publishedAt: newStatus === 'published' ? new Date().toISOString() : undefined
+                        });
+                        setShowArticlePreviewModal(false);
+                      }}
+                      disabled={updateArticleMutation.isPending}
+                      data-testid="button-toggle-status-preview"
+                    >
+                      {updateArticleMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <FileText className="h-4 w-4 mr-2" />
+                      )}
+                      {previewingArticle.status === 'published' ? 'Dépublier' : 'Publier'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>
