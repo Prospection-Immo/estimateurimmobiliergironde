@@ -33,9 +33,9 @@ export async function generateRealEstateArticle(request: ArticleGenerationReques
   const { title, topic, keywords, targetRegion = 'Gironde', tone = 'professional', length = 'medium' } = request;
 
   const lengthGuide = {
-    short: '800-1200 mots',
-    medium: '1500-2000 mots', 
-    long: '2500-3000 mots'
+    short: '400-600 mots',
+    medium: '600-800 mots', 
+    long: '800-1000 mots'
   };
 
   const prompt = `Tu es un expert en rédaction immobilière française spécialisé dans la région ${targetRegion}. 
@@ -54,6 +54,8 @@ L'article doit respecter ces critères :
 4. Être optimisé SEO avec une structure claire (H1, H2, H3)
 5. Inclure des données chiffrées réalistes pour ${targetRegion}
 6. Avoir un ton professionnel mais accessible
+
+⚠️ OBLIGATION: Toujours inclure TOUS les champs: title, slug, metaDescription, content, summary, keywords, seoElements. Si la limite de tokens empêche un contenu long, produis un content HTML concis mais n'omets JAMAIS de champs.
 
 Structure demandée :
 - Introduction accrocheuse
@@ -91,28 +93,43 @@ Réponds en JSON avec cette structure exacte :
         }
       ],
       response_format: { type: "json_object" },
-      temperature: 0.7,
-      max_tokens: 4000
+      temperature: 1
     });
 
     const result = JSON.parse(response.choices[0].message.content || '{}');
     
+    // Lightweight debug logging
+    console.log('OpenAI Response Keys:', Object.keys(result));
+    console.log('Content length:', result.content?.length || 0);
+    console.log('Usage:', response.usage);
+    
+    // Add fallback for missing slug
+    if (!result.slug && !result.seoElements?.slug && result.title) {
+      const slugified = result.title
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+      result.slug = slugified;
+    }
+    
     // Validate required fields
-    if (!result.title || !result.content || !result.slug) {
-      throw new Error('Generated article missing required fields');
+    if (!result.title || !result.content || (!result.slug && !result.seoElements?.slug)) {
+      throw new Error(`Generated article missing required fields. Found: title=${!!result.title}, content=${!!result.content}, slug=${!!result.slug}, seoElements.slug=${!!result.seoElements?.slug}`);
     }
 
     return {
       title: result.title,
-      slug: result.slug,
-      metaDescription: result.metaDescription || '',
+      slug: result.slug || result.seoElements?.slug || '',
+      metaDescription: result.metaDescription || result.seoElements?.description || '',
       content: result.content,
       summary: result.summary || '',
       keywords: result.keywords || keywords,
       seoElements: result.seoElements || {
         title: result.title,
-        description: result.metaDescription,
-        slug: result.slug
+        description: result.metaDescription || result.seoElements?.description,
+        slug: result.slug || result.seoElements?.slug
       }
     };
 
@@ -160,8 +177,7 @@ Utilise des données réalistes et crédibles. Réponds en JSON :
         }
       ],
       response_format: { type: "json_object" },
-      temperature: 0.5,
-      max_tokens: 1000
+      temperature: 1
     });
 
     return JSON.parse(response.choices[0].message.content || '{}');

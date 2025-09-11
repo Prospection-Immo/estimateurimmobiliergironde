@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertLeadSchema, insertEstimationSchema, insertContactSchema, insertArticleSchema } from "@shared/schema";
 import { sanitizeArticleContent } from "./services/htmlSanitizer";
+import { generateRealEstateArticle } from "./services/openai";
 import { z } from "zod";
 
 // Specific validation schemas for different lead types
@@ -438,6 +439,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error deleting article:', error);
       res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Endpoint pour générer un article avec OpenAI
+  app.post('/api/articles/generate', async (req, res) => {
+    try {
+      const { title, topic, keywords = [] } = req.body;
+      
+      if (!title || !topic) {
+        return res.status(400).json({ 
+          error: 'Title and topic are required' 
+        });
+      }
+
+      console.log(`Generating article for topic: ${topic}`);
+      const generatedContent = await generateRealEstateArticle({
+        title,
+        topic,
+        keywords: Array.isArray(keywords) ? keywords : [keywords].filter(Boolean),
+        targetRegion: 'Gironde',
+        tone: 'professional',
+        length: 'medium'
+      });
+      
+      res.json({
+        content: generatedContent.content,
+        metaDescription: generatedContent.metaDescription,
+        seoTitle: generatedContent.title,
+        summary: generatedContent.summary,
+        slug: generatedContent.slug,
+        keywords: generatedContent.keywords
+      });
+    } catch (error) {
+      console.error('Error generating article:', error);
+      res.status(500).json({ error: 'Failed to generate article content' });
     }
   });
 

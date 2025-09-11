@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Calculator, MapPin, Shield, BarChart3, Zap } from "lucide-react";
+import { Calculator, MapPin, Shield, BarChart3, Zap, Brain, Target, Rocket, Check } from "lucide-react";
 import { Link } from "wouter";
 import bordeaux_house from "@assets/generated_images/Bordeaux_house_property_photo_41cf0370.png";
 
@@ -30,42 +30,89 @@ export default function Hero({ domain = "estimation-immobilier-gironde.fr" }: He
           <div className="space-y-8">
             <div className="space-y-6">
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground leading-tight">
-                Estimez gratuitement votre bien immobilier en{" "}
-                <span className="text-primary">{cityName}</span>
+                Et si vous passiez à côté de{" "}
+                <span className="text-primary">milliers d'euros</span>…{" "}
+                <span className="text-muted-foreground">sans même le savoir ?</span>
               </h1>
-              <div className="space-y-4">
-                <p className="text-base sm:text-lg text-muted-foreground max-w-xl leading-relaxed">
-                  Obtenez une estimation fiable en quelques clics grâce à l'IA et aux données DVF officielles.
-                </p>
-                <p className="text-sm sm:text-base text-muted-foreground max-w-xl leading-relaxed">
-                  Que vous soyez vendeur, investisseur ou simplement curieux, découvrez la vraie valeur de votre bien dans le marché actuel de la Gironde.
-                </p>
-              </div>
+              <p className="text-base sm:text-lg text-muted-foreground max-w-xl leading-relaxed">
+                Chaque mois en Gironde, des centaines de propriétaires vendent leur bien 15 à 30% en dessous de sa vraie valeur marchande. 
+                Par méconnaissance du marché local ou mauvaise estimation initiale.
+              </p>
             </div>
 
+            {/* Ce que vous ressentez */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-orange-500/10 p-2 rounded-lg">
+                  <Brain className="h-5 w-5 text-orange-500" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">Ce que vous ressentez</h3>
+              </div>
+              <ul className="space-y-2 ml-10">
+                <li className="text-sm text-muted-foreground">• Vous ne savez pas si votre agent vous dit la vérité sur le prix</li>
+                <li className="text-sm text-muted-foreground">• Vous avez peur de vendre trop bas ou de rester sur le marché trop longtemps</li>
+                <li className="text-sm text-muted-foreground">• Vous aimeriez une estimation objective, sans arrière-pensée commerciale</li>
+              </ul>
+            </div>
 
-            {/* Trust Indicators */}
-            <div className="grid grid-cols-3 gap-2 sm:gap-4 pt-8">
-              <div className="text-center">
-                <div className="bg-primary/10 p-2 sm:p-3 rounded-lg w-fit mx-auto mb-2">
-                  <Shield className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
+            {/* Ce que vous méritez */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-primary/10 p-2 rounded-lg">
+                  <Target className="h-5 w-5 text-primary" />
                 </div>
-                <p className="text-xs sm:text-sm font-medium" data-testid="text-trust-gratuit">100% gratuit</p>
-                <p className="text-xs text-muted-foreground">& confidentiel</p>
+                <h3 className="text-lg font-semibold text-foreground">Ce que vous méritez</h3>
               </div>
-              <div className="text-center">
-                <div className="bg-primary/10 p-2 sm:p-3 rounded-lg w-fit mx-auto mb-2">
-                  <BarChart3 className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
+              <ul className="space-y-2 ml-10">
+                <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                  Une estimation basée sur les vraies ventes DVF de votre quartier
+                </li>
+                <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                  L'analyse IA de 50+ critères qui impactent réellement le prix
+                </li>
+                <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                  Un rapport détaillé pour négocier en position de force
+                </li>
+                <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                  100% gratuit, sans engagement, résultat en 3 minutes
+                </li>
+              </ul>
+            </div>
+
+            {/* Comment ça fonctionne */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-green-500/10 p-2 rounded-lg">
+                  <Rocket className="h-5 w-5 text-green-500" />
                 </div>
-                <p className="text-xs sm:text-sm font-medium" data-testid="text-trust-fiabilite">Fiabilité</p>
-                <p className="text-xs text-muted-foreground">DVF & IA</p>
+                <h3 className="text-lg font-semibold text-foreground">Comment ça fonctionne (plan en 3 étapes)</h3>
               </div>
-              <div className="text-center">
-                <div className="bg-primary/10 p-2 sm:p-3 rounded-lg w-fit mx-auto mb-2">
-                  <Zap className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
+              <div className="grid gap-4 ml-10">
+                <div className="flex items-start gap-3">
+                  <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-semibold">1</div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Décrivez votre bien</p>
+                    <p className="text-xs text-muted-foreground">Type, surface, ville, état général (2 minutes)</p>
+                  </div>
                 </div>
-                <p className="text-xs sm:text-sm font-medium" data-testid="text-trust-rapidite">Rapidité</p>
-                <p className="text-xs text-muted-foreground">&lt; 5 minutes</p>
+                <div className="flex items-start gap-3">
+                  <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-semibold">2</div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Notre IA analyse</p>
+                    <p className="text-xs text-muted-foreground">Croisement des données DVF + critères marché local</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-semibold">3</div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Recevez votre estimation</p>
+                    <p className="text-xs text-muted-foreground">Fourchette précise + rapport détaillé par email</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -73,7 +120,7 @@ export default function Hero({ domain = "estimation-immobilier-gironde.fr" }: He
           {/* Quick Estimation Card */}
           <Card className="p-6 bg-card/80 backdrop-blur-sm border-card-border">
             <h3 className="text-xl font-semibold mb-4 text-card-foreground">
-              Estimation rapide
+              Découvrez la vraie valeur de votre bien en Gironde
             </h3>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -105,7 +152,7 @@ export default function Hero({ domain = "estimation-immobilier-gironde.fr" }: He
               </div>
               <Link href="/estimation" className="block">
                 <Button className="w-full" data-testid="button-quick-estimate">
-                  Obtenir mon estimation
+                  Estimer mon bien gratuitement
                 </Button>
               </Link>
             </div>
