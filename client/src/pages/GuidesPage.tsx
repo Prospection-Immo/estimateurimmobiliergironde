@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Clock, Users, Download, ArrowRight, Filter } from "lucide-react";
+import { Clock, Users, Download, ArrowRight, Filter, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,12 +13,18 @@ export default function GuidesPage() {
 
   const { data: guides = [], isLoading } = useQuery<Guide[]>({
     queryKey: ['/api/guides', selectedPersona],
+    queryFn: async () => {
+      const url = selectedPersona 
+        ? `/api/guides?persona=${encodeURIComponent(selectedPersona)}`
+        : '/api/guides';
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to fetch guides');
+      }
+      return response.json();
+    },
     enabled: true
   });
-
-  const filteredGuides = guides.filter(guide => 
-    !selectedPersona || guide.persona === selectedPersona
-  );
 
   const personaStats = Object.keys(GUIDE_PERSONAS).map(persona => ({
     key: persona,
@@ -86,7 +92,7 @@ export default function GuidesPage() {
               </div>
               
               <div className="text-sm text-muted-foreground">
-                {filteredGuides.length} guide{filteredGuides.length !== 1 ? 's' : ''}
+                {guides.length} guide{guides.length !== 1 ? 's' : ''}
               </div>
             </div>
           </div>
@@ -144,10 +150,10 @@ export default function GuidesPage() {
                 </Card>
               ))}
             </div>
-          ) : filteredGuides.length === 0 ? (
+          ) : guides.length === 0 ? (
             <div className="text-center py-16">
               <div className="max-w-md mx-auto">
-                <div className="text-6xl mb-4">📚</div>
+                <BookOpen className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="text-xl font-semibold mb-2">
                   {selectedPersona ? 'Aucun guide pour ce profil' : 'Aucun guide disponible'}
                 </h3>
@@ -170,7 +176,7 @@ export default function GuidesPage() {
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredGuides.map(guide => (
+              {guides.map(guide => (
                 <Card key={guide.id} className="flex flex-col hover-elevate" data-testid={`card-guide-${guide.id}`}>
                   <CardHeader>
                     <div className="flex items-start justify-between gap-2 mb-2">
