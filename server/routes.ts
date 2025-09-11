@@ -624,59 +624,26 @@ Réponds en JSON avec cette structure exacte :
       console.log(`Generating article with exact prompt for keyword: ${keyword}`);
       
       // Call OpenAI with the exact prompt
-      const openai = new (require('openai').default)({ apiKey: process.env.OPENAI_API_KEY });
-      
-      const response = await openai.chat.completions.create({
-        model: "gpt-5", // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-        messages: [
-          {
-            role: "system",
-            content: "Tu es un expert en rédaction d'articles de blog SEO optimisés. Tu génères du contenu structuré, crédible et engageant. Réponds toujours en JSON valide."
-          },
-          {
-            role: "user",
-            content: exactPrompt
-          }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.7,
-        max_tokens: 4000
+      const generatedContent = await generateRealEstateArticle({
+        title: `Article sur ${keyword}`,
+        topic: keyword,
+        keywords: [keyword],
+        targetRegion: 'Gironde',
+        tone: tone as 'professional' | 'informative' | 'engaging',
+        length: wordCount > 600 ? 'long' : wordCount > 400 ? 'medium' : 'short'
       });
-
-      const result = JSON.parse(response.choices[0].message.content || '{}');
       
-      // Validate and clean up the result
-      if (!result.title || !result.content) {
-        throw new Error('Generated article missing required fields');
-      }
-
-      // Generate slug if missing
-      if (!result.slug) {
-        result.slug = result.title
-          .toLowerCase()
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/^-+|-+$/g, '');
-      }
-
-      // Sanitize content
-      result.content = sanitizeArticleContent(result.content);
-      
+      // Return the generated content using our service
       res.json({
-        title: result.title,
-        slug: result.slug,
-        metaDescription: result.metaDescription || result.seoElements?.description || '',
-        content: result.content,
-        summary: result.summary || '',
-        keywords: Array.isArray(result.keywords) ? result.keywords : [keyword],
-        category: result.category || category,
-        seoElements: result.seoElements || {
-          title: result.title,
-          description: result.metaDescription,
-          slug: result.slug
-        },
-        visualElements: result.visualElements || {
+        title: generatedContent.title,
+        slug: generatedContent.slug,
+        metaDescription: generatedContent.metaDescription,
+        content: sanitizeArticleContent(generatedContent.content),
+        summary: generatedContent.summary,
+        keywords: generatedContent.keywords,
+        category: category,
+        seoElements: generatedContent.seoElements,
+        visualElements: {
           heroImageDescription: "Image illustrant l'article sur " + keyword,
           sectionImages: [],
           pinterestIdeas: []

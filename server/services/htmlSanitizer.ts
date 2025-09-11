@@ -1,9 +1,9 @@
-import DOMPurify from 'dompurify';
 import { JSDOM } from 'jsdom';
+import createDOMPurify from 'dompurify';
 
 // Create a JSDOM window for DOMPurify to use in Node.js environment
 const window = new JSDOM('').window;
-const domPurify = DOMPurify(window);
+const DOMPurify = createDOMPurify(window as any);
 
 /**
  * Sanitize HTML content to prevent XSS attacks
@@ -15,7 +15,7 @@ export function sanitizeHtmlContent(html: string): string {
   }
 
   // Configure DOMPurify to allow specific tags for article content
-  const cleanHtml = domPurify.sanitize(html, {
+  const cleanHtml = DOMPurify.sanitize(html, {
     ALLOWED_TAGS: [
       'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
       'p', 'br', 'hr',

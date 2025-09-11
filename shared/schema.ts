@@ -82,9 +82,10 @@ export const articles = pgTable("articles", {
   keywords: text("keywords"), // JSON string array
   seoTitle: text("seo_title"),
   authorName: text("author_name").default("Expert Immobilier"),
-  status: text("status").notNull().default("published"), // "draft" | "published" | "archived"
+  status: text("status").notNull().default("published"), // "draft" | "published" | "scheduled" | "archived"
   category: text("category").default("estimation"), // "estimation", "marche", "conseils", etc.
   publishedAt: timestamp("published_at").defaultNow(),
+  scheduledFor: timestamp("scheduled_for"), // For scheduled publication
   updatedAt: timestamp("updated_at").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 });
