@@ -46,6 +46,7 @@ export interface IStorage {
   // Articles
   createArticle(article: InsertArticle): Promise<Article>;
   getArticles(limit?: number): Promise<Article[]>;
+  getAllArticles(limit?: number, status?: string, category?: string, searchQuery?: string): Promise<Article[]>;
   getArticleBySlug(slug: string): Promise<Article | undefined>;
   getArticlesByCategory(category: string, limit?: number): Promise<Article[]>;
   updateArticle(id: string, updates: Partial<InsertArticle>): Promise<Article>;
@@ -115,6 +116,35 @@ export class SupabaseStorage implements IStorage {
 
   async getArticles(limit = 50): Promise<Article[]> {
     return await db.select().from(articles).where(eq(articles.status, 'published')).orderBy(desc(articles.publishedAt)).limit(limit);
+  }
+
+  async getAllArticles(limit = 50, status?: string, category?: string, searchQuery?: string): Promise<Article[]> {
+    let query = db.select().from(articles);
+
+    // Apply filters
+    const conditions = [];
+    if (status && status !== 'all') {
+      conditions.push(eq(articles.status, status));
+    }
+    if (category && category !== 'all') {
+      conditions.push(eq(articles.category, category));
+    }
+    if (searchQuery) {
+      const searchTerm = `%${searchQuery.toLowerCase()}%`;
+      conditions.push(
+        sql`(LOWER(${articles.title}) LIKE ${searchTerm} OR LOWER(${articles.content}) LIKE ${searchTerm} OR LOWER(${articles.summary}) LIKE ${searchTerm})`
+      );
+    }
+
+    if (conditions.length > 0) {
+      const combinedCondition = conditions.reduce((acc, condition, index) => 
+        index === 0 ? condition : sql`${acc} AND ${condition}`
+      );
+      query = query.where(combinedCondition);
+    }
+
+    const result = await query.orderBy(desc(articles.createdAt)).limit(limit);
+    return result;
   }
 
   async getArticleBySlug(slug: string): Promise<Article | undefined> {

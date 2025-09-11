@@ -5,6 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { 
   Users, 
   Calculator, 
@@ -18,7 +24,14 @@ import {
   AlertCircle,
   Eye,
   MessageSquare,
-  Clock
+  Clock,
+  FileText,
+  Edit,
+  Trash2,
+  Plus,
+  Wand2,
+  Save,
+  Globe
 } from "lucide-react";
 
 interface Lead {
@@ -82,6 +95,43 @@ interface Stats {
   totalContacts: number;
 }
 
+interface Article {
+  id: string;
+  title: string;
+  slug: string;
+  metaDescription?: string;
+  content: string;
+  summary?: string;
+  keywords?: string;
+  seoTitle?: string;
+  authorName?: string;
+  status: 'draft' | 'published' | 'archived';
+  category?: string;
+  publishedAt?: string;
+  updatedAt?: string;
+  createdAt?: string;
+}
+
+interface GeneratedArticle {
+  title: string;
+  slug: string;
+  metaDescription: string;
+  content: string;
+  summary: string;
+  keywords: string[];
+  category: string;
+  seoElements: {
+    title: string;
+    description: string;
+    slug: string;
+  };
+  visualElements?: {
+    heroImageDescription: string;
+    sectionImages: string[];
+    pinterestIdeas: string[];
+  };
+}
+
 interface AdminDashboardProps {
   domain?: string;
 }
@@ -97,6 +147,78 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
+
+  // Article management state
+  const [articleSearchTerm, setArticleSearchTerm] = useState("");
+  const [articleStatus, setArticleStatus] = useState("all");
+  const [articleCategory, setArticleCategory] = useState("all");
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewArticle, setPreviewArticle] = useState<GeneratedArticle | null>(null);
+  const [generatingArticle, setGeneratingArticle] = useState(false);
+
+  // Article generation form state
+  const [articleForm, setArticleForm] = useState({
+    keyword: "",
+    wordCount: 800,
+    category: "estimation",
+    audience: "proprietaires",
+    tone: "professionnel"
+  });
+
+  const queryClientInstance = useQueryClient();
+
+  // React Query hooks for articles
+  const { data: articles = [], isLoading: articlesLoading, error: articlesError } = useQuery<Article[]>({
+    queryKey: ['/api/admin/articles', { status: articleStatus, category: articleCategory, q: articleSearchTerm }],
+    enabled: isAuthenticated === true,
+    staleTime: 0
+  });
+
+  const createArticleMutation = useMutation({
+    mutationFn: async (articleData: any) => {
+      const response = await apiRequest('POST', '/api/admin/articles', articleData);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClientInstance.invalidateQueries({ queryKey: ['/api/admin/articles'] });
+      setShowPreviewModal(false);
+      setPreviewArticle(null);
+    }
+  });
+
+  const updateArticleMutation = useMutation({
+    mutationFn: async ({ id, ...updateData }: { id: string } & Partial<Article>) => {
+      const response = await apiRequest('PATCH', `/api/admin/articles/${id}`, updateData);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClientInstance.invalidateQueries({ queryKey: ['/api/admin/articles'] });
+    }
+  });
+
+  const deleteArticleMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest('DELETE', `/api/admin/articles/${id}`);
+    },
+    onSuccess: () => {
+      queryClientInstance.invalidateQueries({ queryKey: ['/api/admin/articles'] });
+    }
+  });
+
+  const generateArticleMutation = useMutation({
+    mutationFn: async (formData: typeof articleForm) => {
+      const response = await apiRequest('POST', '/api/admin/articles/generate', formData);
+      return response.json();
+    },
+    onSuccess: (data: GeneratedArticle) => {
+      setPreviewArticle(data);
+      setShowPreviewModal(true);
+      setGeneratingArticle(false);
+    },
+    onError: () => {
+      setGeneratingArticle(false);
+    }
+  });
 
   useEffect(() => {
     checkAuthentication();
@@ -370,10 +492,11 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
 
         {/* Main Content */}
         <Tabs defaultValue="leads" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="leads" data-testid="tab-leads">Leads</TabsTrigger>
             <TabsTrigger value="estimations" data-testid="tab-estimations">Estimations</TabsTrigger>
             <TabsTrigger value="contacts" data-testid="tab-contacts">Messages</TabsTrigger>
+            <TabsTrigger value="articles" data-testid="tab-articles">Articles</TabsTrigger>
           </TabsList>
 
           <TabsContent value="leads" className="space-y-6">
@@ -750,7 +873,409 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
               </div>
             </Card>
           </TabsContent>
+
+          <TabsContent value="articles" className="space-y-6">
+            <Tabs defaultValue="liste" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="liste" data-testid="tab-articles-liste">Liste</TabsTrigger>
+                <TabsTrigger value="generation" data-testid="tab-articles-generation">Génération</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="liste" className="space-y-6">
+                {/* Article Filters */}
+                <Card className="p-6">
+                  <div className="space-y-4">
+                    <div className="flex flex-col md:flex-row gap-4">
+                      <div className="flex-1">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder="Rechercher par titre ou contenu..."
+                            value={articleSearchTerm}
+                            onChange={(e) => setArticleSearchTerm(e.target.value)}
+                            className="pl-10"
+                            data-testid="input-search-articles"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Select value={articleStatus} onValueChange={setArticleStatus}>
+                          <SelectTrigger className="w-40" data-testid="select-article-status">
+                            <SelectValue placeholder="Statut" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Tous</SelectItem>
+                            <SelectItem value="draft">Brouillons</SelectItem>
+                            <SelectItem value="published">Publiés</SelectItem>
+                            <SelectItem value="archived">Archivés</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        
+                        <Select value={articleCategory} onValueChange={setArticleCategory}>
+                          <SelectTrigger className="w-40" data-testid="select-article-category">
+                            <SelectValue placeholder="Catégorie" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Toutes</SelectItem>
+                            <SelectItem value="estimation">Estimation</SelectItem>
+                            <SelectItem value="marche">Marché</SelectItem>
+                            <SelectItem value="conseils">Conseils</SelectItem>
+                            <SelectItem value="financement">Financement</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Articles List */}
+                <Card className="p-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold">Articles ({articles.length})</h3>
+                      <Button 
+                        onClick={() => {
+                          setArticleForm({
+                            keyword: "",
+                            wordCount: 800,
+                            category: "estimation",
+                            audience: "proprietaires",
+                            tone: "professionnel"
+                          });
+                        }}
+                        data-testid="button-create-article"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Nouveau
+                      </Button>
+                    </div>
+                    
+                    {articlesLoading ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        Chargement des articles...
+                      </div>
+                    ) : articles.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>Aucun article trouvé</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {articles.map((article: Article) => (
+                          <div
+                            key={article.id}
+                            className="flex items-center justify-between p-4 border border-border rounded-lg hover-elevate"
+                            data-testid={`card-article-${article.id}`}
+                          >
+                            <div className="flex-1 space-y-2">
+                              <div className="flex items-center space-x-3">
+                                <h4 className="font-medium">{article.title}</h4>
+                                <Badge 
+                                  variant={
+                                    article.status === 'published' ? 'default' : 
+                                    article.status === 'draft' ? 'secondary' : 'outline'
+                                  }
+                                  data-testid={`badge-article-status-${article.id}`}
+                                >
+                                  {article.status === 'published' ? 'Publié' : 
+                                   article.status === 'draft' ? 'Brouillon' : 'Archivé'}
+                                </Badge>
+                                {article.category && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {article.category.charAt(0).toUpperCase() + article.category.slice(1)}
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                                <span>/{article.slug}</span>
+                                <span>
+                                  {article.publishedAt ? 
+                                    new Date(article.publishedAt).toLocaleDateString('fr-FR') : 
+                                    'Non publié'
+                                  }
+                                </span>
+                                {article.summary && (
+                                  <span className="truncate max-w-xs">{article.summary}</span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              {article.status === 'published' && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => window.open(`/articles/${article.slug}`, '_blank')}
+                                  data-testid={`button-view-article-${article.id}`}
+                                >
+                                  <Globe className="h-3 w-3 mr-1" />
+                                  Voir
+                                </Button>
+                              )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const newStatus = article.status === 'published' ? 'draft' : 'published';
+                                  updateArticleMutation.mutate({ id: article.id, status: newStatus });
+                                }}
+                                disabled={updateArticleMutation.isPending}
+                                data-testid={`button-toggle-status-${article.id}`}
+                              >
+                                {article.status === 'published' ? 'Dépublier' : 'Publier'}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  if (confirm('Êtes-vous sûr de vouloir supprimer cet article ?')) {
+                                    deleteArticleMutation.mutate(article.id);
+                                  }
+                                }}
+                                disabled={deleteArticleMutation.isPending}
+                                data-testid={`button-delete-article-${article.id}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="generation" className="space-y-6">
+                <Card className="p-6">
+                  <div className="space-y-6">
+                    <div className="flex items-center space-x-2">
+                      <Wand2 className="h-5 w-5 text-primary" />
+                      <h3 className="text-lg font-semibold">Générer un article avec IA</h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="keyword">Mot-clé principal *</Label>
+                          <Input
+                            id="keyword"
+                            placeholder="ex: estimation immobilière Bordeaux"
+                            value={articleForm.keyword}
+                            onChange={(e) => setArticleForm({ ...articleForm, keyword: e.target.value })}
+                            data-testid="input-article-keyword"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="wordCount">Nombre de mots</Label>
+                          <Select 
+                            value={articleForm.wordCount.toString()} 
+                            onValueChange={(value) => setArticleForm({ ...articleForm, wordCount: parseInt(value) })}
+                          >
+                            <SelectTrigger data-testid="select-word-count">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="400">400 mots</SelectItem>
+                              <SelectItem value="600">600 mots</SelectItem>
+                              <SelectItem value="800">800 mots</SelectItem>
+                              <SelectItem value="1000">1000 mots</SelectItem>
+                              <SelectItem value="1200">1200 mots</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="category">Catégorie</Label>
+                          <Select 
+                            value={articleForm.category} 
+                            onValueChange={(value) => setArticleForm({ ...articleForm, category: value })}
+                          >
+                            <SelectTrigger data-testid="select-generation-category">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="estimation">Estimation</SelectItem>
+                              <SelectItem value="marche">Marché</SelectItem>
+                              <SelectItem value="conseils">Conseils</SelectItem>
+                              <SelectItem value="financement">Financement</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="audience">Audience</Label>
+                          <Select 
+                            value={articleForm.audience} 
+                            onValueChange={(value) => setArticleForm({ ...articleForm, audience: value })}
+                          >
+                            <SelectTrigger data-testid="select-generation-audience">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="proprietaires">Propriétaires</SelectItem>
+                              <SelectItem value="investisseurs">Investisseurs</SelectItem>
+                              <SelectItem value="acheteurs">Acheteurs</SelectItem>
+                              <SelectItem value="vendeurs">Vendeurs</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="tone">Ton</Label>
+                          <Select 
+                            value={articleForm.tone} 
+                            onValueChange={(value) => setArticleForm({ ...articleForm, tone: value })}
+                          >
+                            <SelectTrigger data-testid="select-generation-tone">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="professionnel">Professionnel</SelectItem>
+                              <SelectItem value="accessible">Accessible</SelectItem>
+                              <SelectItem value="expert">Expert</SelectItem>
+                              <SelectItem value="conseil">Conseil</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="pt-4">
+                          <Button
+                            onClick={() => {
+                              if (!articleForm.keyword) {
+                                alert('Le mot-clé principal est requis');
+                                return;
+                              }
+                              setGeneratingArticle(true);
+                              generateArticleMutation.mutate(articleForm);
+                            }}
+                            disabled={!articleForm.keyword || generateArticleMutation.isPending}
+                            className="w-full"
+                            data-testid="button-generate-article"
+                          >
+                            {generateArticleMutation.isPending ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                Génération en cours...
+                              </>
+                            ) : (
+                              <>
+                                <Wand2 className="h-4 w-4 mr-2" />
+                                Générer l'article
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </TabsContent>
         </Tabs>
+
+        {/* Preview Modal for Generated Articles */}
+        <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle data-testid="modal-preview-title">
+                Prévisualisation de l'article généré
+              </DialogTitle>
+            </DialogHeader>
+            
+            {previewArticle && (
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <div>
+                    <Label>Titre</Label>
+                    <div className="font-semibold text-lg">{previewArticle.title}</div>
+                  </div>
+                  
+                  <div>
+                    <Label>Slug URL</Label>
+                    <div className="text-sm text-muted-foreground">/{previewArticle.slug}</div>
+                  </div>
+                  
+                  <div>
+                    <Label>Meta Description</Label>
+                    <div className="text-sm">{previewArticle.metaDescription}</div>
+                  </div>
+                  
+                  {previewArticle.summary && (
+                    <div>
+                      <Label>Résumé</Label>
+                      <div className="text-sm">{previewArticle.summary}</div>
+                    </div>
+                  )}
+                  
+                  <div>
+                    <Label>Mots-clés</Label>
+                    <div className="flex flex-wrap gap-1">
+                      {previewArticle.keywords.map((keyword, index) => (
+                        <Badge key={index} variant="outline" className="text-xs">
+                          {keyword}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label>Contenu (aperçu)</Label>
+                    <div 
+                      className="prose prose-sm max-w-none border border-border rounded-md p-4 max-h-60 overflow-y-auto"
+                      dangerouslySetInnerHTML={{ __html: previewArticle.content.substring(0, 1000) + '...' }}
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowPreviewModal(false);
+                      setPreviewArticle(null);
+                    }}
+                    data-testid="button-cancel-preview"
+                  >
+                    Annuler
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      createArticleMutation.mutate({
+                        ...previewArticle,
+                        status: 'draft',
+                        keywords: JSON.stringify(previewArticle.keywords)
+                      });
+                    }}
+                    disabled={createArticleMutation.isPending}
+                    data-testid="button-save-draft"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    Enregistrer brouillon
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      createArticleMutation.mutate({
+                        ...previewArticle,
+                        status: 'published',
+                        publishedAt: new Date(),
+                        keywords: JSON.stringify(previewArticle.keywords)
+                      });
+                    }}
+                    disabled={createArticleMutation.isPending}
+                    data-testid="button-publish-article"
+                  >
+                    <Globe className="h-4 w-4 mr-2" />
+                    Publier
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

@@ -535,7 +535,160 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Endpoint pour générer un article avec OpenAI
+  // Admin-specific article routes with filtering
+  app.get('/api/admin/articles', requireAuth, async (req, res) => {
+    try {
+      const { status, category, q, limit } = req.query;
+      const articles = await storage.getAllArticles(
+        limit ? parseInt(limit as string) : 50,
+        status as string,
+        category as string,
+        q as string
+      );
+      res.json(articles);
+    } catch (error) {
+      console.error('Error fetching admin articles:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.patch('/api/admin/articles/:id', requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validation = insertArticleSchema.partial().safeParse(req.body);
+      
+      if (!validation.success) {
+        return res.status(400).json({ 
+          error: 'Validation failed', 
+          details: validation.error.errors 
+        });
+      }
+
+      // Handle publishedAt timestamp when publishing
+      let updateData = validation.data;
+      if (updateData.status === 'published' && !updateData.publishedAt) {
+        updateData.publishedAt = new Date();
+      }
+
+      // Sanitize HTML content if provided
+      if (updateData.content) {
+        updateData = {
+          ...updateData,
+          content: sanitizeArticleContent(updateData.content)
+        };
+      }
+
+      const article = await storage.updateArticle(id, updateData);
+      res.json(article);
+    } catch (error) {
+      console.error('Error updating article:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // AI Article Generation with exact user prompt
+  app.post('/api/admin/articles/generate', requireAuth, async (req, res) => {
+    try {
+      const { keyword, wordCount = 800, category = 'estimation', audience = 'proprietaires', tone = 'professionnel' } = req.body;
+      
+      if (!keyword) {
+        return res.status(400).json({ 
+          error: 'Keyword is required for article generation' 
+        });
+      }
+
+      // Use the EXACT prompt provided by the user
+      const exactPrompt = `Tu es une IA experte en rédaction d'articles de blog SEO, optimisés pour les moteurs de recherche et l'intelligence artificielle. Tu respectes les critères E-E-A-T de Google : Expérience (cas concrets, anecdotes), Expertise (analyses, données), Autorité (sources fiables, citations), Fiabilité (preuves, mentions légales). Tu reçois toujours deux variables : <keyword>${keyword}</keyword>, <word_count>${wordCount}</word_count>. 🎯 Rôle : Produire des articles de blog SEO structurés, crédibles et engageants, avec annexes SEO et éléments visuels. 📌 Tâches : Intégrer naturellement le mot-clé <keyword>, Respecter le nombre exact de mots <word_count>, Fournir un article structuré + SEO elements + idées Pinterest + descriptions d'images. 🔄 Processus (structure obligatoire de l'article) : Introduction claire et engageante, Sommaire cliquable (table des matières en H2), Expérience : anecdote ou étude de cas, Expertise : données, analyses ou explications techniques, Autorité : sources fiables, citations d'experts, Fiabilité : mentions légales, certifications, preuves, FAQ optimisée SEO (3 à 5 questions/réponses), Conclusion utile avec appel à l'action. 🛠️ Compétences : Rédaction professionnelle et accessible, Structuration SEO (H1 optimisé, H2/H3 clairs), Création automatique d'un sommaire et d'une FAQ, Appui sur données et sources crédibles, Optimisation technique : schema.org si pertinent + auteur, Génération d'éléments annexes (SEO Title, meta, slug, résumé, idées visuelles, descriptions d'images) et generer une iamge pour illustrer et partegeai sur les reseaux sociaux et une image sur le blog pour illuster les sections. 
+      
+Réponds en JSON avec cette structure exacte :
+{
+  "title": "titre H1 optimisé SEO avec le mot-clé",
+  "slug": "url-friendly-slug",
+  "metaDescription": "description de 150-160 caractères",
+  "content": "contenu HTML complet avec toutes les sections requises (introduction, sommaire, expérience, expertise, autorité, fiabilité, FAQ, conclusion)",
+  "summary": "résumé de 2-3 phrases",
+  "keywords": ["${keyword}", "mot-clé2", "mot-clé3"],
+  "category": "${category}",
+  "seoElements": {
+    "title": "titre SEO",
+    "description": "meta description",
+    "slug": "slug-url"
+  },
+  "visualElements": {
+    "heroImageDescription": "description pour image principale",
+    "sectionImages": ["description image section 1", "description image section 2"],
+    "pinterestIdeas": ["idée pinterest 1", "idée pinterest 2"]
+  }
+}`;
+
+      console.log(`Generating article with exact prompt for keyword: ${keyword}`);
+      
+      // Call OpenAI with the exact prompt
+      const openai = new (require('openai').default)({ apiKey: process.env.OPENAI_API_KEY });
+      
+      const response = await openai.chat.completions.create({
+        model: "gpt-5", // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+        messages: [
+          {
+            role: "system",
+            content: "Tu es un expert en rédaction d'articles de blog SEO optimisés. Tu génères du contenu structuré, crédible et engageant. Réponds toujours en JSON valide."
+          },
+          {
+            role: "user",
+            content: exactPrompt
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+        max_tokens: 4000
+      });
+
+      const result = JSON.parse(response.choices[0].message.content || '{}');
+      
+      // Validate and clean up the result
+      if (!result.title || !result.content) {
+        throw new Error('Generated article missing required fields');
+      }
+
+      // Generate slug if missing
+      if (!result.slug) {
+        result.slug = result.title
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '');
+      }
+
+      // Sanitize content
+      result.content = sanitizeArticleContent(result.content);
+      
+      res.json({
+        title: result.title,
+        slug: result.slug,
+        metaDescription: result.metaDescription || result.seoElements?.description || '',
+        content: result.content,
+        summary: result.summary || '',
+        keywords: Array.isArray(result.keywords) ? result.keywords : [keyword],
+        category: result.category || category,
+        seoElements: result.seoElements || {
+          title: result.title,
+          description: result.metaDescription,
+          slug: result.slug
+        },
+        visualElements: result.visualElements || {
+          heroImageDescription: "Image illustrant l'article sur " + keyword,
+          sectionImages: [],
+          pinterestIdeas: []
+        }
+      });
+    } catch (error) {
+      console.error('Error generating article with exact prompt:', error);
+      res.status(500).json({ error: 'Failed to generate article content' });
+    }
+  });
+
+  // Legacy endpoint - keep for backward compatibility
   app.post('/api/articles/generate', async (req, res) => {
     try {
       const { title, topic, keywords = [] } = req.body;
