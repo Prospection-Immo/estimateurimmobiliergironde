@@ -35,8 +35,8 @@ export default function Hero({ domain = "estimation-immobilier-gironde.fr" }: He
                 <span className="text-muted-foreground">sans même le savoir ?</span>
               </h1>
               <p className="text-base sm:text-lg text-muted-foreground max-w-xl leading-relaxed">
-                Chaque mois en Gironde, des centaines de propriétaires vendent leur bien 15 à 30% en dessous de sa vraie valeur marchande. 
-                Par méconnaissance du marché local ou mauvaise estimation initiale.
+                Chaque mois en Gironde, des centaines de propriétaires comme vous perdent des milliers d'euros en vendant leur bien 15 à 30% sous sa vraie valeur. 
+                Notre nouvelle solution d'estimation vous garantit d'éviter cette erreur coûteuse.
               </p>
             </div>
 
@@ -46,12 +46,12 @@ export default function Hero({ domain = "estimation-immobilier-gironde.fr" }: He
                 <div className="bg-orange-500/10 p-2 rounded-lg">
                   <Brain className="h-5 w-5 text-orange-500" />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground">Ce que vous ressentez</h3>
+                <h3 className="text-lg font-semibold text-foreground">Ce que vous ressentez aujourd'hui</h3>
               </div>
               <ul className="space-y-2 ml-10">
                 <li className="text-sm text-muted-foreground">• Vous ne savez pas si votre agent vous dit la vérité sur le prix</li>
-                <li className="text-sm text-muted-foreground">• Vous avez peur de vendre trop bas ou de rester sur le marché trop longtemps</li>
-                <li className="text-sm text-muted-foreground">• Vous aimeriez une estimation objective, sans arrière-pensée commerciale</li>
+                <li className="text-sm text-muted-foreground">• Vous avez peur de vendre trop bas et de perdre de l'argent</li>
+                <li className="text-sm text-muted-foreground">• Vous voulez une solution gratuite, objective, sans arrière-pensée</li>
               </ul>
             </div>
 
@@ -61,24 +61,24 @@ export default function Hero({ domain = "estimation-immobilier-gironde.fr" }: He
                 <div className="bg-primary/10 p-2 rounded-lg">
                   <Target className="h-5 w-5 text-primary" />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground">Ce que vous méritez</h3>
+                <h3 className="text-lg font-semibold text-foreground">La solution que vous méritez</h3>
               </div>
               <ul className="space-y-2 ml-10">
                 <li className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                  Une estimation basée sur les vraies ventes DVF de votre quartier
+                  Des résultats garantis basés sur les vraies ventes DVF de votre quartier
                 </li>
                 <li className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                  L'analyse IA de 50+ critères qui impactent réellement le prix
+                  Notre nouvelle analyse IA exclusive de 50+ critères prix
                 </li>
                 <li className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                  Un rapport détaillé pour négocier en position de force
+                  Un rapport détaillé gratuit pour vous faire économiser et gagner en négociation
                 </li>
                 <li className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                  100% gratuit, sans engagement, résultat en 3 minutes
+                  Solution 100% gratuite, sans engagement, résultats garantis en 3 minutes
                 </li>
               </ul>
             </div>
@@ -120,7 +120,7 @@ export default function Hero({ domain = "estimation-immobilier-gironde.fr" }: He
           {/* Quick Estimation Card */}
           <Card className="p-6 bg-card/80 backdrop-blur-sm border-card-border">
             <h3 className="text-xl font-semibold mb-4 text-card-foreground">
-              Découvrez la vraie valeur de votre bien en Gironde
+              Obtenez gratuitement la vraie valeur de votre bien
             </h3>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -152,7 +152,7 @@ export default function Hero({ domain = "estimation-immobilier-gironde.fr" }: He
               </div>
               <Link href="/estimation" className="block">
                 <Button className="w-full" data-testid="button-quick-estimate">
-                  Estimer mon bien gratuitement
+                  Découvrir mes résultats maintenant
                 </Button>
               </Link>
             </div>

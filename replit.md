@@ -8,6 +8,22 @@ This is a real estate estimation platform specifically designed for the Gironde/
 
 Preferred communication style: Simple, everyday language.
 
+### Copywriting Guidelines - Mots Magiques
+
+Pour optimiser la conversion sur toutes les pages, utiliser ces mots magiques :
+
+1. **Vous** - Le mot le plus puissant pour établir une connexion avec le client
+2. **Nouveau** - Attire par la nouveauté et pique la curiosité
+3. **Solution** - Positionne votre offre comme une réponse aux problèmes
+4. **Gagner** - Crée un sentiment de privilège et d'opportunité
+5. **Garantie** - Renforce la confiance et réduit les risques perçus
+6. **Économie** - Fait appel au désir d'économiser de l'argent
+7. **Exclusif** - Crée un sentiment de rareté et de valeur ajoutée
+8. **Gratuit** - Puissant catalyseur de décision (à utiliser avec parcimonie)
+9. **Résultat** - Montre les bénéfices concrets et mesurables
+
+Ces mots doivent être intégrés naturellement dans tous les textes : pages web, emails, articles, et interfaces utilisateur.
+
 ## System Architecture
 
 ### Frontend Architecture

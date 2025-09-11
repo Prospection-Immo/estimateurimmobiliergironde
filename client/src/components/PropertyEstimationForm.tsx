@@ -122,7 +122,7 @@ export default function PropertyEstimationForm() {
         {/* Progress Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold">Estimation de votre bien</h2>
+            <h2 className="text-2xl font-bold">Votre estimation gratuite et garantie</h2>
             <span className="text-sm text-muted-foreground">
               Étape {step} sur {totalSteps}
             </span>
@@ -133,7 +133,7 @@ export default function PropertyEstimationForm() {
         {/* Step 1: Property Type */}
         {step === 1 && (
           <div className="space-y-6">
-            <h3 className="text-xl font-semibold">Type de bien</h3>
+            <h3 className="text-xl font-semibold">Votre bien immobilier</h3>
             <RadioGroup
               value={formData.propertyType}
               onValueChange={(value) => updateFormData("propertyType", value)}
@@ -166,7 +166,7 @@ export default function PropertyEstimationForm() {
         {/* Step 2: Location */}
         {step === 2 && (
           <div className="space-y-6">
-            <h3 className="text-xl font-semibold">Localisation</h3>
+            <h3 className="text-xl font-semibold">Localisation de votre propriété</h3>
             <div className="grid gap-4">
               <div>
                 <Label htmlFor="address">Adresse</Label>
@@ -207,7 +207,7 @@ export default function PropertyEstimationForm() {
         {/* Step 3: Property Details */}
         {step === 3 && (
           <div className="space-y-6">
-            <h3 className="text-xl font-semibold">Caractéristiques</h3>
+            <h3 className="text-xl font-semibold">Caractéristiques pour des résultats précis</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <Label htmlFor="surface">Surface (m²)</Label>
@@ -307,7 +307,7 @@ export default function PropertyEstimationForm() {
           <div className="space-y-6">
             <h3 className="text-xl font-semibold">Vos coordonnées</h3>
             <p className="text-muted-foreground">
-              Pour recevoir votre estimation détaillée
+              Pour recevoir gratuitement votre rapport d'estimation détaillé - solution complète garantie
             </p>
             <div className="grid gap-4">
               <div className="grid grid-cols-2 gap-4">
@@ -434,7 +434,7 @@ export default function PropertyEstimationForm() {
                 <div className="mt-4 space-y-3">
                   <div className="p-3 bg-primary/10 border border-primary/20 rounded-md">
                     <p className="text-sm text-primary font-medium" data-testid="text-immediate-expert-note">
-                      Un expert local vous appellera pour vous accompagner dans votre vente immédiate.
+                      Notre solution exclusive : un expert local vous appellera gratuitement pour vous faire gagner du temps dans votre vente immédiate.
                     </p>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -480,7 +480,7 @@ export default function PropertyEstimationForm() {
               disabled={isSubmitting}
               data-testid="button-submit-estimation"
             >
-              {isSubmitting ? "Calcul en cours..." : "Obtenir mon estimation"}
+              {isSubmitting ? "Calcul de vos résultats..." : "Recevoir mes résultats gratuits"}
             </Button>
           )}
         </div>

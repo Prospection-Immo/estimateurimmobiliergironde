@@ -45,7 +45,7 @@ export default function ArticleDetailPage({ domain = "estimation-immobilier-giro
 
   useEffect(() => {
     if (article) {
-      document.title = article.seoTitle || article.title || `Article - Estimation ${cityName}`;
+      document.title = article.seoTitle || article.title || `Votre guide gratuit - Estimation ${cityName}`;
       
       const metaDescription = document.querySelector('meta[name="description"]');
       if (metaDescription && article.metaDescription) {

@@ -111,10 +111,10 @@ export default function EstimationResults() {
       <div className="space-y-8">
         {/* Header */}
         <div className="text-center space-y-4">
-          <h1 className="text-3xl font-bold">Votre estimation immobilière</h1>
+          <h1 className="text-3xl font-bold">Vos résultats exclusifs obtenus</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Voici l'estimation détaillée de votre bien immobilier basée sur l'analyse 
-            du marché local et des biens comparables.
+            Découvrez votre estimation personnalisée gratuite basée sur notre nouvelle solution d'analyse 
+            du marché local - vous pouvez maintenant gagner en confiance pour votre décision.
           </p>
         </div>
 
@@ -155,7 +155,7 @@ export default function EstimationResults() {
                 </div>
               </div>
               <Badge variant="secondary" className="text-sm">
-                Estimation très fiable
+                Résultats garantis exclusifs
               </Badge>
             </div>
 
@@ -163,7 +163,7 @@ export default function EstimationResults() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
               <Button onClick={handleDownloadReport} data-testid="button-download-report">
                 <Download className="h-4 w-4 mr-2" />
-                Télécharger le rapport
+                Recevoir mon rapport gratuit
               </Button>
               <Button variant="outline" onClick={handleRequestContact} data-testid="button-contact-expert">
                 <Phone className="h-4 w-4 mr-2" />
@@ -237,10 +237,10 @@ export default function EstimationResults() {
               <Phone className="h-8 w-8 text-primary" />
             </div>
             <div>
-              <h4 className="font-semibold text-lg mb-2">Besoin d'aide ?</h4>
+              <h4 className="font-semibold text-lg mb-2">Notre solution d'accompagnement gratuite</h4>
               <p className="text-muted-foreground mb-4 max-w-2xl mx-auto">
-                Notre équipe d'experts immobiliers locaux est là pour vous accompagner. 
-                Contactez-nous pour affiner votre estimation ou obtenir des conseils personnalisés.
+                Vous bénéficiez d'un accès exclusif à nos experts immobiliers locaux. 
+                Contactez-nous pour optimiser vos résultats et économiser du temps avec nos conseils garantis.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Button variant="outline" data-testid="button-call-expert">
@@ -259,9 +259,9 @@ export default function EstimationResults() {
         {/* Free Guides */}
         <div className="bg-gradient-to-br from-muted/50 to-muted p-6 rounded-lg">
           <div className="text-center mb-6">
-            <h3 className="text-xl font-semibold mb-2">Guides gratuits pour réussir votre vente</h3>
+            <h3 className="text-xl font-semibold mb-2">Nouvelle solution : guides gratuits pour gagner plus</h3>
             <p className="text-muted-foreground">
-              Téléchargez nos guides exclusifs pour maximiser vos chances de vendre au bon prix
+              Accédez à nos guides exclusifs pour maximiser vos résultats et économiser des milliers d'euros
             </p>
           </div>
           <div className="grid md:grid-cols-2 gap-6">
@@ -271,9 +271,9 @@ export default function EstimationResults() {
                   <AlertTriangle className="h-6 w-6 text-destructive" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold mb-2">7 erreurs à éviter absolument</h4>
+                  <h4 className="font-semibold mb-2">7 erreurs coûteuses à éviter - Solution gratuite</h4>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Les pièges les plus courants qui font perdre des milliers d'euros aux vendeurs en Gironde
+                    Notre guide exclusif vous fait économiser des milliers d'euros - résultats garantis
                   </p>
                   <Button variant="outline" data-testid="button-guide-errors" asChild>
                     <Link href="/actualites/7-erreurs-a-eviter-vente-bien-gironde">
@@ -289,9 +289,9 @@ export default function EstimationResults() {
                   <CheckCircle className="h-6 w-6 text-chart-2" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold mb-2">5 actions gratuites pour vendre rapidement</h4>
+                  <h4 className="font-semibold mb-2">Nouvelle stratégie : 5 actions pour gagner du temps</h4>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Des conseils pratiques et immédiats pour optimiser votre vente sans dépenser un euro
+                    Votre solution gratuite exclusive pour des résultats rapides garantis sans dépenser un euro
                   </p>
                   <Button variant="outline" data-testid="button-guide-practices" asChild>
                     <Link href="/actualites/5-bonnes-choses-a-faire-gratuitement-pour-vendre-rapidement-en-gironde">
@@ -306,21 +306,21 @@ export default function EstimationResults() {
 
         {/* Next Steps */}
         <Card className="p-6 bg-muted">
-          <h3 className="text-xl font-semibold mb-4">Et maintenant ?</h3>
+          <h3 className="text-xl font-semibold mb-4">Vos prochaines étapes pour gagner plus ?</h3>
           <div className="grid md:grid-cols-2 gap-6">
             <div>
-              <h4 className="font-medium mb-2">Vous souhaitez vendre ?</h4>
+              <h4 className="font-medium mb-2">Vous voulez gagner plus en vendant ?</h4>
               <p className="text-sm text-muted-foreground mb-3">
-                Bénéficiez d'un accompagnement personnalisé pour la vente de votre bien.
+                Notre solution exclusive d'accompagnement vous garantit de meilleurs résultats.
               </p>
               <Button variant="outline" data-testid="button-sell-property">
                 Vendre mon bien
               </Button>
             </div>
             <div>
-              <h4 className="font-medium mb-2">Besoin de financement ?</h4>
+              <h4 className="font-medium mb-2">Nouvelle solution de financement ?</h4>
               <p className="text-sm text-muted-foreground mb-3">
-                Simulez votre crédit immobilier et trouvez les meilleures conditions.
+                Économisez sur votre crédit avec notre solution gratuite exclusive.
               </p>
               <Button variant="outline" data-testid="button-financing">
                 Simulation crédit

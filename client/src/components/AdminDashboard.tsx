@@ -255,6 +255,48 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
 
   const queryClientInstance = useQueryClient();
 
+  // React Query hooks for email management
+  const emailHistoryQueryParams = new URLSearchParams();
+  if (emailStatusFilter && emailStatusFilter !== 'all') emailHistoryQueryParams.append('status', emailStatusFilter);
+  if (emailCategoryFilter && emailCategoryFilter !== 'all') emailHistoryQueryParams.append('category', emailCategoryFilter);
+  if (emailSearchTerm) emailHistoryQueryParams.append('q', emailSearchTerm);
+  
+  const emailHistoryQueryString = emailHistoryQueryParams.toString();
+  
+  const emailHistoryQuery = useQuery({
+    queryKey: ['/api/email/history', emailHistoryQueryString],
+    enabled: isAuthenticated === true
+  });
+
+  const emailTemplatesQuery = useQuery({
+    queryKey: ['/api/email/templates'],
+    enabled: isAuthenticated === true
+  });
+
+  const emailStatsQuery = useQuery({
+    queryKey: ['/api/email/stats'],
+    enabled: isAuthenticated === true
+  });
+
+  // Email data state
+  useEffect(() => {
+    if (emailHistoryQuery.data) {
+      setEmailHistory(emailHistoryQuery.data);
+    }
+  }, [emailHistoryQuery.data]);
+
+  useEffect(() => {
+    if (emailTemplatesQuery.data) {
+      setEmailTemplates(emailTemplatesQuery.data);
+    }
+  }, [emailTemplatesQuery.data]);
+
+  useEffect(() => {
+    if (emailStatsQuery.data) {
+      setEmailStats(emailStatsQuery.data);
+    }
+  }, [emailStatsQuery.data]);
+
   // React Query hooks for articles
   const articlesQueryParams = new URLSearchParams();
   if (articleStatus && articleStatus !== 'all') articlesQueryParams.append('status', articleStatus);
@@ -1368,7 +1410,833 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
               </TabsContent>
             </Tabs>
           </TabsContent>
+
+          <TabsContent value="emails" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold">Gestion des Emails</h2>
+              <Button 
+                onClick={async () => {
+                  try {
+                    const response = await fetch('/api/email/test-connection', { method: 'POST' });
+                    const result = await response.json();
+                    if (result.success) {
+                      alert('✅ Connexion SMTP réussie !');
+                    } else {
+                      alert(`❌ Erreur SMTP: ${result.error}`);
+                    }
+                  } catch (error) {
+                    alert('❌ Erreur de connexion au serveur');
+                  }
+                }}
+                data-testid="button-test-smtp"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Tester SMTP
+              </Button>
+            </div>
+
+            <Tabs value={activeEmailTab} onValueChange={setActiveEmailTab} className="space-y-6">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="history" data-testid="tab-email-history">Historique</TabsTrigger>
+                <TabsTrigger value="templates" data-testid="tab-email-templates">Templates</TabsTrigger>
+                <TabsTrigger value="test" data-testid="tab-email-test">Test Email</TabsTrigger>
+                <TabsTrigger value="stats" data-testid="tab-email-stats">Statistiques</TabsTrigger>
+              </TabsList>
+
+              {/* Email History Tab */}
+              <TabsContent value="history" className="space-y-6">
+                {/* Email History Filters */}
+                <Card className="p-6">
+                  <div className="space-y-4">
+                    <div className="flex flex-col md:flex-row gap-4">
+                      <div className="flex-1">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder="Rechercher par email ou objet..."
+                            value={emailSearchTerm}
+                            onChange={(e) => setEmailSearchTerm(e.target.value)}
+                            className="pl-10"
+                            data-testid="input-search-emails"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Select value={emailStatusFilter} onValueChange={setEmailStatusFilter}>
+                          <SelectTrigger className="w-32" data-testid="select-email-status">
+                            <SelectValue placeholder="Statut" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Tous</SelectItem>
+                            <SelectItem value="sent">Envoyé</SelectItem>
+                            <SelectItem value="failed">Échec</SelectItem>
+                            <SelectItem value="pending">En attente</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        
+                        <Select value={emailCategoryFilter} onValueChange={setEmailCategoryFilter}>
+                          <SelectTrigger className="w-40" data-testid="select-email-category">
+                            <SelectValue placeholder="Type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Tous</SelectItem>
+                            <SelectItem value="contact_confirmation">Contact - Confirmation</SelectItem>
+                            <SelectItem value="estimation_confirmation">Estimation - Confirmation</SelectItem>
+                            <SelectItem value="admin_notification">Admin - Notification</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Email History List */}
+                <Card className="p-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold">Historique des emails ({emailHistoryQuery.data?.length || 0})</h3>
+                      <Badge variant="outline" className="text-xs">
+                        {emailStats && `${emailStats.totalSent} envoyés aujourd'hui`}
+                      </Badge>
+                    </div>
+                    
+                    {emailHistoryQuery.isLoading ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Loader2 className="h-8 w-8 mx-auto mb-4 animate-spin" />
+                        Chargement des emails...
+                      </div>
+                    ) : emailHistory.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Mail className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>Aucun email trouvé</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {emailHistory.map((email: EmailHistory) => (
+                          <div
+                            key={email.id}
+                            className="flex items-center justify-between p-4 border border-border rounded-lg hover-elevate"
+                            data-testid={`card-email-${email.id}`}
+                          >
+                            <div className="flex-1 space-y-2">
+                              <div className="flex items-center space-x-3">
+                                <Badge 
+                                  variant={
+                                    email.status === 'sent' ? 'default' : 
+                                    email.status === 'failed' ? 'destructive' : 'secondary'
+                                  }
+                                  data-testid={`badge-email-status-${email.id}`}
+                                >
+                                  {email.status === 'sent' ? '✓ Envoyé' : 
+                                   email.status === 'failed' ? '✗ Échec' : '⏳ En attente'}
+                                </Badge>
+                                <h4 className="font-medium truncate">{email.subject}</h4>
+                              </div>
+                              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                                <div className="flex items-center space-x-1">
+                                  <Mail className="h-3 w-3" />
+                                  <span>{email.recipientEmail}</span>
+                                </div>
+                                {email.recipientName && (
+                                  <span>{email.recipientName}</span>
+                                )}
+                                <div className="flex items-center space-x-1">
+                                  <Clock className="h-3 w-3" />
+                                  <span>
+                                    {email.sentAt ? 
+                                      new Date(email.sentAt).toLocaleString('fr-FR') : 
+                                      new Date(email.createdAt!).toLocaleString('fr-FR')
+                                    }
+                                  </span>
+                                </div>
+                              </div>
+                              {email.errorMessage && (
+                                <div className="text-xs text-destructive bg-destructive/10 p-2 rounded">
+                                  Erreur: {email.errorMessage}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  // TODO: Show email content in modal
+                                  console.log('Preview email:', email);
+                                }}
+                                data-testid={`button-preview-email-${email.id}`}
+                              >
+                                <Eye className="h-3 w-3 mr-1" />
+                                Voir
+                              </Button>
+                              {email.status === 'failed' && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    // TODO: Retry sending email
+                                    console.log('Retry email:', email);
+                                  }}
+                                  data-testid={`button-retry-email-${email.id}`}
+                                >
+                                  <Send className="h-3 w-3 mr-1" />
+                                  Réessayer
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              </TabsContent>
+
+              {/* Email Templates Tab */}
+              <TabsContent value="templates" className="space-y-6">
+                <Card className="p-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold">Templates d'email ({emailTemplatesQuery.data?.length || 0})</h3>
+                      <Button 
+                        onClick={() => {
+                          setTemplateForm({
+                            name: "",
+                            subject: "",
+                            htmlContent: "",
+                            textContent: "",
+                            category: "contact_confirmation",
+                            isActive: true,
+                            variables: "[]"
+                          });
+                          setSelectedTemplate(null);
+                          setShowTemplateModal(true);
+                        }}
+                        data-testid="button-create-template"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Nouveau Template
+                      </Button>
+                    </div>
+                    
+                    {emailTemplatesQuery.isLoading ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Loader2 className="h-8 w-8 mx-auto mb-4 animate-spin" />
+                        Chargement des templates...
+                      </div>
+                    ) : emailTemplates.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>Aucun template trouvé</p>
+                        <Button
+                          className="mt-4"
+                          onClick={() => {
+                            // TODO: Seed default templates
+                            console.log('Seeding default templates');
+                          }}
+                        >
+                          Créer les templates par défaut
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="grid gap-4">
+                        {emailTemplates.map((template: EmailTemplate) => (
+                          <div
+                            key={template.id}
+                            className="flex items-center justify-between p-4 border border-border rounded-lg hover-elevate"
+                            data-testid={`card-template-${template.id}`}
+                          >
+                            <div className="flex-1 space-y-2">
+                              <div className="flex items-center space-x-3">
+                                <h4 className="font-medium">{template.name}</h4>
+                                <Badge 
+                                  variant={template.isActive ? 'default' : 'secondary'}
+                                  data-testid={`badge-template-status-${template.id}`}
+                                >
+                                  {template.isActive ? 'Actif' : 'Inactif'}
+                                </Badge>
+                                <Badge variant="outline" className="text-xs">
+                                  {template.category}
+                                </Badge>
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                <div className="font-medium">Objet: {template.subject}</div>
+                                <div className="text-xs mt-1">
+                                  Variables: {JSON.parse(template.variables || '[]').join(', ') || 'Aucune'}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedTemplate(template);
+                                  setShowTestEmailModal(true);
+                                }}
+                                data-testid={`button-test-template-${template.id}`}
+                              >
+                                <TestTube className="h-3 w-3 mr-1" />
+                                Tester
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setTemplateForm({
+                                    name: template.name,
+                                    subject: template.subject,
+                                    htmlContent: template.htmlContent,
+                                    textContent: template.textContent,
+                                    category: template.category,
+                                    isActive: template.isActive,
+                                    variables: template.variables || "[]"
+                                  });
+                                  setSelectedTemplate(template);
+                                  setShowTemplateModal(true);
+                                }}
+                                data-testid={`button-edit-template-${template.id}`}
+                              >
+                                <Edit className="h-3 w-3 mr-1" />
+                                Modifier
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  if (confirm('Êtes-vous sûr de vouloir supprimer ce template ?')) {
+                                    // TODO: Delete template
+                                    console.log('Delete template:', template.id);
+                                  }
+                                }}
+                                data-testid={`button-delete-template-${template.id}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              </TabsContent>
+
+              {/* Test Email Tab */}
+              <TabsContent value="test" className="space-y-6">
+                <div className="grid lg:grid-cols-2 gap-6">
+                  <Card className="p-6">
+                    <h3 className="text-lg font-semibold mb-4">Envoyer un email de test</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="test-template">Template à tester</Label>
+                        <Select 
+                          value={selectedTemplate?.id || ""} 
+                          onValueChange={(value) => {
+                            const template = emailTemplates.find(t => t.id === value);
+                            setSelectedTemplate(template || null);
+                          }}
+                        >
+                          <SelectTrigger data-testid="select-test-template">
+                            <SelectValue placeholder="Choisir un template" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {emailTemplates.map((template) => (
+                              <SelectItem key={template.id} value={template.id}>
+                                {template.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="test-email">Email destinataire</Label>
+                        <Input
+                          id="test-email"
+                          type="email"
+                          value={testEmailForm.email}
+                          onChange={(e) => setTestEmailForm(prev => ({ ...prev, email: e.target.value }))}
+                          placeholder="admin@estimation-immobilier-gironde.fr"
+                          data-testid="input-test-email"
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="test-name">Nom destinataire (optionnel)</Label>
+                        <Input
+                          id="test-name"
+                          value={testEmailForm.name}
+                          onChange={(e) => setTestEmailForm(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="Jean Dupont"
+                          data-testid="input-test-name"
+                        />
+                      </div>
+
+                      <Button
+                        onClick={async () => {
+                          if (!selectedTemplate || !testEmailForm.email) {
+                            alert('Veuillez sélectionner un template et saisir un email');
+                            return;
+                          }
+                          
+                          try {
+                            const response = await fetch('/api/email/test', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                templateId: selectedTemplate.id,
+                                email: testEmailForm.email,
+                                name: testEmailForm.name
+                              })
+                            });
+                            
+                            const result = await response.json();
+                            if (result.success) {
+                              alert('✅ Email de test envoyé avec succès !');
+                            } else {
+                              alert(`❌ Erreur: ${result.error}`);
+                            }
+                          } catch (error) {
+                            alert('❌ Erreur de connexion au serveur');
+                          }
+                        }}
+                        disabled={!selectedTemplate || !testEmailForm.email}
+                        className="w-full"
+                        data-testid="button-send-test-email"
+                      >
+                        <Send className="h-4 w-4 mr-2" />
+                        Envoyer le test
+                      </Button>
+                    </div>
+                  </Card>
+
+                  <Card className="p-6">
+                    <h3 className="text-lg font-semibold mb-4">Aperçu du template</h3>
+                    {selectedTemplate ? (
+                      <div className="space-y-4">
+                        <div className="p-3 bg-muted/50 rounded-lg">
+                          <Label className="text-xs font-semibold text-muted-foreground">OBJET</Label>
+                          <div className="font-medium mt-1">{selectedTemplate.subject}</div>
+                        </div>
+                        
+                        <div className="p-3 bg-muted/50 rounded-lg">
+                          <Label className="text-xs font-semibold text-muted-foreground">CATÉGORIE</Label>
+                          <div className="mt-1">{selectedTemplate.category}</div>
+                        </div>
+                        
+                        <div className="p-3 bg-muted/50 rounded-lg">
+                          <Label className="text-xs font-semibold text-muted-foreground">VARIABLES DISPONIBLES</Label>
+                          <div className="text-sm mt-1">
+                            {JSON.parse(selectedTemplate.variables || '[]').join(', ') || 'Aucune variable'}
+                          </div>
+                        </div>
+                        
+                        <div className="border rounded-lg max-h-64 overflow-y-auto">
+                          <div className="p-2 border-b bg-muted/50">
+                            <Label className="text-xs font-semibold">CONTENU HTML</Label>
+                          </div>
+                          <div 
+                            className="p-4 prose prose-sm max-w-none"
+                            dangerouslySetInnerHTML={{ 
+                              __html: selectedTemplate.htmlContent.replace(/\{\{/g, '<span class="bg-yellow-200 px-1 rounded">{{').replace(/\}\}/g, '}}</span>')
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        Sélectionnez un template pour voir l'aperçu
+                      </div>
+                    )}
+                  </Card>
+                </div>
+              </TabsContent>
+
+              {/* Email Statistics Tab */}
+              <TabsContent value="stats" className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <Card className="p-6">
+                    <div className="flex items-center space-x-2">
+                      <Mail className="h-8 w-8 text-blue-600" />
+                      <div>
+                        <p className="text-2xl font-bold">{emailStats?.totalSent || 0}</p>
+                        <p className="text-xs text-muted-foreground">Total envoyés</p>
+                      </div>
+                    </div>
+                  </Card>
+                  
+                  <Card className="p-6">
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle className="h-8 w-8 text-green-600" />
+                      <div>
+                        <p className="text-2xl font-bold">{emailStats?.sentToday || 0}</p>
+                        <p className="text-xs text-muted-foreground">Envoyés aujourd'hui</p>
+                      </div>
+                    </div>
+                  </Card>
+                  
+                  <Card className="p-6">
+                    <div className="flex items-center space-x-2">
+                      <AlertCircle className="h-8 w-8 text-red-600" />
+                      <div>
+                        <p className="text-2xl font-bold">{emailStats?.totalFailed || 0}</p>
+                        <p className="text-xs text-muted-foreground">Échecs</p>
+                      </div>
+                    </div>
+                  </Card>
+                  
+                  <Card className="p-6">
+                    <div className="flex items-center space-x-2">
+                      <BarChart3 className="h-8 w-8 text-purple-600" />
+                      <div>
+                        <p className="text-2xl font-bold">{emailStats?.successRate || '0%'}</p>
+                        <p className="text-xs text-muted-foreground">Taux de réussite</p>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Activité récente</h3>
+                  <div className="space-y-4">
+                    {emailHistory.slice(0, 10).map((email) => (
+                      <div key={email.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
+                        <div className="flex items-center space-x-3">
+                          <Badge 
+                            variant={email.status === 'sent' ? 'default' : email.status === 'failed' ? 'destructive' : 'secondary'}
+                            className="text-xs"
+                          >
+                            {email.status}
+                          </Badge>
+                          <span className="text-sm">{email.recipientEmail}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {email.sentAt ? new Date(email.sentAt).toLocaleTimeString('fr-FR') : 
+                           new Date(email.createdAt!).toLocaleTimeString('fr-FR')}
+                        </span>
+                      </div>
+                    ))}
+                    {emailHistory.length === 0 && (
+                      <p className="text-center text-muted-foreground py-4">Aucune activité récente</p>
+                    )}
+                  </div>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </TabsContent>
         </Tabs>
+
+        {/* Template Modal */}
+        <Dialog open={showTemplateModal} onOpenChange={setShowTemplateModal}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle data-testid="modal-template-title">
+                {selectedTemplate ? 'Modifier le Template' : 'Nouveau Template'}
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="template-name">Nom du template</Label>
+                  <Input
+                    id="template-name"
+                    value={templateForm.name}
+                    onChange={(e) => setTemplateForm(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="Confirmation contact client"
+                    data-testid="input-template-name"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="template-category">Catégorie</Label>
+                  <Select value={templateForm.category} onValueChange={(value) => setTemplateForm(prev => ({ ...prev, category: value }))}>
+                    <SelectTrigger data-testid="select-template-category">
+                      <SelectValue placeholder="Choisir une catégorie" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="contact_confirmation">Contact - Confirmation</SelectItem>
+                      <SelectItem value="estimation_confirmation">Estimation - Confirmation</SelectItem>
+                      <SelectItem value="financing_confirmation">Financement - Confirmation</SelectItem>
+                      <SelectItem value="admin_notification">Admin - Notification</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="template-subject">Objet de l'email</Label>
+                <Input
+                  id="template-subject"
+                  value={templateForm.subject}
+                  onChange={(e) => setTemplateForm(prev => ({ ...prev, subject: e.target.value }))}
+                  placeholder="Merci pour votre demande {{firstName}}"
+                  data-testid="input-template-subject"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="template-html">Contenu HTML</Label>
+                <Textarea
+                  id="template-html"
+                  value={templateForm.htmlContent}
+                  onChange={(e) => setTemplateForm(prev => ({ ...prev, htmlContent: e.target.value }))}
+                  placeholder="<h2>Bonjour {{firstName}}</h2><p>Merci pour votre demande...</p>"
+                  className="min-h-64 font-mono text-sm"
+                  data-testid="textarea-template-html"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="template-text">Version texte</Label>
+                <Textarea
+                  id="template-text"
+                  value={templateForm.textContent}
+                  onChange={(e) => setTemplateForm(prev => ({ ...prev, textContent: e.target.value }))}
+                  placeholder="Bonjour {{firstName}}, merci pour votre demande..."
+                  className="min-h-32"
+                  data-testid="textarea-template-text"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="template-variables">Variables disponibles (JSON)</Label>
+                <Input
+                  id="template-variables"
+                  value={templateForm.variables}
+                  onChange={(e) => setTemplateForm(prev => ({ ...prev, variables: e.target.value }))}
+                  placeholder='["firstName", "lastName", "email", "phone"]'
+                  data-testid="input-template-variables"
+                />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="template-active"
+                  checked={templateForm.isActive}
+                  onChange={(e) => setTemplateForm(prev => ({ ...prev, isActive: e.target.checked }))}
+                  data-testid="checkbox-template-active"
+                />
+                <Label htmlFor="template-active">Template actif</Label>
+              </div>
+
+              <div className="flex justify-between pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowTemplateModal(false)}
+                  data-testid="button-cancel-template"
+                >
+                  Annuler
+                </Button>
+                <Button
+                  onClick={async () => {
+                    try {
+                      const method = selectedTemplate ? 'PUT' : 'POST';
+                      const url = selectedTemplate ? `/api/email/templates/${selectedTemplate.id}` : '/api/email/templates';
+                      
+                      const response = await fetch(url, {
+                        method,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(templateForm)
+                      });
+
+                      if (response.ok) {
+                        queryClientInstance.invalidateQueries({ queryKey: ['/api/email/templates'] });
+                        setShowTemplateModal(false);
+                        alert('Template sauvegardé avec succès !');
+                      } else {
+                        alert('Erreur lors de la sauvegarde du template');
+                      }
+                    } catch (error) {
+                      alert('Erreur de connexion au serveur');
+                    }
+                  }}
+                  data-testid="button-save-template"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Sauvegarder
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Test Email Modal */}
+        <Dialog open={showTestEmailModal} onOpenChange={setShowTestEmailModal}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle data-testid="modal-test-email-title">
+                Tester le template: {selectedTemplate?.name}
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="test-recipient-email">Email destinataire</Label>
+                <Input
+                  id="test-recipient-email"
+                  type="email"
+                  value={testEmailForm.email}
+                  onChange={(e) => setTestEmailForm(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="test@estimation-immobilier-gironde.fr"
+                  data-testid="input-test-recipient-email"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="test-recipient-name">Nom destinataire</Label>
+                <Input
+                  id="test-recipient-name"
+                  value={testEmailForm.name}
+                  onChange={(e) => setTestEmailForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Jean Dupont"
+                  data-testid="input-test-recipient-name"
+                />
+              </div>
+
+              <div className="flex justify-between pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowTestEmailModal(false)}
+                  data-testid="button-cancel-test-email"
+                >
+                  Annuler
+                </Button>
+                <Button
+                  onClick={async () => {
+                    if (!selectedTemplate || !testEmailForm.email) return;
+                    
+                    try {
+                      const response = await fetch('/api/email/test', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          templateId: selectedTemplate.id,
+                          email: testEmailForm.email,
+                          name: testEmailForm.name,
+                          variables: {
+                            firstName: testEmailForm.name.split(' ')[0] || 'Test',
+                            lastName: testEmailForm.name.split(' ').slice(1).join(' ') || 'User',
+                            email: testEmailForm.email
+                          }
+                        })
+                      });
+
+                      const result = await response.json();
+                      if (result.success) {
+                        alert('✅ Email de test envoyé avec succès !');
+                        setShowTestEmailModal(false);
+                      } else {
+                        alert(`❌ Erreur: ${result.error}`);
+                      }
+                    } catch (error) {
+                      alert('❌ Erreur de connexion au serveur');
+                    }
+                  }}
+                  disabled={!selectedTemplate || !testEmailForm.email}
+                  data-testid="button-send-test-email-modal"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Envoyer le test
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Bulk Email Modal */}
+        <Dialog open={showBulkEmailModal} onOpenChange={setShowBulkEmailModal}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle data-testid="modal-bulk-email-title">
+                Envoi en masse
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="bulk-template">Template à utiliser</Label>
+                <Select value={bulkEmailForm.templateId} onValueChange={(value) => setBulkEmailForm(prev => ({ ...prev, templateId: value }))}>
+                  <SelectTrigger data-testid="select-bulk-template">
+                    <SelectValue placeholder="Choisir un template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {emailTemplates.filter(t => t.isActive).map((template) => (
+                      <SelectItem key={template.id} value={template.id}>
+                        {template.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="bulk-recipients">Emails destinataires (un par ligne)</Label>
+                <Textarea
+                  id="bulk-recipients"
+                  value={bulkEmailForm.recipients}
+                  onChange={(e) => setBulkEmailForm(prev => ({ ...prev, recipients: e.target.value }))}
+                  placeholder="email1@example.com&#10;email2@example.com"
+                  className="min-h-32"
+                  data-testid="textarea-bulk-recipients"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="bulk-delay">Délai entre envois (ms)</Label>
+                <Input
+                  id="bulk-delay"
+                  type="number"
+                  value={bulkEmailForm.delay}
+                  onChange={(e) => setBulkEmailForm(prev => ({ ...prev, delay: parseInt(e.target.value) || 1000 }))}
+                  min="100"
+                  data-testid="input-bulk-delay"
+                />
+              </div>
+
+              <div className="flex justify-between pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowBulkEmailModal(false)}
+                  data-testid="button-cancel-bulk-email"
+                >
+                  Annuler
+                </Button>
+                <Button
+                  onClick={async () => {
+                    if (!bulkEmailForm.templateId || !bulkEmailForm.recipients.trim()) return;
+                    
+                    try {
+                      const response = await fetch('/api/email/bulk', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(bulkEmailForm)
+                      });
+
+                      const result = await response.json();
+                      if (result.success) {
+                        alert(`✅ ${result.sent} emails envoyés avec succès !`);
+                        setShowBulkEmailModal(false);
+                        queryClientInstance.invalidateQueries({ queryKey: ['/api/email/history'] });
+                      } else {
+                        alert(`❌ Erreur: ${result.error}`);
+                      }
+                    } catch (error) {
+                      alert('❌ Erreur de connexion au serveur');
+                    }
+                  }}
+                  disabled={!bulkEmailForm.templateId || !bulkEmailForm.recipients.trim()}
+                  data-testid="button-send-bulk-emails"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Envoyer en masse
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Enhanced Preview Modal for Generated Articles */}
         <Dialog 

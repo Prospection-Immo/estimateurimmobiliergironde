@@ -66,10 +66,9 @@ export default function ContactForm() {
         {/* Contact Information */}
         <div className="space-y-8">
           <div>
-            <h1 className="text-3xl font-bold mb-4">Contactez-nous</h1>
+            <h1 className="text-3xl font-bold mb-4">Votre solution d'accompagnement gratuite</h1>
             <p className="text-lg text-muted-foreground">
-              Notre équipe d'experts immobiliers est à votre disposition pour répondre 
-              à toutes vos questions sur l'estimation de votre bien.
+              Découvrez notre équipe d'experts exclusifs à votre disposition pour vous faire gagner du temps et obtenir des résultats garantis sur l'estimation de votre bien.
             </p>
           </div>
 
@@ -80,9 +79,9 @@ export default function ContactForm() {
                 <Phone className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold">Téléphone</h3>
+                <h3 className="font-semibold">Votre ligne directe gratuite</h3>
                 <p className="text-muted-foreground">05 56 XX XX XX</p>
-                <p className="text-sm text-muted-foreground">Du lundi au vendredi, 9h-18h</p>
+                <p className="text-sm text-muted-foreground">Solution rapide : réponse garantie du lundi au vendredi, 9h-18h</p>
               </div>
             </div>
 
@@ -91,9 +90,9 @@ export default function ContactForm() {
                 <Mail className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold">Email</h3>
+                <h3 className="font-semibold">Votre accès exclusif par email</h3>
                 <p className="text-muted-foreground">contact@estimation-immobilier-gironde.fr</p>
-                <p className="text-sm text-muted-foreground">Réponse sous 24h</p>
+                <p className="text-sm text-muted-foreground">Résultats garantis sous 24h</p>
               </div>
             </div>
 

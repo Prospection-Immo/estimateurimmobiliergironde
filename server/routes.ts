@@ -211,6 +211,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
         methodology: "Analyse comparative détaillée basée sur les transactions récentes en Gironde"
       });
 
+      // Send confirmation email to client
+      try {
+        const clientTemplate = await storage.getEmailTemplateByCategory('estimation_confirmation');
+        if (clientTemplate && clientTemplate.isActive) {
+          const clientVariables = {
+            firstName: validatedData.firstName,
+            lastName: validatedData.lastName,
+            email: validatedData.email,
+            phone: validatedData.phone,
+            propertyType: validatedData.propertyType === 'house' ? 'Maison' : 'Appartement',
+            address: validatedData.address,
+            city: validatedData.city,
+            surface: (validatedData.surface || 0).toString(),
+            estimatedValue: estimation.estimatedValue.toLocaleString('fr-FR'),
+            pricePerM2: estimation.pricePerM2.toLocaleString('fr-FR')
+          };
+
+          const clientResult = await emailService.sendTemplatedEmail(
+            clientTemplate,
+            clientVariables,
+            validatedData.email,
+            `${validatedData.firstName} ${validatedData.lastName}`
+          );
+
+          if (clientResult.emailHistory) {
+            await storage.createEmailHistory(clientResult.emailHistory);
+          }
+        }
+      } catch (emailError) {
+        console.error('Error sending estimation confirmation email:', emailError);
+      }
+
+      // Send admin notification email
+      try {
+        const adminTemplate = await storage.getEmailTemplateByCategory('admin_notification');
+        if (adminTemplate && adminTemplate.isActive) {
+          const currentDate = new Date().toLocaleDateString('fr-FR');
+          const currentTime = new Date().toLocaleTimeString('fr-FR');
+          
+          const adminVariables = {
+            firstName: validatedData.firstName,
+            lastName: validatedData.lastName,
+            email: validatedData.email,
+            phone: validatedData.phone,
+            propertyType: validatedData.propertyType === 'house' ? 'Maison' : 'Appartement',
+            address: validatedData.address,
+            city: validatedData.city,
+            surface: (validatedData.surface || 0).toString(),
+            estimatedValue: estimation.estimatedValue.toLocaleString('fr-FR'),
+            pricePerM2: estimation.pricePerM2.toLocaleString('fr-FR'),
+            leadType: 'Estimation immobilière',
+            source: validatedData.source || domain,
+            currentDate,
+            currentTime
+          };
+
+          const adminResult = await emailService.sendTemplatedEmail(
+            adminTemplate,
+            adminVariables,
+            'admin@estimation-immobilier-gironde.fr',
+            'Administration'
+          );
+
+          if (adminResult.emailHistory) {
+            await storage.createEmailHistory(adminResult.emailHistory);
+          }
+        }
+      } catch (emailError) {
+        console.error('Error sending admin notification email:', emailError);
+      }
+
       res.json({
         lead,
         estimation: savedEstimation,
@@ -261,6 +332,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
         leadType: 'financing',
         status: 'new'
       });
+
+      // Send confirmation email to client
+      try {
+        const clientTemplate = await storage.getEmailTemplateByCategory('financing_confirmation');
+        if (clientTemplate && clientTemplate.isActive) {
+          const clientVariables = {
+            firstName: validatedData.firstName,
+            lastName: validatedData.lastName,
+            email: validatedData.email,
+            phone: validatedData.phone,
+            financingProjectType: validatedData.financingProjectType || 'Financement immobilier',
+            projectAmount: validatedData.projectAmount || 'Non spécifié'
+          };
+
+          const clientResult = await emailService.sendTemplatedEmail(
+            clientTemplate,
+            clientVariables,
+            validatedData.email,
+            `${validatedData.firstName} ${validatedData.lastName}`
+          );
+
+          if (clientResult.emailHistory) {
+            await storage.createEmailHistory(clientResult.emailHistory);
+          }
+        }
+      } catch (emailError) {
+        console.error('Error sending financing confirmation email:', emailError);
+      }
+
+      // Send admin notification email
+      try {
+        const adminTemplate = await storage.getEmailTemplateByCategory('admin_notification');
+        if (adminTemplate && adminTemplate.isActive) {
+          const currentDate = new Date().toLocaleDateString('fr-FR');
+          const currentTime = new Date().toLocaleTimeString('fr-FR');
+          
+          const adminVariables = {
+            firstName: validatedData.firstName,
+            lastName: validatedData.lastName,
+            email: validatedData.email,
+            phone: validatedData.phone,
+            financingProjectType: validatedData.financingProjectType || 'Financement immobilier',
+            projectAmount: validatedData.projectAmount || 'Non spécifié',
+            source: validatedData.source || domain,
+            currentDate,
+            currentTime
+          };
+
+          const adminResult = await emailService.sendTemplatedEmail(
+            adminTemplate,
+            adminVariables,
+            'admin@estimation-immobilier-gironde.fr',
+            'Administration'
+          );
+
+          if (adminResult.emailHistory) {
+            await storage.createEmailHistory(adminResult.emailHistory);
+          }
+        }
+      } catch (emailError) {
+        console.error('Error sending admin notification email:', emailError);
+      }
 
       res.json(lead);
     } catch (error) {
@@ -352,6 +485,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const contact = await storage.createContact(validatedData);
+
+      // Send confirmation email to client
+      try {
+        const clientTemplate = await storage.getEmailTemplateByCategory('contact_confirmation');
+        if (clientTemplate && clientTemplate.isActive) {
+          const clientVariables = {
+            firstName: validatedData.firstName,
+            lastName: validatedData.lastName,
+            email: validatedData.email,
+            phone: validatedData.phone,
+            subject: validatedData.subject,
+            message: validatedData.message,
+            source: validatedData.source || domain
+          };
+
+          const clientResult = await emailService.sendTemplatedEmail(
+            clientTemplate,
+            clientVariables,
+            validatedData.email,
+            `${validatedData.firstName} ${validatedData.lastName}`
+          );
+
+          if (clientResult.emailHistory) {
+            await storage.createEmailHistory(clientResult.emailHistory);
+          }
+        }
+      } catch (emailError) {
+        console.error('Error sending client confirmation email:', emailError);
+      }
+
+      // Send admin notification email
+      try {
+        const adminTemplate = await storage.getEmailTemplateByCategory('admin_notification');
+        if (adminTemplate && adminTemplate.isActive) {
+          const currentDate = new Date().toLocaleDateString('fr-FR');
+          const currentTime = new Date().toLocaleTimeString('fr-FR');
+          
+          const adminVariables = {
+            firstName: validatedData.firstName,
+            lastName: validatedData.lastName,
+            email: validatedData.email,
+            phone: validatedData.phone,
+            subject: validatedData.subject,
+            message: validatedData.message,
+            source: validatedData.source || domain,
+            currentDate,
+            currentTime
+          };
+
+          const adminResult = await emailService.sendTemplatedEmail(
+            adminTemplate,
+            adminVariables,
+            'admin@estimation-immobilier-gironde.fr',
+            'Administration'
+          );
+
+          if (adminResult.emailHistory) {
+            await storage.createEmailHistory(adminResult.emailHistory);
+          }
+        }
+      } catch (emailError) {
+        console.error('Error sending admin notification email:', emailError);
+      }
+
       res.json(contact);
     } catch (error) {
       console.error('Error creating contact:', error);
@@ -923,6 +1120,474 @@ Réponds en JSON avec cette structure exacte :
       });
     } catch (error) {
       console.error('Error sending bulk emails:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Shorter alias routes for email management (used by frontend)
+  app.get('/api/email/templates', requireAuth, async (req, res) => {
+    try {
+      const { category } = req.query;
+      const templates = await storage.getEmailTemplates(category as string);
+      res.json(templates);
+    } catch (error) {
+      console.error('Error fetching email templates:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.post('/api/email/templates', requireAuth, async (req, res) => {
+    try {
+      const validation = insertEmailTemplateSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({
+          error: 'Validation failed',
+          details: validation.error.errors
+        });
+      }
+
+      const template = await storage.createEmailTemplate(validation.data);
+      res.status(201).json(template);
+    } catch (error) {
+      console.error('Error creating email template:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.put('/api/email/templates/:id', requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validation = insertEmailTemplateSchema.partial().safeParse(req.body);
+      
+      if (!validation.success) {
+        return res.status(400).json({
+          error: 'Validation failed',
+          details: validation.error.errors
+        });
+      }
+
+      const template = await storage.updateEmailTemplate(id, validation.data);
+      res.json(template);
+    } catch (error) {
+      console.error('Error updating email template:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.delete('/api/email/templates/:id', requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteEmailTemplate(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting email template:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.get('/api/email/history', requireAuth, async (req, res) => {
+    try {
+      const { status, limit, q } = req.query;
+      let history = await storage.getEmailHistory(
+        limit ? parseInt(limit as string) : 50,
+        status && status !== 'all' ? status as string : undefined
+      );
+
+      // Filter by search term if provided
+      if (q) {
+        const searchTerm = (q as string).toLowerCase();
+        history = history.filter(email => 
+          email.recipientEmail.toLowerCase().includes(searchTerm) ||
+          email.subject.toLowerCase().includes(searchTerm) ||
+          (email.recipientName && email.recipientName.toLowerCase().includes(searchTerm))
+        );
+      }
+
+      res.json(history);
+    } catch (error) {
+      console.error('Error fetching email history:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.get('/api/email/stats', requireAuth, async (req, res) => {
+    try {
+      const history = await storage.getEmailHistory(1000); // Get more for stats
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const sentEmails = history.filter(email => email.status === 'sent');
+      const failedEmails = history.filter(email => email.status === 'failed');
+      const todayEmails = history.filter(email => 
+        email.createdAt && new Date(email.createdAt) >= today
+      );
+      
+      const stats = {
+        totalSent: sentEmails.length,
+        totalFailed: failedEmails.length,
+        sentToday: todayEmails.filter(email => email.status === 'sent').length,
+        successRate: history.length > 0 ? 
+          ((sentEmails.length / history.length) * 100).toFixed(1) + '%'
+          : '0%'
+      };
+      
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching email stats:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.post('/api/email/test', requireAuth, async (req, res) => {
+    try {
+      const { templateId, email, name, variables } = req.body;
+      
+      if (!templateId || !email) {
+        return res.status(400).json({ 
+          error: 'Template ID and email address are required' 
+        });
+      }
+
+      const template = await storage.getEmailTemplateById(templateId);
+      if (!template) {
+        return res.status(404).json({ error: 'Template not found' });
+      }
+
+      const result = await emailService.sendTemplatedEmail(
+        template,
+        variables || {},
+        email,
+        name
+      );
+
+      // Save to history
+      if (result.emailHistory) {
+        await storage.createEmailHistory(result.emailHistory);
+      }
+
+      if (result.success) {
+        res.json({ 
+          success: true, 
+          message: 'Test email sent successfully',
+          messageId: result.messageId
+        });
+      } else {
+        res.status(500).json({ 
+          error: 'Failed to send test email',
+          details: result.error
+        });
+      }
+    } catch (error) {
+      console.error('Error sending test email:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.post('/api/email/test-connection', requireAuth, async (req, res) => {
+    try {
+      const result = await emailService.verifyConnection();
+      
+      if (result) {
+        res.json({ 
+          success: true, 
+          message: 'SMTP connection successful' 
+        });
+      } else {
+        res.status(500).json({ 
+          error: 'SMTP connection failed'
+        });
+      }
+    } catch (error) {
+      console.error('Error testing email connection:', error);
+      res.status(500).json({ 
+        error: 'SMTP connection failed',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Seed default email templates endpoint
+  app.post('/api/email/seed-templates', requireAuth, async (req, res) => {
+    try {
+      // Check if templates already exist
+      const existingTemplates = await storage.getEmailTemplates();
+      if (existingTemplates.length > 0) {
+        return res.json({ 
+          success: false, 
+          message: 'Templates already exist',
+          count: existingTemplates.length
+        });
+      }
+
+      const defaultTemplates = [
+        // Contact Confirmation Template
+        {
+          name: "Confirmation de Contact Client",
+          subject: "Merci pour votre demande {{firstName}} - Estimation Gironde",
+          category: "contact_confirmation",
+          isActive: true,
+          variables: JSON.stringify(["firstName", "lastName", "email", "phone", "subject", "message"]),
+          htmlContent: `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmation de votre demande</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; background-color: #f4f4f4;">
+    <div style="background-color: #fff; margin: 20px; border-radius: 10px; overflow: hidden; box-shadow: 0 0 20px rgba(0,0,0,0.1);">
+        <div style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0; font-size: 28px; font-weight: bold;">Estimation Gironde</h1>
+            <p style="margin: 5px 0 0 0; opacity: 0.9;">Expert en estimation immobilière</p>
+        </div>
+        
+        <div style="padding: 40px 30px;">
+            <h2 style="color: #2563eb; margin-top: 0;">Bonjour {{firstName}},</h2>
+            
+            <p style="margin-bottom: 20px; font-size: 16px;">
+                Merci pour votre demande concernant "<strong>{{subject}}</strong>". 
+                Nous avons bien reçu votre message et nous vous en remercions.
+            </p>
+            
+            <div style="background-color: #f8fafc; border-left: 4px solid #2563eb; padding: 20px; margin: 25px 0; border-radius: 0 5px 5px 0;">
+                <p style="margin: 0; font-weight: bold; color: #2563eb;">Votre demande :</p>
+                <p style="margin: 10px 0 0 0; font-style: italic;">{{message}}</p>
+            </div>
+            
+            <p style="margin-bottom: 25px;">
+                Un de nos experts vous contactera dans les plus brefs délais (généralement sous 24h) 
+                pour répondre à votre demande et vous accompagner dans votre projet immobilier.
+            </p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="https://estimation-immobilier-gironde.fr/contact" 
+                   style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block;">
+                    Nous contacter
+                </a>
+            </div>
+        </div>
+        
+        <div style="background-color: #1e40af; color: white; padding: 25px 30px; text-align: center;">
+            <p style="margin: 0 0 15px 0; font-size: 16px; font-weight: bold;">
+                Estimation Gironde
+            </p>
+            <p style="margin: 0 0 10px 0; opacity: 0.9;">
+                📧 contact@estimation-immobilier-gironde.fr<br>
+                📞 05 56 XX XX XX<br>
+                📍 Bordeaux et toute la Gironde
+            </p>
+            <p style="margin: 15px 0 0 0; font-size: 12px; opacity: 0.7;">
+                Expert en estimation immobilière depuis 10+ ans
+            </p>
+        </div>
+    </div>
+</body>
+</html>`,
+          textContent: `Bonjour {{firstName}},
+
+Merci pour votre demande concernant "{{subject}}". Nous avons bien reçu votre message et nous vous en remercions.
+
+Votre demande : {{message}}
+
+Un de nos experts vous contactera dans les plus brefs délais (généralement sous 24h) pour répondre à votre demande et vous accompagner dans votre projet immobilier.
+
+Cordialement,
+L'équipe Estimation Gironde
+
+Contact : contact@estimation-immobilier-gironde.fr
+Téléphone : 05 56 XX XX XX
+Zone d'intervention : Bordeaux et toute la Gironde`
+        },
+
+        // Estimation Confirmation Template
+        {
+          name: "Confirmation d'Estimation Client",
+          subject: "Votre estimation immobilière est prête {{firstName}} - {{estimatedValue}}€",
+          category: "estimation_confirmation", 
+          isActive: true,
+          variables: JSON.stringify(["firstName", "lastName", "email", "phone", "propertyType", "address", "city", "surface", "estimatedValue", "pricePerM2"]),
+          htmlContent: `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Votre estimation immobilière</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; background-color: #f4f4f4;">
+    <div style="background-color: #fff; margin: 20px; border-radius: 10px; overflow: hidden; box-shadow: 0 0 20px rgba(0,0,0,0.1);">
+        <div style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0; font-size: 28px; font-weight: bold;">🏠 Estimation Gironde</h1>
+            <p style="margin: 5px 0 0 0; opacity: 0.9;">Votre estimation est prête !</p>
+        </div>
+        
+        <div style="padding: 40px 30px;">
+            <h2 style="color: #10b981; margin-top: 0;">Bonjour {{firstName}},</h2>
+            
+            <p style="margin-bottom: 25px; font-size: 16px;">
+                Nous avons le plaisir de vous communiquer l'estimation de votre bien immobilier.
+            </p>
+            
+            <div style="background: linear-gradient(135deg, #f0fdfa, #f0f9ff); border: 2px solid #10b981; border-radius: 10px; padding: 25px; margin: 25px 0;">
+                <h3 style="color: #10b981; margin-top: 0; text-align: center; font-size: 20px;">📋 Détails de votre bien</h3>
+                <p style="margin: 8px 0;"><strong>Type :</strong> {{propertyType}}</p>
+                <p style="margin: 8px 0;"><strong>Surface :</strong> {{surface}} m²</p>
+                <p style="margin: 8px 0;"><strong>Adresse :</strong> {{address}}</p>
+                <p style="margin: 8px 0;"><strong>Ville :</strong> {{city}}</p>
+            </div>
+
+            <div style="background: linear-gradient(135deg, #fef3c7, #fde68a); border: 2px solid #f59e0b; border-radius: 10px; padding: 25px; margin: 25px 0; text-align: center;">
+                <h3 style="color: #d97706; margin-top: 0; font-size: 24px;">💰 Estimation de valeur</h3>
+                <div style="font-size: 36px; font-weight: bold; color: #92400e; margin: 15px 0;">{{estimatedValue}}€</div>
+                <p style="margin: 10px 0 0 0; color: #92400e; font-size: 16px;">Soit {{pricePerM2}}€/m²</p>
+            </div>
+            
+            <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 20px; margin: 25px 0; border-radius: 0 5px 5px 0;">
+                <p style="margin: 0; color: #dc2626;"><strong>⚠️ Important :</strong></p>
+                <p style="margin: 10px 0 0 0; color: #dc2626;">
+                    Cette estimation est indicative et basée sur les données du marché. 
+                    Pour une estimation précise, nous recommandons une visite d'expertise gratuite.
+                </p>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="tel:0556000000" 
+                   style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 15px 25px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block; margin: 5px;">
+                    📞 Nous appeler
+                </a>
+                <a href="https://estimation-immobilier-gironde.fr/contact" 
+                   style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; padding: 15px 25px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block; margin: 5px;">
+                    🏠 Visite d'expertise
+                </a>
+            </div>
+        </div>
+        
+        <div style="background-color: #065f46; color: white; padding: 25px 30px; text-align: center;">
+            <p style="margin: 0 0 15px 0; font-size: 16px; font-weight: bold;">
+                Estimation Gironde - Expert Immobilier
+            </p>
+            <p style="margin: 0 0 10px 0; opacity: 0.9;">
+                📧 contact@estimation-immobilier-gironde.fr<br>
+                📞 05 56 XX XX XX<br>
+                📍 Bordeaux et toute la Gironde
+            </p>
+        </div>
+    </div>
+</body>
+</html>`,
+          textContent: `Bonjour {{firstName}},
+
+Nous avons le plaisir de vous communiquer l'estimation de votre bien immobilier.
+
+DÉTAILS DE VOTRE BIEN:
+- Type : {{propertyType}}
+- Surface : {{surface}} m²
+- Adresse : {{address}}, {{city}}
+
+ESTIMATION DE VALEUR: {{estimatedValue}}€
+Soit {{pricePerM2}}€/m²
+
+IMPORTANT: Cette estimation est indicative et basée sur les données du marché. Pour une estimation précise, nous recommandons une visite d'expertise gratuite.
+
+N'hésitez pas à nous contacter pour planifier une visite d'expertise ou pour toute question.
+
+Cordialement,
+L'équipe Estimation Gironde
+
+Contact : contact@estimation-immobilier-gironde.fr
+Téléphone : 05 56 XX XX XX
+Zone d'intervention : Bordeaux et toute la Gironde`
+        },
+
+        // Admin Notification Templates
+        {
+          name: "Notification Admin - Nouveau Contact",
+          subject: "🔔 Nouveau message de {{firstName}} {{lastName}}",
+          category: "admin_notification",
+          isActive: true,
+          variables: JSON.stringify(["firstName", "lastName", "email", "phone", "subject", "message", "source"]),
+          htmlContent: `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nouveau message de contact</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; background-color: #f4f4f4;">
+    <div style="background-color: #fff; margin: 20px; border-radius: 10px; overflow: hidden; box-shadow: 0 0 20px rgba(0,0,0,0.1);">
+        <div style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 25px; text-align: center;">
+            <h1 style="margin: 0; font-size: 24px; font-weight: bold;">🔔 Nouveau Contact</h1>
+            <p style="margin: 5px 0 0 0; opacity: 0.9;">Administration - Estimation Gironde</p>
+        </div>
+        
+        <div style="padding: 30px;">
+            <h2 style="color: #ef4444; margin-top: 0;">Nouveau message reçu</h2>
+            
+            <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                <h3 style="color: #dc2626; margin-top: 0; font-size: 18px;">👤 Informations du contact</h3>
+                <p style="margin: 10px 0;"><strong>Nom :</strong> {{firstName}} {{lastName}}</p>
+                <p style="margin: 10px 0;"><strong>Email :</strong> <a href="mailto:{{email}}" style="color: #dc2626;">{{email}}</a></p>
+                <p style="margin: 10px 0;"><strong>Téléphone :</strong> <a href="tel:{{phone}}" style="color: #dc2626;">{{phone}}</a></p>
+                <p style="margin: 10px 0;"><strong>Source :</strong> {{source}}</p>
+            </div>
+            
+            <div style="margin: 20px 0;">
+                <h3 style="color: #dc2626; margin-bottom: 10px;">📧 Sujet du message</h3>
+                <p style="font-size: 16px; font-weight: bold; color: #7f1d1d;">{{subject}}</p>
+            </div>
+            
+            <div style="margin: 20px 0;">
+                <h3 style="color: #dc2626; margin-bottom: 10px;">💬 Message</h3>
+                <div style="background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; font-style: italic;">
+                    {{message}}
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="mailto:{{email}}?subject=Re: {{subject}}" 
+                   style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 12px 25px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block; margin: 5px;">
+                    📧 Répondre par email
+                </a>
+                <a href="tel:{{phone}}" 
+                   style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 12px 25px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block; margin: 5px;">
+                    📞 Appeler
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>`,
+          textContent: `🔔 NOUVEAU CONTACT - Estimation Gironde
+
+Informations du contact:
+- Nom: {{firstName}} {{lastName}}
+- Email: {{email}}
+- Téléphone: {{phone}}
+- Source: {{source}}
+
+Sujet: {{subject}}
+
+Message:
+{{message}}
+
+Actions à effectuer:
+1. Répondre par email: {{email}}
+2. Appeler: {{phone}}`
+        }
+      ];
+
+      // Insert all templates
+      for (const template of defaultTemplates) {
+        await storage.createEmailTemplate(template);
+      }
+
+      res.json({ 
+        success: true, 
+        message: 'Default email templates created successfully',
+        count: defaultTemplates.length
+      });
+    } catch (error) {
+      console.error('Error seeding email templates:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   });

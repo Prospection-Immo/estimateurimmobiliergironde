@@ -43,9 +43,9 @@ function HomePage() {
         <section className="py-16 bg-muted/30">
           <div className="max-w-6xl mx-auto px-4">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold mb-4">Estimation stratégique et locale</h2>
+              <h2 className="text-3xl font-bold mb-4">Votre nouvelle solution d'estimation gratuite et fiable</h2>
               <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-                Notre estimateur combine l'intelligence artificielle et les prix réels des ventes (DVF) pour vous donner une estimation stratégique et locale, adaptée aux tendances 2025. Fini les approximations : vous avez un chiffre crédible pour décider de vendre, acheter ou investir.
+                Découvrez notre estimateur révolutionnaire qui combine l'IA et les prix réels DVF pour vous offrir des résultats précis garantis. Cette solution exclusive vous permet d'économiser du temps et de gagner en confiance pour vos décisions immobilières stratégiques en Gironde.
               </p>
             </div>
             
@@ -54,9 +54,9 @@ function HomePage() {
                 <div className="bg-primary/10 p-4 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
                   <Zap className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-lg font-semibold" data-testid="text-benefit-instantanee">Estimation instantanée</h3>
+                <h3 className="text-lg font-semibold" data-testid="text-benefit-instantanee">Résultats instantanés gratuits</h3>
                 <p className="text-muted-foreground text-sm">
-                  basée sur les ventes réelles en Gironde
+                  Vous obtenez une estimation fiable basée sur les ventes réelles - garantie 100% gratuite
                 </p>
               </div>
               
@@ -64,9 +64,9 @@ function HomePage() {
                 <div className="bg-primary/10 p-4 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
                   <MapPin className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-lg font-semibold" data-testid="text-benefit-quartiers">Analyse des quartiers</h3>
+                <h3 className="text-lg font-semibold" data-testid="text-benefit-quartiers">Analyse exclusive des secteurs</h3>
                 <p className="text-muted-foreground text-sm">
-                  les plus porteurs et tendances 2025
+                  Découvrez où vous pouvez gagner le plus avec notre nouvelle expertise 2025
                 </p>
               </div>
               
@@ -74,9 +74,9 @@ function HomePage() {
                 <div className="bg-primary/10 p-4 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
                   <Search className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-lg font-semibold" data-testid="text-benefit-comparaison">Comparaison</h3>
+                <h3 className="text-lg font-semibold" data-testid="text-benefit-comparaison">Solution de comparaison avancée</h3>
                 <p className="text-muted-foreground text-sm">
-                  avec les biens similaires vendus récemment
+                  Votre bien analysé face aux ventes récentes pour des résultats optimaux garantis
                 </p>
               </div>
               
@@ -84,9 +84,9 @@ function HomePage() {
                 <div className="bg-primary/10 p-4 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
                   <Mail className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-lg font-semibold" data-testid="text-benefit-rapport">Rapport clair</h3>
+                <h3 className="text-lg font-semibold" data-testid="text-benefit-rapport">Rapport détaillé gratuit</h3>
                 <p className="text-muted-foreground text-sm">
-                  envoyé par email pour préparer votre projet
+                  Vous recevez tous les résultats par email - solution complète pour gagner du temps
                 </p>
               </div>
             </div>
