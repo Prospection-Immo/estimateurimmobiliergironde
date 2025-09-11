@@ -122,7 +122,7 @@ export default function Hero({ domain = "estimation-immobilier-gironde.fr" }: He
           {/* Quick Estimation Card */}
           <Card className="p-6 bg-card/80 backdrop-blur-sm border-card-border">
             <h3 className="text-xl font-semibold mb-4 text-card-foreground text-center">
-              Obtenez gratuitement la valeur de marché réelle de votre bien
+              Découvrez la valeur réelle de votre bien sur le prix du marché
             </h3>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
