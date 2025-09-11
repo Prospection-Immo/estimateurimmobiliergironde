@@ -783,6 +783,7 @@ function Router() {
       <Route path="/guides/:slug" component={GuideDetailPage} />
       <Route path="/actualites" component={ActualitesPage} />
       <Route path="/actualites/:slug" component={ArticleDetailPage} />
+      <Route path="/login" component={AdminLoginPage} />
       <Route path="/admin/login" component={AdminLoginPage} />
       <Route path="/admin" component={AdminDashboardPage} />
       {/* Legal pages */}
