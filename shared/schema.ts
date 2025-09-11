@@ -71,19 +71,39 @@ export const contacts = pgTable("contacts", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const articles = pgTable("articles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  metaDescription: text("meta_description"),
+  content: text("content").notNull(),
+  summary: text("summary"),
+  keywords: text("keywords"), // JSON string array
+  seoTitle: text("seo_title"),
+  authorName: text("author_name").default("Expert Immobilier"),
+  status: text("status").notNull().default("published"), // "draft" | "published" | "archived"
+  category: text("category").default("estimation"), // "estimation", "marche", "conseils", etc.
+  publishedAt: timestamp("published_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertLeadSchema = createInsertSchema(leads).omit({ id: true, createdAt: true });
 export const insertEstimationSchema = createInsertSchema(estimations).omit({ id: true, createdAt: true });
 export const insertContactSchema = createInsertSchema(contacts).omit({ id: true, createdAt: true });
+export const insertArticleSchema = createInsertSchema(articles).omit({ id: true, createdAt: true, updatedAt: true });
 
 // Types
 export type User = typeof users.$inferSelect;
 export type Lead = typeof leads.$inferSelect;
 export type Estimation = typeof estimations.$inferSelect;
 export type Contact = typeof contacts.$inferSelect;
+export type Article = typeof articles.$inferSelect;
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertLead = z.infer<typeof insertLeadSchema>;
 export type InsertEstimation = z.infer<typeof insertEstimationSchema>;
 export type InsertContact = z.infer<typeof insertContactSchema>;
+export type InsertArticle = z.infer<typeof insertArticleSchema>;

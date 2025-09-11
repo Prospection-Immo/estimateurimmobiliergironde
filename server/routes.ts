@@ -1,7 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertLeadSchema, insertEstimationSchema, insertContactSchema } from "@shared/schema";
+import { insertLeadSchema, insertEstimationSchema, insertContactSchema, insertArticleSchema } from "@shared/schema";
+import { sanitizeArticleContent } from "./services/htmlSanitizer";
 import { z } from "zod";
 
 // Specific validation schemas for different lead types
@@ -325,6 +326,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(stats);
     } catch (error) {
       console.error('Error fetching stats:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Articles routes
+  app.get('/api/articles', async (req, res) => {
+    try {
+      const { category, limit } = req.query;
+      let articles;
+      
+      if (category) {
+        articles = await storage.getArticlesByCategory(
+          category as string, 
+          limit ? parseInt(limit as string) : undefined
+        );
+      } else {
+        articles = await storage.getArticles(
+          limit ? parseInt(limit as string) : undefined
+        );
+      }
+      
+      res.json(articles);
+    } catch (error) {
+      console.error('Error fetching articles:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.get('/api/articles/:slug', async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const article = await storage.getArticleBySlug(slug);
+      
+      if (!article) {
+        return res.status(404).json({ error: 'Article not found' });
+      }
+      
+      // Only allow published articles for public access
+      if (article.status !== 'published') {
+        // Check if user is authenticated for draft access
+        if (!(req.session as any).isAuthenticated) {
+          return res.status(404).json({ error: 'Article not found' });
+        }
+      }
+      
+      res.json(article);
+    } catch (error) {
+      console.error('Error fetching article:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.post('/api/articles', requireAuth, async (req, res) => {
+    try {
+      const validation = insertArticleSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          error: 'Validation failed', 
+          details: validation.error.errors 
+        });
+      }
+
+      // Sanitize HTML content before saving
+      const sanitizedData = {
+        ...validation.data,
+        content: sanitizeArticleContent(validation.data.content)
+      };
+
+      const article = await storage.createArticle(sanitizedData);
+      res.status(201).json(article);
+    } catch (error) {
+      console.error('Error creating article:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.put('/api/articles/:id', requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validation = insertArticleSchema.partial().safeParse(req.body);
+      
+      if (!validation.success) {
+        return res.status(400).json({ 
+          error: 'Validation failed', 
+          details: validation.error.errors 
+        });
+      }
+
+      // Sanitize HTML content if provided
+      const sanitizedData = validation.data.content 
+        ? {
+            ...validation.data,
+            content: sanitizeArticleContent(validation.data.content)
+          }
+        : validation.data;
+
+      const article = await storage.updateArticle(id, sanitizedData);
+      res.json(article);
+    } catch (error) {
+      console.error('Error updating article:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.delete('/api/articles/:id', requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteArticle(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error deleting article:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   });

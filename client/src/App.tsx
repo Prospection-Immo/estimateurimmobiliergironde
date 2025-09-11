@@ -19,6 +19,8 @@ import FinancementPage from "@/pages/FinancementPage";
 import MentionsLegalesPage from "@/pages/MentionsLegalesPage";
 import ConfidentialitePage from "@/pages/ConfidentialitePage";
 import CookiesPage from "@/pages/CookiesPage";
+import ActualitesPageComponent from "@/pages/ActualitesPage";
+import ArticleDetailPageComponent from "@/pages/ArticleDetailPage";
 
 // Utility function to detect domain from Host header
 function getDomainFromHeaders(): string {
@@ -652,273 +654,30 @@ function GuideDetailPage() {
   );
 }
 
-// Actualités Page
+// Actualités Page Wrapper
 function ActualitesPage() {
   const domain = getDomainFromHeaders();
-  
-  const articles = [
-    {
-      slug: "marche-immobilier-gironde-2024",
-      title: "Le marché immobilier en Gironde en 2024",
-      excerpt: "Analyse des tendances et évolutions du marché immobilier girondin cette année",
-      date: "15 décembre 2024",
-      category: "Marché"
-    },
-    {
-      slug: "nouveaux-quartiers-bordeaux",
-      title: "Les nouveaux quartiers prometteurs de Bordeaux",
-      excerpt: "Découvrez les zones en développement qui offrent de belles opportunités",
-      date: "10 décembre 2024",
-      category: "Urbanisme"
-    },
-    {
-      slug: "taux-immobilier-baisse",
-      title: "Taux immobiliers : une baisse attendue ?",
-      excerpt: "Point sur l'évolution des taux de crédit immobilier et perspectives",
-      date: "5 décembre 2024",
-      category: "Financement"
-    }
-  ];
   
   return (
     <div className="min-h-screen bg-background">
       <Header domain={domain} />
-      <main className="py-8">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="mb-12">
-            <h1 className="text-4xl font-bold mb-4">Actualités Immobilières</h1>
-            <p className="text-xl text-muted-foreground">
-              Suivez les dernières actualités du marché immobilier en Gironde
-            </p>
-          </div>
-          
-          <div className="space-y-8">
-            {articles.map((article) => (
-              <div key={article.slug} className="bg-card p-6 rounded-lg border border-card-border hover-elevate">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-                  <div className="flex items-center gap-4">
-                    <span className="inline-block bg-primary/10 text-primary px-2 py-1 rounded-md text-sm font-medium">
-                      {article.category}
-                    </span>
-                    <span className="text-sm text-muted-foreground">{article.date}</span>
-                  </div>
-                </div>
-                <h2 className="text-2xl font-semibold mb-3">{article.title}</h2>
-                <p className="text-muted-foreground mb-4">{article.excerpt}</p>
-                <a
-                  href={`/actualites/${article.slug}`}
-                  className="inline-flex items-center text-primary hover:underline font-medium"
-                  data-testid={`link-article-${article.slug}`}
-                >
-                  Lire l'article →
-                </a>
-              </div>
-            ))}
-          </div>
-        </div>
+      <main>
+        <ActualitesPageComponent domain={domain} />
       </main>
       <Footer domain={domain} />
     </div>
   );
 }
 
-// Article Detail Page
+// Article Detail Page Wrapper
 function ArticleDetailPage() {
   const domain = getDomainFromHeaders();
-  const [match, params] = useRoute("/actualites/:slug");
-  const slug = match ? params.slug : undefined;
-  
-  // Articles content data
-  const articlesData: Record<string, {
-    title: string;
-    category: string;
-    date: string;
-    content: Array<{
-      type: 'paragraph' | 'heading' | 'list';
-      content: string | string[];
-    }>;
-  }> = {
-    "marche-immobilier-gironde-2024": {
-      title: "Le marché immobilier en Gironde en 2024",
-      category: "Marché",
-      date: "15 décembre 2024",
-      content: [
-        {
-          type: 'paragraph',
-          content: "L'année 2024 marque un tournant pour le marché immobilier en Gironde. Après plusieurs années de forte croissance, le marché connaît une stabilisation bienvenue pour les acquéreurs."
-        },
-        {
-          type: 'heading',
-          content: "Une stabilisation des prix"
-        },
-        {
-          type: 'paragraph',
-          content: "Les prix au mètre carré observent une pause dans leur progression, particulièrement à Bordeaux où le prix moyen se stabilise autour de 4 200€/m²."
-        },
-        {
-          type: 'heading',
-          content: "Les secteurs porteurs"
-        },
-        {
-          type: 'paragraph',
-          content: "Mérignac et Pessac continuent d'attirer les investisseurs grâce à leur excellent rapport qualité-prix et leur proximité avec Bordeaux."
-        },
-        {
-          type: 'heading',
-          content: "Perspectives 2025"
-        },
-        {
-          type: 'paragraph',
-          content: "Les experts s'accordent sur une poursuite de cette stabilisation, avec des opportunités intéressantes pour les primo-accédants."
-        }
-      ]
-    },
-    "nouveaux-quartiers-bordeaux": {
-      title: "Les nouveaux quartiers prometteurs de Bordeaux",
-      category: "Urbanisme",
-      date: "10 décembre 2024",
-      content: [
-        {
-          type: 'paragraph',
-          content: "Bordeaux se transforme avec de nouveaux quartiers qui redéfinissent le paysage urbain et offrent de nouvelles opportunités d'investissement."
-        },
-        {
-          type: 'heading',
-          content: "Bordeaux Euratlantique"
-        },
-        {
-          type: 'paragraph',
-          content: "Ce quartier d'affaires international continue de se développer avec de nouveaux programmes résidentiels haut de gamme."
-        },
-        {
-          type: 'heading',
-          content: "La Bastide"
-        },
-        {
-          type: 'paragraph',
-          content: "Rive droite, ce secteur bénéficie d'une forte dynamique avec l'arrivée du pont Simone Veil et de nouveaux équipements."
-        },
-        {
-          type: 'heading',
-          content: "Darwin et Caserne Niel"
-        },
-        {
-          type: 'list',
-          content: ["Reconversion d'espaces industriels", "Mixité urbaine innovante", "Proximité des transports", "Environnement écologique"]
-        }
-      ]
-    },
-    "taux-immobilier-baisse": {
-      title: "Taux immobiliers : une baisse attendue ?",
-      category: "Financement",
-      date: "5 décembre 2024",
-      content: [
-        {
-          type: 'paragraph',
-          content: "Après une période de hausse significative, les taux de crédit immobilier montrent des signes de détente qui pourraient relancer le marché."
-        },
-        {
-          type: 'heading',
-          content: "État actuel des taux"
-        },
-        {
-          type: 'paragraph',
-          content: "Les taux moyens oscillent actuellement entre 3,5% et 4,2% selon la durée du prêt et le profil emprunteur."
-        },
-        {
-          type: 'heading',
-          content: "Facteurs d'évolution"
-        },
-        {
-          type: 'list',
-          content: ["Politique monétaire de la BCE", "Inflation en recul", "Concurrence bancaire", "Demande des emprunteurs"]
-        },
-        {
-          type: 'heading',
-          content: "Impact sur le marché"
-        },
-        {
-          type: 'paragraph',
-          content: "Une baisse même modeste des taux pourrait relancer l'activité immobilière et améliorer le pouvoir d'achat des acquéreurs."
-        }
-      ]
-    }
-  };
-
-  const article = slug ? articlesData[slug] : null;
-
-  if (!article) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header domain={domain} />
-        <main className="py-16">
-          <div className="max-w-2xl mx-auto px-4 text-center">
-            <h1 className="text-4xl font-bold mb-4">Article non trouvé</h1>
-            <p className="text-lg text-muted-foreground mb-8">
-              L'article que vous recherchez n'existe pas ou a été déplacé.
-            </p>
-            <a 
-              href="/actualites"
-              className="inline-block bg-primary text-primary-foreground px-6 py-3 rounded-md hover-elevate"
-              data-testid="button-back-articles"
-            >
-              Retour aux actualités
-            </a>
-          </div>
-        </main>
-        <Footer domain={domain} />
-      </div>
-    );
-  }
   
   return (
     <div className="min-h-screen bg-background">
       <Header domain={domain} />
-      <main className="py-8">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="mb-8">
-            <a href="/actualites" className="text-primary hover:underline mb-4 inline-block">← Retour aux actualités</a>
-            <h1 className="text-4xl font-bold mb-4">{article.title}</h1>
-            <div className="flex items-center gap-4 text-muted-foreground">
-              <span>Catégorie: {article.category}</span>
-              <span>•</span>
-              <span>{article.date}</span>
-            </div>
-          </div>
-          
-          <div className="prose prose-lg max-w-none">
-            {article.content.map((section, index) => {
-              if (section.type === 'paragraph') {
-                return <p key={index}>{section.content}</p>;
-              } else if (section.type === 'heading') {
-                return <h2 key={index}>{section.content}</h2>;
-              } else if (section.type === 'list') {
-                return (
-                  <ul key={index}>
-                    {(section.content as string[]).map((item, itemIndex) => (
-                      <li key={itemIndex}>{item}</li>
-                    ))}
-                  </ul>
-                );
-              }
-              return null;
-            })}
-            
-            <div className="bg-primary/10 p-6 rounded-lg mt-8">
-              <h3 className="text-lg font-semibold mb-3">Estimez votre bien</h3>
-              <p className="mb-4">
-                Profitez de cette période favorable pour estimer la valeur de votre bien.
-              </p>
-              <a
-                href="/estimation"
-                className="bg-primary text-primary-foreground px-6 py-2 rounded-md hover-elevate inline-block"
-                data-testid="button-estimate-from-article"
-              >
-                Faire une estimation gratuite
-              </a>
-            </div>
-          </div>
-        </div>
+      <main>
+        <ArticleDetailPageComponent domain={domain} />
       </main>
       <Footer domain={domain} />
     </div>
