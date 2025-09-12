@@ -35,6 +35,9 @@ import GuideReadPage from "@/pages/GuideReadPage";
 import Admin2FALogin from "@/components/Admin2FALogin";
 import bordeaux_house from "@assets/generated_images/Bordeaux_house_property_photo_41cf0370.png";
 import SEOHead, { createLocalBusinessSchema, createFAQSchema } from "@/components/SEOHead";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 // Utility function to detect domain from Host header
 function getDomainFromHeaders(): string {
@@ -85,7 +88,7 @@ function HomePage() {
   ]);
   
   return (
-    <div className="min-h-screen bg-background">
+    <>
       <SEOHead
         title="Estimation Immobilière Gratuite Gironde | Expert Local Bordeaux 2025"
         description="✅ Estimation gratuite et instantanée de votre bien en Gironde. IA + données DVF officielles = résultats précis garantis. Expert local Bordeaux. Rapport détaillé offert."
@@ -120,8 +123,6 @@ function HomePage() {
         structuredData={[localBusinessSchema, faqSchema]}
         robots="index, follow"
       />
-      <Header domain={domain} />
-      <main>
         <Hero domain={domain} />
         
         {/* Filtres de recherche rapide */}
@@ -319,60 +320,27 @@ function HomePage() {
             </div>
           </div>
         </section>
-      </main>
-      <Footer domain={domain} />
-    </div>
+    </>
   );
 }
 
 // Estimation Page
 function EstimationPage() {
-  const domain = getDomainFromHeaders();
-  
-  return (
-    <div className="min-h-screen bg-background">
-      <Header domain={domain} />
-      <main>
-        <PropertyEstimationForm />
-      </main>
-      <Footer domain={domain} />
-    </div>
-  );
+  return <PropertyEstimationForm />;
 }
 
 // Results Page
 function ResultsPage() {
-  const domain = getDomainFromHeaders();
-  
-  return (
-    <div className="min-h-screen bg-background">
-      <Header domain={domain} />
-      <main>
-        <EstimationResults />
-      </main>
-      <Footer domain={domain} />
-    </div>
-  );
+  return <EstimationResults />;
 }
 
 // Contact Page
 function ContactPage() {
-  const domain = getDomainFromHeaders();
-  
-  return (
-    <div className="min-h-screen bg-background">
-      <Header domain={domain} />
-      <main>
-        <ContactForm />
-      </main>
-      <Footer domain={domain} />
-    </div>
-  );
+  return <ContactForm />;
 }
 
 // Prix m² Page
 function PrixM2Page() {
-  const domain = getDomainFromHeaders();
   const [priceData, setPriceData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -395,8 +363,7 @@ function PrixM2Page() {
   }, []);
   
   return (
-    <div className="min-h-screen bg-background">
-      <Header domain={domain} />
+    <>
       
       {/* Hero Section */}
       <section className="relative min-h-[50vh] bg-gradient-to-br from-background to-muted flex items-center">
@@ -454,9 +421,7 @@ function PrixM2Page() {
           )}
         </div>
       </section>
-      
-      <Footer domain={domain} />
-    </div>
+    </>
   );
 }
 
@@ -617,55 +582,33 @@ function GuideDetailPage() {
 function ActualitesPage() {
   const domain = getDomainFromHeaders();
   
-  return (
-    <div className="min-h-screen bg-background">
-      <Header domain={domain} />
-      <main>
-        <ActualitesPageComponent domain={domain} />
-      </main>
-      <Footer domain={domain} />
-    </div>
-  );
+  return <ActualitesPageComponent domain={domain} />;
 }
 
 // Article Detail Page Wrapper
 function ArticleDetailPage() {
   const domain = getDomainFromHeaders();
   
-  return (
-    <div className="min-h-screen bg-background">
-      <Header domain={domain} />
-      <main>
-        <ArticleDetailPageComponent domain={domain} />
-      </main>
-      <Footer domain={domain} />
-    </div>
-  );
+  return <ArticleDetailPageComponent domain={domain} />;
 }
 
 // NotFound Page
 function NotFound() {
-  const domain = getDomainFromHeaders();
-  
   return (
-    <div className="min-h-screen bg-background">
-      <Header domain={domain} />
-      <main className="py-16">
-        <div className="max-w-2xl mx-auto px-4 text-center">
-          <h1 className="text-4xl font-bold mb-4">Page non trouvée</h1>
-          <p className="text-lg text-muted-foreground mb-8">
-            La page que vous recherchez n'existe pas ou a été déplacée.
-          </p>
-          <a 
-            href="/"
-            className="inline-block bg-primary text-primary-foreground px-6 py-3 rounded-md hover-elevate"
-            data-testid="button-back-home"
-          >
-            Retour à l'accueil
-          </a>
-        </div>
-      </main>
-      <Footer domain={domain} />
+    <div className="py-16">
+      <div className="max-w-2xl mx-auto px-4 text-center">
+        <h1 className="text-4xl font-bold mb-4">Page non trouvée</h1>
+        <p className="text-lg text-muted-foreground mb-8">
+          La page que vous recherchez n'existe pas ou a été déplacée.
+        </p>
+        <a 
+          href="/"
+          className="inline-block bg-primary text-primary-foreground px-6 py-3 rounded-md hover-elevate"
+          data-testid="button-back-home"
+        >
+          Retour à l'accueil
+        </a>
+      </div>
     </div>
   );
 }
@@ -674,58 +617,26 @@ function NotFound() {
 function FinancementPageComponent() {
   const domain = getDomainFromHeaders();
   
-  return (
-    <div className="min-h-screen bg-background">
-      <Header domain={domain} />
-      <main>
-        <FinancementPage domain={domain} />
-      </main>
-      <Footer domain={domain} />
-    </div>
-  );
+  return <FinancementPage domain={domain} />;
 }
 
 // Legal Pages Components
 function MentionsLegalesPageComponent() {
   const domain = getDomainFromHeaders();
   
-  return (
-    <div className="min-h-screen bg-background">
-      <Header domain={domain} />
-      <main>
-        <MentionsLegalesPage domain={domain} />
-      </main>
-      <Footer domain={domain} />
-    </div>
-  );
+  return <MentionsLegalesPage domain={domain} />;
 }
 
 function ConfidentialitePageComponent() {
   const domain = getDomainFromHeaders();
   
-  return (
-    <div className="min-h-screen bg-background">
-      <Header domain={domain} />
-      <main>
-        <ConfidentialitePage domain={domain} />
-      </main>
-      <Footer domain={domain} />
-    </div>
-  );
+  return <ConfidentialitePage domain={domain} />;
 }
 
 function CookiesPageComponent() {
   const domain = getDomainFromHeaders();
   
-  return (
-    <div className="min-h-screen bg-background">
-      <Header domain={domain} />
-      <main>
-        <CookiesPage domain={domain} />
-      </main>
-      <Footer domain={domain} />
-    </div>
-  );
+  return <CookiesPage domain={domain} />;
 }
 
 // Lexique Page
@@ -811,15 +722,34 @@ function Router() {
   );
 }
 
-// Main App Component
+// Main App Component  
 export default function App() {
+  const domain = getDomainFromHeaders();
+  
+  // Custom sidebar width for real estate application
+  const style = {
+    "--sidebar-width": "18rem",       // 288px for better navigation
+    "--sidebar-width-icon": "4rem",   // default icon width
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
-          <div className="min-h-screen bg-background text-foreground">
-            <Router />
-          </div>
+          <SidebarProvider style={style as React.CSSProperties}>
+            <div className="flex h-screen w-full">
+              <AppSidebar domain={domain} />
+              <div className="flex flex-col flex-1">
+                <header className="flex items-center justify-between p-2 border-b border-border bg-background">
+                  <SidebarTrigger data-testid="button-sidebar-toggle" />
+                  <ThemeToggle />
+                </header>
+                <main className="flex-1 overflow-auto">
+                  <Router />
+                </main>
+              </div>
+            </div>
+          </SidebarProvider>
           <Toaster />
         </TooltipProvider>
       </ThemeProvider>
