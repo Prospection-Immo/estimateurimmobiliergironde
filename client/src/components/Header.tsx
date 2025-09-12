@@ -36,17 +36,16 @@ export default function Header({ domain = "estimation-immobilier-gironde.fr" }: 
               <h1 className="font-semibold text-lg">
                 {isGironde ? "Estimation immobilière Gironde" : "Estimation Immobilière"}
               </h1>
-              <p className="text-xs text-muted-foreground">Expert local</p>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-6">
+          <nav className="hidden md:flex items-center space-x-3">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm transition-colors hover-elevate ${
+                className={`flex items-center space-x-1 px-2 py-2 rounded-md text-sm transition-colors hover-elevate ${
                   location === item.href
                     ? "bg-primary text-primary-foreground"
                     : "text-foreground hover:bg-accent"

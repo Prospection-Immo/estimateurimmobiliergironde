@@ -13,12 +13,12 @@ import Footer from "@/components/Footer";
 
 // Images réalistes pour chaque persona
 const PERSONA_IMAGES: Record<string, string> = {
-  presse: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop&crop=face",
-  maximisateur: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=300&fit=crop&crop=face", 
-  succession: "https://images.unsplash.com/photo-1566492031773-4f4e44671d66?w=400&h=300&fit=crop&crop=face",
-  nouvelle_vie: "https://images.unsplash.com/photo-1494790108755-2616c33c9ad4?w=400&h=300&fit=crop&crop=face",
-  investisseur: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=300&fit=crop&crop=face",
-  primo: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=300&fit=crop&crop=face"
+  presse: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop&crop=center",
+  maximisateur: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=300&fit=crop&crop=center", 
+  succession: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=400&h=300&fit=crop&crop=center",
+  nouvelle_vie: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=300&fit=crop&crop=center",
+  investisseur: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=300&fit=crop&crop=center",
+  primo: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=300&fit=crop&crop=center"
 };
 
 // Utility function to detect domain from Host header
@@ -275,12 +275,16 @@ export default function GuidesPage() {
               {guides.map(guide => (
                 <Card key={guide.id} className="flex flex-col hover-elevate overflow-hidden" data-testid={`card-guide-${guide.id}`}>
                   {/* Image de la persona */}
-                  <div className="relative h-48 overflow-hidden">
+                  <div className="relative h-48 overflow-hidden bg-muted">
                     <img 
                       src={guide.imageUrl || PERSONA_IMAGES[guide.persona] || PERSONA_IMAGES.primo}
                       alt={`Guide pour ${GUIDE_PERSONAS[guide.persona as keyof typeof GUIDE_PERSONAS]}`}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover object-center"
                       loading="lazy"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = PERSONA_IMAGES.primo;
+                      }}
                     />
                     <div className="absolute top-3 left-3">
                       <Badge variant="secondary" className="text-xs bg-white/90 text-gray-800">
