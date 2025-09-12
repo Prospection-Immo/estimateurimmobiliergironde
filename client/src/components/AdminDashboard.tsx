@@ -12,10 +12,12 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import EmailSequenceManager from "@/components/EmailSequenceManager";
 import AdminAnalyticsDashboard from "@/components/AdminAnalyticsDashboard";
+import { AdminSidebar } from "@/components/AdminSidebar";
 import { 
   Users, 
   User,
@@ -167,6 +169,10 @@ interface AdminDashboardProps {
 }
 
 export default function AdminDashboard({ domain = "estimation-immobilier-gironde.fr" }: AdminDashboardProps) {
+  // Active section state for sidebar navigation
+  const [activeSection, setActiveSection] = useState("overview");
+  
+  // Existing state
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedLeadType, setSelectedLeadType] = useState("all");
@@ -235,6 +241,11 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
   });
 
   const queryClientInstance = useQueryClient();
+
+  // Section change handler for sidebar navigation
+  const onSectionChange = (section: string) => {
+    setActiveSection(section);
+  };
 
   // React Query hooks for email management
   const emailHistoryQueryParams = new URLSearchParams();
@@ -593,107 +604,134 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
     );
   }
 
+  // Custom sidebar width for admin dashboard
+  const style = {
+    "--sidebar-width": "20rem",       // 320px for better content
+    "--sidebar-width-icon": "4rem",   // default icon width
+  };
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Dashboard Admin</h1>
-            <p className="text-muted-foreground">
-              Gestion des leads et estimations pour {domain}
-            </p>
+    <SidebarProvider style={style as React.CSSProperties}>
+      <div className="flex h-screen w-full">
+        <AdminSidebar 
+          activeSection={activeSection} 
+          onSectionChange={onSectionChange} 
+        />
+        <div className="flex flex-col flex-1">
+          {/* Header */}
+          <header className="flex items-center justify-between p-4 border-b bg-background">
+            <div className="flex items-center gap-4">
+              <SidebarTrigger data-testid="button-sidebar-toggle" />
+              <div>
+                <h1 className="text-xl font-semibold">Dashboard Admin</h1>
+                <p className="text-sm text-muted-foreground">
+                  Gestion des leads et estimations pour {domain}
+                </p>
+              </div>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={handleLogout}
+              className="flex items-center gap-2"
+              data-testid="button-logout"
+            >
+              <LogOut className="h-4 w-4" />
+              Déconnexion
+            </Button>
+          </header>
+
+          {/* Main Content */}
+          <main className="flex-1 overflow-auto p-6">
+            <div className="max-w-7xl mx-auto space-y-6">
+              {/* Error Alert */}
+              {authError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{authError}</AlertDescription>
+                </Alert>
+              )}
+
+              {/* Content based on active section */}
+              {renderSectionContent()}
+            </div>
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
+  );
+
+  // Helper function to render content based on active section
+  function renderSectionContent() {
+    // Stats Cards for overview sections
+    const renderStatsCards = () => (
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <Card className="p-6">
+          <div className="flex items-center space-x-4">
+            <div className="bg-primary/10 p-3 rounded-lg">
+              <Users className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold" data-testid="text-total-leads">{stats?.totalLeads || 0}</p>
+              <p className="text-sm text-muted-foreground">Total leads</p>
+            </div>
           </div>
-          <Button 
-            variant="outline" 
-            onClick={handleLogout}
-            className="flex items-center gap-2"
-            data-testid="button-logout"
-          >
-            <LogOut className="h-4 w-4" />
-            Déconnexion
-          </Button>
-        </div>
+        </Card>
 
-        {/* Error Alert */}
-        {authError && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{authError}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="bg-primary/10 p-3 rounded-lg">
-                <Users className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold" data-testid="text-total-leads">{stats?.totalLeads || 0}</p>
-                <p className="text-sm text-muted-foreground">Total leads</p>
-              </div>
+        <Card className="p-6">
+          <div className="flex items-center space-x-4">
+            <div className="bg-chart-2/10 p-3 rounded-lg">
+              <Phone className="h-6 w-6 text-chart-2" />
             </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="bg-chart-2/10 p-3 rounded-lg">
-                <Phone className="h-6 w-6 text-chart-2" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold" data-testid="text-new-leads">{stats?.newLeads || 0}</p>
-                <p className="text-sm text-muted-foreground">Nouveaux leads</p>
-              </div>
+            <div>
+              <p className="text-2xl font-bold" data-testid="text-new-leads">{stats?.newLeads || 0}</p>
+              <p className="text-sm text-muted-foreground">Nouveaux leads</p>
             </div>
-          </Card>
+          </div>
+        </Card>
 
-          <Card className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="bg-chart-3/10 p-3 rounded-lg">
-                <Calculator className="h-6 w-6 text-chart-3" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold" data-testid="text-estimations-today">{stats?.estimationsToday || 0}</p>
-                <p className="text-sm text-muted-foreground">Estimations aujourd'hui</p>
-              </div>
+        <Card className="p-6">
+          <div className="flex items-center space-x-4">
+            <div className="bg-chart-3/10 p-3 rounded-lg">
+              <Calculator className="h-6 w-6 text-chart-3" />
             </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="bg-chart-4/10 p-3 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-chart-4" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold" data-testid="text-conversion-rate">{stats?.conversionRate || "0.0"}%</p>
-                <p className="text-sm text-muted-foreground">Taux conversion</p>
-              </div>
+            <div>
+              <p className="text-2xl font-bold" data-testid="text-estimations-today">{stats?.estimationsToday || 0}</p>
+              <p className="text-sm text-muted-foreground">Estimations aujourd'hui</p>
             </div>
-          </Card>
-        </div>
+          </div>
+        </Card>
 
-        {/* Main Content */}
-        <Tabs defaultValue="analytics" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="analytics" data-testid="tab-analytics">
-              <PieChart className="h-4 w-4 mr-2" />
-              Analytics
-            </TabsTrigger>
-            <TabsTrigger value="leads" data-testid="tab-leads">Leads</TabsTrigger>
-            <TabsTrigger value="estimations" data-testid="tab-estimations">Estimations</TabsTrigger>
-            <TabsTrigger value="contacts" data-testid="tab-contacts">Messages</TabsTrigger>
-            <TabsTrigger value="articles" data-testid="tab-articles">Articles</TabsTrigger>
-            <TabsTrigger value="emails" data-testid="tab-emails">Emails</TabsTrigger>
-            <TabsTrigger value="sequences" data-testid="tab-sequences">Séquences</TabsTrigger>
-          </TabsList>
+        <Card className="p-6">
+          <div className="flex items-center space-x-4">
+            <div className="bg-chart-4/10 p-3 rounded-lg">
+              <TrendingUp className="h-6 w-6 text-chart-4" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold" data-testid="text-conversion-rate">{stats?.conversionRate || "0.0"}%</p>
+              <p className="text-sm text-muted-foreground">Taux conversion</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
 
-          <TabsContent value="analytics" className="space-y-6" data-testid="analytics-tab-content">
+    switch (activeSection) {
+      case "overview":
+      case "stats":
+        return (
+          <>
+            {renderStatsCards()}
             <AdminAnalyticsDashboard />
-          </TabsContent>
+          </>
+        );
 
-          <TabsContent value="leads" className="space-y-6">
+      case "analytics":
+        return <AdminAnalyticsDashboard />;
+
+      case "leads":
+      case "qualified-leads":
+        return (
+          <>
             {/* Filters */}
             <Card className="p-6">
               <div className="space-y-4">
@@ -785,9 +823,16 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
             {/* Leads Table */}
             <Card className="p-6">
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Leads récents</h3>
+                <h3 className="text-lg font-semibold">
+                  {activeSection === "qualified-leads" ? "Leads qualifiés" : "Leads récents"}
+                </h3>
                 <div className="space-y-4">
-                  {filteredLeads.map((lead) => (
+                  {filteredLeads
+                    .filter(lead => activeSection === "qualified-leads" 
+                      ? lead.status === "contacted" || lead.status === "converted" 
+                      : true
+                    )
+                    .map((lead) => (
                     <div
                       key={lead.id}
                       className="flex items-center justify-between p-4 border border-border rounded-lg hover-elevate"
@@ -815,536 +860,385 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                           </div>
                         </div>
                         <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                          <div className="flex items-center space-x-1">
+                          <span className="flex items-center space-x-1">
                             <Mail className="h-3 w-3" />
                             <span>{lead.email}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <Phone className="h-3 w-3" />
-                            <span>{lead.phone}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
+                          </span>
+                          {lead.phone && (
+                            <span className="flex items-center space-x-1">
+                              <Phone className="h-3 w-3" />
+                              <span>{lead.phone}</span>
+                            </span>
+                          )}
+                          <span className="flex items-center space-x-1">
                             <MapPin className="h-3 w-3" />
-                            <span>{[lead.address, lead.city, lead.postalCode].filter(Boolean).join(', ')}</span>
-                          </div>
+                            <span>{lead.city}</span>
+                          </span>
+                          <span className="flex items-center space-x-1">
+                            <Clock className="h-3 w-3" />
+                            <span>{new Date(lead.createdAt).toLocaleDateString('fr-FR')}</span>
+                          </span>
                         </div>
                       </div>
-                      <div className="text-right space-y-1">
-                        <p className="font-semibold">
-                          {lead.estimatedValue ? parseFloat(lead.estimatedValue).toLocaleString() : 'N/A'} €
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {lead.propertyType === 'house' ? 'Maison' : 'Appartement'} - {lead.surface || 'N/A'} m²
-                        </p>
+                      <div className="flex items-center space-x-2">
+                        <Select
+                          value={lead.status}
+                          onValueChange={(value) => updateLeadStatus(lead.id, value)}
+                        >
+                          <SelectTrigger 
+                            className="w-32"
+                            data-testid={`select-status-${lead.id}`}
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="new">Nouveau</SelectItem>
+                            <SelectItem value="contacted">Contacté</SelectItem>
+                            <SelectItem value="converted">Converti</SelectItem>
+                            <SelectItem value="archived">Archivé</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          data-testid={`button-details-${lead.id}`}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <Button variant="ghost" size="icon" data-testid={`button-lead-actions-${lead.id}`}>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
                     </div>
                   ))}
                 </div>
               </div>
             </Card>
-          </TabsContent>
+          </>
+        );
 
-          <TabsContent value="estimations" className="space-y-6">
-            {/* Filters for Estimations */}
-            <Card className="p-6">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Rechercher par ville ou adresse..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                      data-testid="input-search-estimations"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setSearchTerm("")}
-                    data-testid="button-clear-search"
+      case "contacts":
+        return (
+          <Card className="p-6">
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Messages de contact</h3>
+              <div className="space-y-4">
+                {contacts.map((contact) => (
+                  <div
+                    key={contact.id}
+                    className="p-4 border border-border rounded-lg hover-elevate"
+                    data-testid={`card-contact-${contact.id}`}
                   >
-                    Tout afficher
-                  </Button>
-                </div>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center space-x-3">
+                          <h4 className="font-medium">
+                            {contact.firstName} {contact.lastName}
+                          </h4>
+                          <Badge variant="outline" className="text-xs">
+                            {contact.source}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                          <span className="flex items-center space-x-1">
+                            <Mail className="h-3 w-3" />
+                            <span>{contact.email}</span>
+                          </span>
+                          {contact.phone && (
+                            <span className="flex items-center space-x-1">
+                              <Phone className="h-3 w-3" />
+                              <span>{contact.phone}</span>
+                            </span>
+                          )}
+                          <span className="flex items-center space-x-1">
+                            <Clock className="h-3 w-3" />
+                            <span>{new Date(contact.createdAt).toLocaleDateString('fr-FR')}</span>
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          <p className="font-medium text-sm">{contact.subject}</p>
+                          <p className="text-sm text-muted-foreground">{contact.message}</p>
+                        </div>
+                      </div>
+                      <Badge variant={contact.status === 'new' ? 'default' : 'secondary'}>
+                        {contact.status === 'new' ? 'Nouveau' : 'Traité'}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </Card>
+            </div>
+          </Card>
+        );
 
-            {/* Estimations Table */}
+      case "estimations":
+      case "estimation-stats":
+        return (
+          <div className="space-y-6">
+            {/* Estimations Statistics */}
+            {activeSection === "estimation-stats" && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="p-6">
+                  <div className="flex items-center space-x-4">
+                    <div className="bg-chart-1/10 p-3 rounded-lg">
+                      <Calculator className="h-6 w-6 text-chart-1" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold">{estimations.length}</p>
+                      <p className="text-sm text-muted-foreground">Total estimations</p>
+                    </div>
+                  </div>
+                </Card>
+                
+                <Card className="p-6">
+                  <div className="flex items-center space-x-4">
+                    <div className="bg-chart-2/10 p-3 rounded-lg">
+                      <TrendingUp className="h-6 w-6 text-chart-2" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold">
+                        {estimations.filter(est => 
+                          new Date(est.createdAt).toDateString() === new Date().toDateString()
+                        ).length}
+                      </p>
+                      <p className="text-sm text-muted-foreground">Aujourd'hui</p>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-6">
+                  <div className="flex items-center space-x-4">
+                    <div className="bg-chart-3/10 p-3 rounded-lg">
+                      <BarChart3 className="h-6 w-6 text-chart-3" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold">
+                        {estimations.length > 0 
+                          ? Math.round(estimations.reduce((acc, est) => acc + (parseFloat(est.estimatedValue) || 0), 0) / estimations.length / 1000)
+                          : 0}k€
+                      </p>
+                      <p className="text-sm text-muted-foreground">Valeur moyenne</p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {/* Estimations List */}
             <Card className="p-6">
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Estimations récentes</h3>
+                <h3 className="text-lg font-semibold">
+                  {activeSection === "estimation-stats" ? "Estimations récentes" : "Toutes les estimations"}
+                </h3>
                 <div className="space-y-4">
-                  {estimations.filter(estimation => 
-                    !searchTerm || 
-                    estimation.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    estimation.address.toLowerCase().includes(searchTerm.toLowerCase())
-                  ).map((estimation) => {
-                    // Find the associated lead for this estimation
-                    const associatedLead = leads.find(lead => lead.id === estimation.leadId);
-                    
-                    return (
+                  {estimations.map((estimation) => (
                     <div
                       key={estimation.id}
-                      className="p-6 border border-border rounded-lg hover-elevate space-y-4"
+                      className="p-4 border border-border rounded-lg hover-elevate"
                       data-testid={`card-estimation-${estimation.id}`}
                     >
-                      {/* Header with main info and pricing */}
-                      <div className="flex items-start justify-between">
+                      <div className="flex items-center justify-between">
                         <div className="flex-1 space-y-2">
                           <div className="flex items-center space-x-3">
-                            <h4 className="font-medium text-lg">
-                              {estimation.address}, {estimation.city}
+                            <h4 className="font-medium">
+                              {estimation.address}
                             </h4>
                             <Badge variant="outline" className="text-xs">
-                              {estimation.propertyType === 'house' ? 'Maison' : 'Appartement'}
+                              {estimation.propertyType}
                             </Badge>
                           </div>
-                          
-                          {/* Contact Information */}
-                          {associatedLead && (
-                            <div className="space-y-2">
-                              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                                <div className="flex items-center space-x-1">
-                                  <User className="h-3 w-3" />
-                                  <span className="font-medium text-foreground">
-                                    {associatedLead.firstName} {associatedLead.lastName}
-                                  </span>
-                                </div>
-                                <div className="flex items-center space-x-1">
-                                  <Mail className="h-3 w-3" />
-                                  <span>{associatedLead.email}</span>
-                                </div>
-                                {associatedLead.phone && (
-                                  <div className="flex items-center space-x-1">
-                                    <Phone className="h-3 w-3" />
-                                    <span>{associatedLead.phone}</span>
-                                  </div>
-                                )}
-                              </div>
-                              
-                              <div className="flex items-center space-x-2">
-                                <Badge 
-                                  variant={getLeadTypeBadge(associatedLead.leadType).variant}
-                                  className={`text-xs ${getLeadTypeBadge(associatedLead.leadType).color}`}
-                                >
-                                  {getLeadTypeBadge(associatedLead.leadType).label}
-                                </Badge>
-                                <Badge 
-                                  variant={getStatusBadge(associatedLead.status).variant}
-                                >
-                                  {getStatusBadge(associatedLead.status).label}
-                                </Badge>
-                              </div>
+                          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                            <span>{estimation.surface}m²</span>
+                            <span>{estimation.rooms} pièces</span>
+                            <span>{estimation.city}</span>
+                            <span className="flex items-center space-x-1">
+                              <Clock className="h-3 w-3" />
+                              <span>{new Date(estimation.createdAt).toLocaleDateString('fr-FR')}</span>
+                            </span>
+                          </div>
+                          {estimation.lead && (
+                            <div className="text-sm text-muted-foreground">
+                              Contact: {estimation.lead.firstName} {estimation.lead.lastName} • {estimation.lead.email}
                             </div>
                           )}
                         </div>
-                        
-                        <div className="text-right space-y-1">
-                          <p className="text-2xl font-bold text-primary">
-                            {parseFloat(estimation.estimatedValue).toLocaleString()} €
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-primary">
+                            {parseFloat(estimation.estimatedValue).toLocaleString('fr-FR')}€
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {parseFloat(estimation.pricePerM2).toLocaleString()} €/m²
+                            {estimation.pricePerM2}€/m²
                           </p>
-                          <div className="flex items-center justify-end space-x-1 text-xs text-muted-foreground">
-                            <div className="h-2 w-2 bg-green-500 rounded-full" />
-                            <span>Confiance: {estimation.confidence}%</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Property Details */}
-                      <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-border">
-                        <div className="space-y-3">
-                          <h5 className="font-medium text-sm text-foreground">Détails du bien</h5>
-                          <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Surface:</span>
-                              <span className="font-medium">{estimation.surface} m²</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Pièces:</span>
-                              <span className="font-medium">{estimation.rooms}</span>
-                            </div>
-                            {associatedLead && (
-                              <>
-                                {associatedLead.bedrooms && (
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Chambres:</span>
-                                    <span className="font-medium">{associatedLead.bedrooms}</span>
-                                  </div>
-                                )}
-                                {associatedLead.bathrooms && (
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Salles de bain:</span>
-                                    <span className="font-medium">{associatedLead.bathrooms}</span>
-                                  </div>
-                                )}
-                                {associatedLead.constructionYear && (
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Année:</span>
-                                    <span className="font-medium">{associatedLead.constructionYear}</span>
-                                  </div>
-                                )}
-                                {associatedLead.postalCode && (
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Code postal:</span>
-                                    <span className="font-medium">{associatedLead.postalCode}</span>
-                                  </div>
-                                )}
-                              </>
-                            )}
-                          </div>
-
-                          {/* Amenities */}
-                          {associatedLead && (associatedLead.hasGarden || associatedLead.hasParking || associatedLead.hasBalcony) && (
-                            <div className="space-y-2">
-                              <h6 className="font-medium text-xs text-foreground">Équipements</h6>
-                              <div className="flex flex-wrap gap-1">
-                                {associatedLead.hasGarden && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    🏡 Jardin
-                                  </Badge>
-                                )}
-                                {associatedLead.hasParking && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    🚗 Parking
-                                  </Badge>
-                                )}
-                                {associatedLead.hasBalcony && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    🏛️ Balcon
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
+                          {estimation.confidence && (
+                            <p className="text-xs text-muted-foreground">
+                              Confiance: {estimation.confidence}%
+                            </p>
                           )}
                         </div>
-
-                        <div className="space-y-3">
-                          <h5 className="font-medium text-sm text-foreground">Informations complémentaires</h5>
-                          <div className="space-y-2 text-sm">
-                            {associatedLead && (
-                              <>
-                                {associatedLead.saleTimeline && (
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Timeline vente:</span>
-                                    <span className="font-medium">
-                                      {associatedLead.saleTimeline === '3m' ? '3 mois' : 
-                                       associatedLead.saleTimeline === '6m' ? '6 mois' : 
-                                       associatedLead.saleTimeline === 'immediate' ? 'Immédiat' : 
-                                       associatedLead.saleTimeline}
-                                    </span>
-                                  </div>
-                                )}
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Contact expert:</span>
-                                  <span className="font-medium">
-                                    {associatedLead.wantsExpertContact ? '✅ Oui' : '❌ Non'}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Source:</span>
-                                  <span className="font-medium text-xs">{associatedLead.source}</span>
-                                </div>
-                              </>
-                            )}
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Date création:</span>
-                              <span className="font-medium text-xs">
-                                {new Date(estimation.createdAt).toLocaleDateString('fr-FR', {
-                                  day: '2-digit',
-                                  month: '2-digit', 
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Notes */}
-                          {associatedLead && associatedLead.notes && (
-                            <div className="space-y-2">
-                              <h6 className="font-medium text-xs text-foreground">Notes</h6>
-                              <p className="text-xs text-muted-foreground bg-muted/30 p-2 rounded">
-                                {associatedLead.notes}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex justify-end pt-2 border-t border-border">
-                        <Button variant="ghost" size="icon" data-testid={`button-estimation-actions-${estimation.id}`}>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    );
-                  })}
-                  {estimations.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Calculator className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>Aucune estimation pour le moment</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="contacts" className="space-y-6">
-            {/* Filters for Contacts */}
-            <Card className="p-6">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Rechercher par nom, email ou sujet..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                      data-testid="input-search-contacts"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setSearchTerm("")}
-                    data-testid="button-clear-search"
-                  >
-                    Tout afficher
-                  </Button>
-                </div>
-              </div>
-            </Card>
-
-            {/* Contacts Table */}
-            <Card className="p-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Messages de contact</h3>
-                <div className="space-y-4">
-                  {contacts.filter(contact => 
-                    !searchTerm || 
-                    `${contact.firstName} ${contact.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    contact.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    contact.subject.toLowerCase().includes(searchTerm.toLowerCase())
-                  ).map((contact) => (
-                    <div
-                      key={contact.id}
-                      className="flex flex-col md:flex-row gap-4 p-4 border border-border rounded-lg hover-elevate"
-                      data-testid={`card-contact-${contact.id}`}
-                    >
-                      <div className="flex-1 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <h4 className="font-medium">
-                              {contact.firstName} {contact.lastName}
-                            </h4>
-                            <Badge variant={contact.status === 'new' ? 'default' : 'secondary'} className="text-xs">
-                              {contact.status === 'new' ? 'Nouveau' : 'Traité'}
-                            </Badge>
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {new Date(contact.createdAt).toLocaleDateString('fr-FR', {
-                              day: '2-digit',
-                              month: '2-digit', 
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                            <div className="flex items-center space-x-1">
-                              <Mail className="h-3 w-3" />
-                              <span>{contact.email}</span>
-                            </div>
-                            {contact.phone && (
-                              <div className="flex items-center space-x-1">
-                                <Phone className="h-3 w-3" />
-                                <span>{contact.phone}</span>
-                              </div>
-                            )}
-                            <div className="flex items-center space-x-1">
-                              <Clock className="h-3 w-3" />
-                              <span>{contact.source}</span>
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <div className="text-sm font-medium text-foreground">
-                              Sujet: {contact.subject}
-                            </div>
-                            <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">
-                              {contact.message.length > 150 ? 
-                                `${contact.message.substring(0, 150)}...` : 
-                                contact.message
-                              }
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex flex-col justify-between items-end space-y-2">
-                        <Button variant="ghost" size="icon" data-testid={`button-contact-actions-${contact.id}`}>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                        {contact.message.length > 150 && (
-                          <Button variant="outline" size="sm" data-testid={`button-view-full-message-${contact.id}`}>
-                            <Eye className="h-3 w-3 mr-1" />
-                            Voir tout
-                          </Button>
-                        )}
                       </div>
                     </div>
                   ))}
-                  {contacts.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>Aucun message de contact pour le moment</p>
-                    </div>
-                  )}
                 </div>
               </div>
             </Card>
-          </TabsContent>
+          </div>
+        );
 
-          <TabsContent value="articles" className="space-y-6">
-            <Tabs value={activeArticleTab} onValueChange={setActiveArticleTab} className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="liste" data-testid="tab-articles-liste">Liste</TabsTrigger>
-                <TabsTrigger value="generation" data-testid="tab-articles-generation">Génération</TabsTrigger>
+      case "articles":
+      case "content-stats":
+        return (
+          <div className="space-y-6">
+            {/* Content Statistics */}
+            {activeSection === "content-stats" && (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <Card className="p-6">
+                  <div className="flex items-center space-x-4">
+                    <div className="bg-chart-1/10 p-3 rounded-lg">
+                      <FileText className="h-6 w-6 text-chart-1" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold">{articles.length}</p>
+                      <p className="text-sm text-muted-foreground">Total articles</p>
+                    </div>
+                  </div>
+                </Card>
+                
+                <Card className="p-6">
+                  <div className="flex items-center space-x-4">
+                    <div className="bg-chart-2/10 p-3 rounded-lg">
+                      <Globe className="h-6 w-6 text-chart-2" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold">
+                        {articles.filter(article => article.status === 'published').length}
+                      </p>
+                      <p className="text-sm text-muted-foreground">Publiés</p>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-6">
+                  <div className="flex items-center space-x-4">
+                    <div className="bg-chart-3/10 p-3 rounded-lg">
+                      <Edit className="h-6 w-6 text-chart-3" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold">
+                        {articles.filter(article => article.status === 'draft').length}
+                      </p>
+                      <p className="text-sm text-muted-foreground">Brouillons</p>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-6">
+                  <div className="flex items-center space-x-4">
+                    <div className="bg-chart-4/10 p-3 rounded-lg">
+                      <TrendingUp className="h-6 w-6 text-chart-4" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold">
+                        {articles.filter(article => 
+                          article.publishedAt && 
+                          new Date(article.publishedAt).toDateString() === new Date().toDateString()
+                        ).length}
+                      </p>
+                      <p className="text-sm text-muted-foreground">Publiés aujourd'hui</p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {/* Articles Management */}
+            <Tabs defaultValue="liste" className="space-y-6">
+              <TabsList>
+                <TabsTrigger value="liste">Liste des articles</TabsTrigger>
+                <TabsTrigger value="generation">Générer un article</TabsTrigger>
               </TabsList>
 
               <TabsContent value="liste" className="space-y-6">
                 {/* Article Filters */}
                 <Card className="p-6">
-                  <div className="space-y-4">
-                    <div className="flex flex-col md:flex-row gap-4">
-                      <div className="flex-1">
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            placeholder="Rechercher par titre ou contenu..."
-                            value={articleSearchTerm}
-                            onChange={(e) => setArticleSearchTerm(e.target.value)}
-                            className="pl-10"
-                            data-testid="input-search-articles"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Select value={articleStatus} onValueChange={setArticleStatus}>
-                          <SelectTrigger className="w-40" data-testid="select-article-status">
-                            <SelectValue placeholder="Statut" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">Tous</SelectItem>
-                            <SelectItem value="draft">Brouillons</SelectItem>
-                            <SelectItem value="published">Publiés</SelectItem>
-                            <SelectItem value="archived">Archivés</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        
-                        <Select value={articleCategory} onValueChange={setArticleCategory}>
-                          <SelectTrigger className="w-40" data-testid="select-article-category">
-                            <SelectValue placeholder="Catégorie" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">Toutes</SelectItem>
-                            <SelectItem value="estimation">Estimation</SelectItem>
-                            <SelectItem value="marche">Marché</SelectItem>
-                            <SelectItem value="conseils">Conseils</SelectItem>
-                            <SelectItem value="financement">Financement</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                  <div className="flex flex-col md:flex-row gap-4">
+                    <div className="flex-1">
+                      <Input
+                        placeholder="Rechercher un article..."
+                        value={articleSearchTerm}
+                        onChange={(e) => setArticleSearchTerm(e.target.value)}
+                        data-testid="input-search-articles"
+                      />
                     </div>
+                    <Select value={articleStatus} onValueChange={setArticleStatus}>
+                      <SelectTrigger className="w-40">
+                        <SelectValue placeholder="Statut" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tous</SelectItem>
+                        <SelectItem value="published">Publiés</SelectItem>
+                        <SelectItem value="draft">Brouillons</SelectItem>
+                        <SelectItem value="archived">Archivés</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={articleCategory} onValueChange={setArticleCategory}>
+                      <SelectTrigger className="w-40">
+                        <SelectValue placeholder="Catégorie" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Toutes</SelectItem>
+                        <SelectItem value="estimation">Estimation</SelectItem>
+                        <SelectItem value="financement">Financement</SelectItem>
+                        <SelectItem value="vente">Vente</SelectItem>
+                        <SelectItem value="marche">Marché</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </Card>
 
                 {/* Articles List */}
                 <Card className="p-6">
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold">Articles ({articles.length})</h3>
-                      <Button 
-                        onClick={() => {
-                          setArticleForm({
-                            keyword: "",
-                            wordCount: 800,
-                            category: "estimation",
-                            audience: "proprietaires",
-                            tone: "professionnel"
-                          });
-                          setActiveArticleTab("generation");
-                        }}
-                        data-testid="button-create-article"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Nouveau
-                      </Button>
-                    </div>
-                    
-                    {articlesLoading ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        Chargement des articles...
-                      </div>
-                    ) : articles.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>Aucun article trouvé</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {articles.map((article: Article) => (
-                          <div
-                            key={article.id}
-                            className="flex items-center justify-between p-4 border border-border rounded-lg hover-elevate"
-                            data-testid={`card-article-${article.id}`}
-                          >
+                    <h3 className="text-lg font-semibold">Articles</h3>
+                    <div className="space-y-4">
+                      {articles
+                        .filter(article => {
+                          const matchesSearch = article.title.toLowerCase().includes(articleSearchTerm.toLowerCase()) ||
+                                              article.content.toLowerCase().includes(articleSearchTerm.toLowerCase());
+                          const matchesStatus = articleStatus === "all" || article.status === articleStatus;
+                          const matchesCategory = articleCategory === "all" || article.category === articleCategory;
+                          return matchesSearch && matchesStatus && matchesCategory;
+                        })
+                        .map((article) => (
+                        <div
+                          key={article.id}
+                          className="p-4 border border-border rounded-lg hover-elevate"
+                          data-testid={`card-article-${article.id}`}
+                        >
+                          <div className="flex items-start justify-between">
                             <div className="flex-1 space-y-2">
                               <div className="flex items-center space-x-3">
                                 <h4 className="font-medium">{article.title}</h4>
                                 <Badge 
-                                  variant={
-                                    article.status === 'published' ? 'default' : 
-                                    article.status === 'draft' ? 'secondary' : 'outline'
-                                  }
-                                  data-testid={`badge-article-status-${article.id}`}
+                                  variant={article.status === 'published' ? 'default' : 'secondary'}
+                                  className="text-xs"
                                 >
-                                  {article.status === 'published' ? 'Publié' : 
-                                   article.status === 'draft' ? 'Brouillon' : 'Archivé'}
+                                  {article.status === 'published' ? 'Publié' : article.status === 'draft' ? 'Brouillon' : 'Archivé'}
                                 </Badge>
                                 {article.category && (
-                                  <Badge variant="outline" className="text-xs">
-                                    {article.category.charAt(0).toUpperCase() + article.category.slice(1)}
+                                  <Badge variant="outline" className="text-xs capitalize">
+                                    {article.category}
                                   </Badge>
                                 )}
                               </div>
-                              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                                <span>/{article.slug}</span>
-                                <span>
-                                  {article.publishedAt ? 
-                                    new Date(article.publishedAt).toLocaleDateString('fr-FR') : 
-                                    'Non publié'
-                                  }
-                                </span>
-                                {article.summary && (
-                                  <span className="truncate max-w-xs">{article.summary}</span>
+                              <p className="text-sm text-muted-foreground line-clamp-2">
+                                {article.metaDescription || article.summary || 'Aucune description'}
+                              </p>
+                              <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+                                {article.publishedAt && (
+                                  <span>Publié le {new Date(article.publishedAt).toLocaleDateString('fr-FR')}</span>
+                                )}
+                                {article.updatedAt && (
+                                  <span>Modifié le {new Date(article.updatedAt).toLocaleDateString('fr-FR')}</span>
+                                )}
+                                {article.authorName && (
+                                  <span>Par {article.authorName}</span>
                                 )}
                               </div>
                             </div>
@@ -1353,402 +1247,200 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                                 variant="outline"
                                 size="sm"
                                 onClick={() => {
-                                  // Close any open modals before opening preview
-                                  setShowPreviewModal(false);
-                                  setShowScheduleModal(false);
-                                  setCalendarPopoverOpen(false);
                                   setPreviewingArticle(article);
                                   setShowArticlePreviewModal(true);
                                 }}
-                                data-testid={`button-preview-article-${article.id}`}
+                                data-testid={`button-preview-${article.id}`}
                               >
-                                <Eye className="h-3 w-3 mr-1" />
-                                Prévisualiser
+                                <Eye className="h-4 w-4" />
                               </Button>
-                              {article.status === 'published' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => window.open(`/actualites/${article.slug}`, '_blank')}
-                                  data-testid={`button-view-article-${article.id}`}
-                                >
-                                  <Globe className="h-3 w-3 mr-1" />
-                                  Voir
-                                </Button>
-                              )}
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => {
-                                  const newStatus = article.status === 'published' ? 'draft' : 'published';
-                                  updateArticleMutation.mutate({ id: article.id, status: newStatus });
-                                }}
+                                onClick={() => updateArticleMutation.mutate({ 
+                                  id: article.id, 
+                                  status: article.status === 'published' ? 'draft' : 'published',
+                                  publishedAt: article.status === 'published' ? undefined : new Date().toISOString()
+                                })}
                                 disabled={updateArticleMutation.isPending}
-                                data-testid={`button-toggle-status-${article.id}`}
+                                data-testid={`button-toggle-${article.id}`}
                               >
-                                {article.status === 'published' ? 'Dépublier' : 'Publier'}
+                                {updateArticleMutation.isPending ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Globe className="h-4 w-4" />
+                                )}
                               </Button>
                               <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  if (confirm('Êtes-vous sûr de vouloir supprimer cet article ?')) {
-                                    deleteArticleMutation.mutate(article.id);
-                                  }
-                                }}
+                                variant="outline"
+                                size="sm"
+                                onClick={() => deleteArticleMutation.mutate(article.id)}
                                 disabled={deleteArticleMutation.isPending}
-                                data-testid={`button-delete-article-${article.id}`}
+                                data-testid={`button-delete-${article.id}`}
                               >
-                                <Trash2 className="h-4 w-4" />
+                                {deleteArticleMutation.isPending ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
                               </Button>
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </Card>
               </TabsContent>
 
               <TabsContent value="generation" className="space-y-6">
                 <Card className="p-6">
-                  <div className="space-y-6">
-                    <div className="flex items-center space-x-2">
-                      <Wand2 className="h-5 w-5 text-primary" />
-                      <h3 className="text-lg font-semibold">Générer un article avec IA</h3>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="keyword">Mot-clé principal *</Label>
-                          <Input
-                            id="keyword"
-                            placeholder="ex: estimation immobilière Bordeaux"
-                            value={articleForm.keyword}
-                            onChange={(e) => setArticleForm({ ...articleForm, keyword: e.target.value })}
-                            disabled={generateArticleMutation.isPending}
-                            data-testid="input-article-keyword"
-                          />
-                        </div>
-                        
-                        <div>
-                          <Label htmlFor="wordCount">Nombre de mots</Label>
-                          <Select 
-                            value={articleForm.wordCount.toString()} 
-                            onValueChange={(value) => setArticleForm({ ...articleForm, wordCount: parseInt(value) })}
-                            disabled={generateArticleMutation.isPending}
-                          >
-                            <SelectTrigger data-testid="select-word-count">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="400">400 mots</SelectItem>
-                              <SelectItem value="600">600 mots</SelectItem>
-                              <SelectItem value="800">800 mots</SelectItem>
-                              <SelectItem value="1000">1000 mots</SelectItem>
-                              <SelectItem value="1200">1200 mots</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div>
-                          <Label htmlFor="category">Catégorie</Label>
-                          <Select 
-                            value={articleForm.category} 
-                            onValueChange={(value) => setArticleForm({ ...articleForm, category: value })}
-                            disabled={generateArticleMutation.isPending}
-                          >
-                            <SelectTrigger data-testid="select-generation-category">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="estimation">Estimation</SelectItem>
-                              <SelectItem value="marche">Marché</SelectItem>
-                              <SelectItem value="conseils">Conseils</SelectItem>
-                              <SelectItem value="financement">Financement</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Générer un nouvel article</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="keyword">Mot-clé principal</Label>
+                        <Input
+                          id="keyword"
+                          placeholder="ex: estimation immobilière Bordeaux"
+                          value={articleForm.keyword}
+                          onChange={(e) => setArticleForm({...articleForm, keyword: e.target.value})}
+                          data-testid="input-article-keyword"
+                        />
                       </div>
                       
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="audience">Audience</Label>
-                          <Select 
-                            value={articleForm.audience} 
-                            onValueChange={(value) => setArticleForm({ ...articleForm, audience: value })}
-                            disabled={generateArticleMutation.isPending}
-                          >
-                            <SelectTrigger data-testid="select-generation-audience">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="proprietaires">Propriétaires</SelectItem>
-                              <SelectItem value="investisseurs">Investisseurs</SelectItem>
-                              <SelectItem value="acheteurs">Acheteurs</SelectItem>
-                              <SelectItem value="vendeurs">Vendeurs</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div>
-                          <Label htmlFor="tone">Ton</Label>
-                          <Select 
-                            value={articleForm.tone} 
-                            onValueChange={(value) => setArticleForm({ ...articleForm, tone: value })}
-                            disabled={generateArticleMutation.isPending}
-                          >
-                            <SelectTrigger data-testid="select-generation-tone">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="professionnel">Professionnel</SelectItem>
-                              <SelectItem value="accessible">Accessible</SelectItem>
-                              <SelectItem value="expert">Expert</SelectItem>
-                              <SelectItem value="conseil">Conseil</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div className="pt-4">
-                          <Button
-                            onClick={() => {
-                              if (!articleForm.keyword) {
-                                alert('Le mot-clé principal est requis');
-                                return;
-                              }
-                              setGeneratingArticle(true);
-                              generateArticleMutation.mutate(articleForm);
-                            }}
-                            disabled={!articleForm.keyword || generateArticleMutation.isPending}
-                            className="w-full"
-                            data-testid="button-generate-article"
-                          >
-                            {generateArticleMutation.isPending ? (
-                              <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Génération en cours...
-                              </>
-                            ) : (
-                              <>
-                                <Wand2 className="h-4 w-4 mr-2" />
-                                Générer l'article
-                              </>
-                            )}
-                          </Button>
-                          
-                          {/* Progress Indicator */}
-                          {generateArticleMutation.isPending && (
-                            <div className="mt-4 space-y-2">
-                              <div className="flex justify-between items-center text-sm">
-                                <span className="text-muted-foreground">{generationStep}</span>
-                                <span className="text-muted-foreground">{generationProgress}%</span>
-                              </div>
-                              <Progress 
-                                value={generationProgress} 
-                                className="w-full" 
-                                data-testid="progress-article-generation"
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </TabsContent>
-
-          <TabsContent value="emails" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">Gestion des Emails</h2>
-              <Button 
-                onClick={async () => {
-                  try {
-                    const response = await fetch('/api/email/test-connection', { method: 'POST' });
-                    const result = await response.json();
-                    if (result.success) {
-                      alert('✅ Connexion SMTP réussie !');
-                    } else {
-                      alert(`❌ Erreur SMTP: ${result.error}`);
-                    }
-                  } catch (error) {
-                    alert('❌ Erreur de connexion au serveur');
-                  }
-                }}
-                data-testid="button-test-smtp"
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Tester SMTP
-              </Button>
-            </div>
-
-            <Tabs value={activeEmailTab} onValueChange={setActiveEmailTab} className="space-y-6">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="history" data-testid="tab-email-history">Historique</TabsTrigger>
-                <TabsTrigger value="templates" data-testid="tab-email-templates">Templates</TabsTrigger>
-                <TabsTrigger value="test" data-testid="tab-email-test">Test Email</TabsTrigger>
-                <TabsTrigger value="stats" data-testid="tab-email-stats">Statistiques</TabsTrigger>
-              </TabsList>
-
-              {/* Email History Tab */}
-              <TabsContent value="history" className="space-y-6">
-                {/* Email History Filters */}
-                <Card className="p-6">
-                  <div className="space-y-4">
-                    <div className="flex flex-col md:flex-row gap-4">
-                      <div className="flex-1">
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            placeholder="Rechercher par email ou objet..."
-                            value={emailSearchTerm}
-                            onChange={(e) => setEmailSearchTerm(e.target.value)}
-                            className="pl-10"
-                            data-testid="input-search-emails"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Select value={emailStatusFilter} onValueChange={setEmailStatusFilter}>
-                          <SelectTrigger className="w-32" data-testid="select-email-status">
-                            <SelectValue placeholder="Statut" />
+                      <div className="space-y-2">
+                        <Label htmlFor="wordCount">Nombre de mots</Label>
+                        <Select 
+                          value={articleForm.wordCount.toString()} 
+                          onValueChange={(value) => setArticleForm({...articleForm, wordCount: parseInt(value)})}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="all">Tous</SelectItem>
-                            <SelectItem value="sent">Envoyé</SelectItem>
-                            <SelectItem value="failed">Échec</SelectItem>
-                            <SelectItem value="pending">En attente</SelectItem>
+                            <SelectItem value="500">500 mots</SelectItem>
+                            <SelectItem value="800">800 mots</SelectItem>
+                            <SelectItem value="1200">1200 mots</SelectItem>
+                            <SelectItem value="1500">1500 mots</SelectItem>
+                            <SelectItem value="2000">2000 mots</SelectItem>
                           </SelectContent>
                         </Select>
-                        
-                        <Select value={emailCategoryFilter} onValueChange={setEmailCategoryFilter}>
-                          <SelectTrigger className="w-40" data-testid="select-email-category">
-                            <SelectValue placeholder="Type" />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="category">Catégorie</Label>
+                        <Select 
+                          value={articleForm.category} 
+                          onValueChange={(value) => setArticleForm({...articleForm, category: value})}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="all">Tous</SelectItem>
-                            <SelectItem value="contact_confirmation">Contact - Confirmation</SelectItem>
-                            <SelectItem value="estimation_confirmation">Estimation - Confirmation</SelectItem>
-                            <SelectItem value="admin_notification">Admin - Notification</SelectItem>
+                            <SelectItem value="estimation">Estimation</SelectItem>
+                            <SelectItem value="financement">Financement</SelectItem>
+                            <SelectItem value="vente">Vente</SelectItem>
+                            <SelectItem value="marche">Marché immobilier</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="audience">Audience cible</Label>
+                        <Select 
+                          value={articleForm.audience} 
+                          onValueChange={(value) => setArticleForm({...articleForm, audience: value})}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="proprietaires">Propriétaires vendeurs</SelectItem>
+                            <SelectItem value="acheteurs">Acheteurs potentiels</SelectItem>
+                            <SelectItem value="investisseurs">Investisseurs</SelectItem>
+                            <SelectItem value="professionnels">Professionnels immobilier</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="tone">Ton de l'article</Label>
+                        <Select 
+                          value={articleForm.tone} 
+                          onValueChange={(value) => setArticleForm({...articleForm, tone: value})}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="professionnel">Professionnel</SelectItem>
+                            <SelectItem value="accessible">Accessible</SelectItem>
+                            <SelectItem value="expert">Expert</SelectItem>
+                            <SelectItem value="didactique">Didactique</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                     </div>
-                  </div>
-                </Card>
 
-                {/* Email History List */}
-                <Card className="p-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold">Historique des emails ({Array.isArray(emailHistoryQuery.data) ? emailHistoryQuery.data.length : 0})</h3>
-                      <Badge variant="outline" className="text-xs">
-                        {emailStats && `${emailStats.totalSent} envoyés aujourd'hui`}
-                      </Badge>
-                    </div>
-                    
-                    {emailHistoryQuery.isLoading ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <Loader2 className="h-8 w-8 mx-auto mb-4 animate-spin" />
-                        Chargement des emails...
-                      </div>
-                    ) : emailHistory.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <Mail className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>Aucun email trouvé</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {emailHistory.map((email: EmailHistory) => (
-                          <div
-                            key={email.id}
-                            className="flex items-center justify-between p-4 border border-border rounded-lg hover-elevate"
-                            data-testid={`card-email-${email.id}`}
-                          >
-                            <div className="flex-1 space-y-2">
-                              <div className="flex items-center space-x-3">
-                                <Badge 
-                                  variant={
-                                    email.status === 'sent' ? 'default' : 
-                                    email.status === 'failed' ? 'destructive' : 'secondary'
-                                  }
-                                  data-testid={`badge-email-status-${email.id}`}
-                                >
-                                  {email.status === 'sent' ? '✓ Envoyé' : 
-                                   email.status === 'failed' ? '✗ Échec' : '⏳ En attente'}
-                                </Badge>
-                                <h4 className="font-medium truncate">{email.subject}</h4>
-                              </div>
-                              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                                <div className="flex items-center space-x-1">
-                                  <Mail className="h-3 w-3" />
-                                  <span>{email.recipientEmail}</span>
-                                </div>
-                                {email.recipientName && (
-                                  <span>{email.recipientName}</span>
-                                )}
-                                <div className="flex items-center space-x-1">
-                                  <Clock className="h-3 w-3" />
-                                  <span>
-                                    {email.sentAt ? 
-                                      new Date(email.sentAt).toLocaleString('fr-FR') : 
-                                      new Date(email.createdAt!).toLocaleString('fr-FR')
-                                    }
-                                  </span>
-                                </div>
-                              </div>
-                              {email.errorMessage && (
-                                <div className="text-xs text-destructive bg-destructive/10 p-2 rounded">
-                                  Erreur: {email.errorMessage}
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  // TODO: Show email content in modal
-                                  console.log('Preview email:', email);
-                                }}
-                                data-testid={`button-preview-email-${email.id}`}
-                              >
-                                <Eye className="h-3 w-3 mr-1" />
-                                Voir
-                              </Button>
-                              {email.status === 'failed' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    // TODO: Retry sending email
-                                    console.log('Retry email:', email);
-                                  }}
-                                  data-testid={`button-retry-email-${email.id}`}
-                                >
-                                  <Send className="h-3 w-3 mr-1" />
-                                  Réessayer
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        ))}
+                    <Button
+                      onClick={() => {
+                        setGeneratingArticle(true);
+                        generateArticleMutation.mutate(articleForm);
+                      }}
+                      disabled={!articleForm.keyword || generatingArticle}
+                      className="w-full"
+                      data-testid="button-generate-article"
+                    >
+                      {generatingArticle ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Génération en cours...
+                        </>
+                      ) : (
+                        <>
+                          <Wand2 className="h-4 w-4 mr-2" />
+                          Générer l'article
+                        </>
+                      )}
+                    </Button>
+
+                    {generatingArticle && (
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>{generationStep}</span>
+                          <span>{generationProgress}%</span>
+                        </div>
+                        <Progress value={generationProgress} className="w-full" />
                       </div>
                     )}
                   </div>
                 </Card>
               </TabsContent>
+            </Tabs>
+          </div>
+        );
 
-              {/* Email Templates Tab */}
+      case "email-sequences":
+        return <EmailSequenceManager />;
+
+      case "email-templates":
+        return (
+          <div className="space-y-6">
+            <Tabs defaultValue="templates" className="space-y-6">
+              <TabsList>
+                <TabsTrigger value="templates">Templates</TabsTrigger>
+                <TabsTrigger value="history">Historique</TabsTrigger>
+                <TabsTrigger value="stats">Statistiques</TabsTrigger>
+                <TabsTrigger value="test">Test</TabsTrigger>
+              </TabsList>
+
               <TabsContent value="templates" className="space-y-6">
                 <Card className="p-6">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold">Templates d'email ({Array.isArray(emailTemplatesQuery.data) ? emailTemplatesQuery.data.length : 0})</h3>
-                      <Button 
+                      <h3 className="text-lg font-semibold">Templates Email</h3>
+                      <Button
                         onClick={() => {
                           setTemplateForm({
                             name: "",
@@ -1762,61 +1454,56 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                           setSelectedTemplate(null);
                           setShowTemplateModal(true);
                         }}
-                        data-testid="button-create-template"
+                        data-testid="button-new-template"
                       >
                         <Plus className="h-4 w-4 mr-2" />
-                        Nouveau Template
+                        Nouveau template
                       </Button>
                     </div>
-                    
-                    {emailTemplatesQuery.isLoading ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <Loader2 className="h-8 w-8 mx-auto mb-4 animate-spin" />
-                        Chargement des templates...
-                      </div>
-                    ) : emailTemplates.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>Aucun template trouvé</p>
-                        <Button
-                          className="mt-4"
-                          onClick={() => {
-                            // TODO: Seed default templates
-                            console.log('Seeding default templates');
-                          }}
+
+                    <div className="space-y-4">
+                      {emailTemplatesData.map((template) => (
+                        <div
+                          key={template.id}
+                          className="p-4 border border-border rounded-lg hover-elevate"
+                          data-testid={`card-template-${template.id}`}
                         >
-                          Créer les templates par défaut
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="grid gap-4">
-                        {emailTemplates.map((template: EmailTemplate) => (
-                          <div
-                            key={template.id}
-                            className="flex items-center justify-between p-4 border border-border rounded-lg hover-elevate"
-                            data-testid={`card-template-${template.id}`}
-                          >
+                          <div className="flex items-start justify-between">
                             <div className="flex-1 space-y-2">
                               <div className="flex items-center space-x-3">
                                 <h4 className="font-medium">{template.name}</h4>
                                 <Badge 
                                   variant={template.isActive ? 'default' : 'secondary'}
-                                  data-testid={`badge-template-status-${template.id}`}
+                                  className="text-xs"
                                 >
                                   {template.isActive ? 'Actif' : 'Inactif'}
                                 </Badge>
-                                <Badge variant="outline" className="text-xs">
-                                  {template.category}
+                                <Badge variant="outline" className="text-xs capitalize">
+                                  {template.category.replace('_', ' ')}
                                 </Badge>
                               </div>
-                              <div className="text-sm text-muted-foreground">
-                                <div className="font-medium">Objet: {template.subject}</div>
-                                <div className="text-xs mt-1">
-                                  Variables: {JSON.parse(template.variables || '[]').join(', ') || 'Aucune'}
-                                </div>
+                              <p className="text-sm font-medium">{template.subject}</p>
+                              <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+                                {template.createdAt && (
+                                  <span>Créé le {new Date(template.createdAt).toLocaleDateString('fr-FR')}</span>
+                                )}
+                                {template.updatedAt && (
+                                  <span>Modifié le {new Date(template.updatedAt).toLocaleDateString('fr-FR')}</span>
+                                )}
                               </div>
                             </div>
                             <div className="flex items-center space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedTemplate(template);
+                                  setShowTemplateModal(true);
+                                }}
+                                data-testid={`button-edit-template-${template.id}`}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -1826,965 +1513,252 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                                 }}
                                 data-testid={`button-test-template-${template.id}`}
                               >
-                                <TestTube className="h-3 w-3 mr-1" />
-                                Tester
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setTemplateForm({
-                                    name: template.name,
-                                    subject: template.subject,
-                                    htmlContent: template.htmlContent,
-                                    textContent: template.textContent,
-                                    category: template.category,
-                                    isActive: template.isActive,
-                                    variables: template.variables || "[]"
-                                  });
-                                  setSelectedTemplate(template);
-                                  setShowTemplateModal(true);
-                                }}
-                                data-testid={`button-edit-template-${template.id}`}
-                              >
-                                <Edit className="h-3 w-3 mr-1" />
-                                Modifier
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  if (confirm('Êtes-vous sûr de vouloir supprimer ce template ?')) {
-                                    // TODO: Delete template
-                                    console.log('Delete template:', template.id);
-                                  }
-                                }}
-                                data-testid={`button-delete-template-${template.id}`}
-                              >
-                                <Trash2 className="h-4 w-4" />
+                                <TestTube className="h-4 w-4" />
                               </Button>
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </Card>
               </TabsContent>
 
-              {/* Test Email Tab */}
-              <TabsContent value="test" className="space-y-6">
-                <div className="grid lg:grid-cols-2 gap-6">
-                  <Card className="p-6">
-                    <h3 className="text-lg font-semibold mb-4">Envoyer un email de test</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="test-template">Template à tester</Label>
-                        <Select 
-                          value={selectedTemplate?.id || ""} 
-                          onValueChange={(value) => {
-                            const template = emailTemplates.find(t => t.id === value);
-                            setSelectedTemplate(template || null);
-                          }}
-                        >
-                          <SelectTrigger data-testid="select-test-template">
-                            <SelectValue placeholder="Choisir un template" />
+              <TabsContent value="history" className="space-y-6">
+                <Card className="p-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold">Historique des emails</h3>
+                      <div className="flex gap-2">
+                        <Select value={emailStatusFilter} onValueChange={setEmailStatusFilter}>
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="Statut" />
                           </SelectTrigger>
                           <SelectContent>
-                            {emailTemplates.filter(template => template.id && template.id.trim() !== '').map((template) => (
-                              <SelectItem key={template.id} value={template.id}>
-                                {template.name}
-                              </SelectItem>
-                            ))}
+                            <SelectItem value="all">Tous</SelectItem>
+                            <SelectItem value="sent">Envoyés</SelectItem>
+                            <SelectItem value="failed">Échoués</SelectItem>
+                            <SelectItem value="pending">En attente</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
+                    </div>
 
-                      <div>
-                        <Label htmlFor="test-email">Email destinataire</Label>
-                        <Input
-                          id="test-email"
-                          type="email"
-                          value={testEmailForm.email}
-                          onChange={(e) => setTestEmailForm(prev => ({ ...prev, email: e.target.value }))}
-                          placeholder="admin@estimation-immobilier-gironde.fr"
-                          data-testid="input-test-email"
-                        />
+                    <div className="space-y-4">
+                      {emailHistoryData.map((email) => (
+                        <div
+                          key={email.id}
+                          className="p-4 border border-border rounded-lg hover-elevate"
+                          data-testid={`card-email-${email.id}`}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1 space-y-2">
+                              <div className="flex items-center space-x-3">
+                                <h4 className="font-medium">{email.subject}</h4>
+                                <Badge 
+                                  variant={
+                                    email.status === 'sent' ? 'default' : 
+                                    email.status === 'failed' ? 'destructive' : 'secondary'
+                                  }
+                                  className="text-xs"
+                                >
+                                  {email.status === 'sent' ? 'Envoyé' : 
+                                   email.status === 'failed' ? 'Échoué' : 
+                                   email.status === 'pending' ? 'En attente' : email.status}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                                <span>À: {email.recipientEmail}</span>
+                                {email.recipientName && <span>({email.recipientName})</span>}
+                                <span>De: {email.senderEmail}</span>
+                              </div>
+                              <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+                                {email.sentAt && (
+                                  <span>Envoyé le {new Date(email.sentAt).toLocaleDateString('fr-FR')} à {new Date(email.sentAt).toLocaleTimeString('fr-FR')}</span>
+                                )}
+                                {email.createdAt && !email.sentAt && (
+                                  <span>Créé le {new Date(email.createdAt).toLocaleDateString('fr-FR')}</span>
+                                )}
+                              </div>
+                              {email.errorMessage && (
+                                <p className="text-sm text-destructive">Erreur: {email.errorMessage}</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="stats" className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  <Card className="p-6">
+                    <div className="flex items-center space-x-4">
+                      <div className="bg-chart-1/10 p-3 rounded-lg">
+                        <Send className="h-6 w-6 text-chart-1" />
                       </div>
-
                       <div>
-                        <Label htmlFor="test-name">Nom destinataire (optionnel)</Label>
-                        <Input
-                          id="test-name"
-                          value={testEmailForm.name}
-                          onChange={(e) => setTestEmailForm(prev => ({ ...prev, name: e.target.value }))}
-                          placeholder="Jean Dupont"
-                          data-testid="input-test-name"
-                        />
+                        <p className="text-2xl font-bold">{emailStats?.totalSent || 0}</p>
+                        <p className="text-sm text-muted-foreground">Total envoyés</p>
                       </div>
-
-                      <Button
-                        onClick={async () => {
-                          if (!selectedTemplate || !testEmailForm.email) {
-                            alert('Veuillez sélectionner un template et saisir un email');
-                            return;
-                          }
-                          
-                          try {
-                            const response = await fetch('/api/email/test', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                templateId: selectedTemplate.id,
-                                email: testEmailForm.email,
-                                name: testEmailForm.name
-                              })
-                            });
-                            
-                            const result = await response.json();
-                            if (result.success) {
-                              alert('✅ Email de test envoyé avec succès !');
-                            } else {
-                              alert(`❌ Erreur: ${result.error}`);
-                            }
-                          } catch (error) {
-                            alert('❌ Erreur de connexion au serveur');
-                          }
-                        }}
-                        disabled={!selectedTemplate || !testEmailForm.email}
-                        className="w-full"
-                        data-testid="button-send-test-email"
-                      >
-                        <Send className="h-4 w-4 mr-2" />
-                        Envoyer le test
-                      </Button>
+                    </div>
+                  </Card>
+                  
+                  <Card className="p-6">
+                    <div className="flex items-center space-x-4">
+                      <div className="bg-chart-2/10 p-3 rounded-lg">
+                        <AlertCircle className="h-6 w-6 text-chart-2" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold">{emailStats?.totalFailed || 0}</p>
+                        <p className="text-sm text-muted-foreground">Échoués</p>
+                      </div>
                     </div>
                   </Card>
 
                   <Card className="p-6">
-                    <h3 className="text-lg font-semibold mb-4">Aperçu du template</h3>
-                    {selectedTemplate ? (
-                      <div className="space-y-4">
-                        <div className="p-3 bg-muted/50 rounded-lg">
-                          <Label className="text-xs font-semibold text-muted-foreground">OBJET</Label>
-                          <div className="font-medium mt-1">{selectedTemplate.subject}</div>
-                        </div>
-                        
-                        <div className="p-3 bg-muted/50 rounded-lg">
-                          <Label className="text-xs font-semibold text-muted-foreground">CATÉGORIE</Label>
-                          <div className="mt-1">{selectedTemplate.category}</div>
-                        </div>
-                        
-                        <div className="p-3 bg-muted/50 rounded-lg">
-                          <Label className="text-xs font-semibold text-muted-foreground">VARIABLES DISPONIBLES</Label>
-                          <div className="text-sm mt-1">
-                            {JSON.parse(selectedTemplate.variables || '[]').join(', ') || 'Aucune variable'}
-                          </div>
-                        </div>
-                        
-                        <div className="border rounded-lg max-h-64 overflow-y-auto">
-                          <div className="p-2 border-b bg-muted/50">
-                            <Label className="text-xs font-semibold">CONTENU HTML</Label>
-                          </div>
-                          <div 
-                            className="p-4 prose prose-sm max-w-none"
-                            dangerouslySetInnerHTML={{ 
-                              __html: selectedTemplate.htmlContent.replace(/\{\{/g, '<span class="bg-yellow-200 px-1 rounded">{{').replace(/\}\}/g, '}}</span>')
-                            }}
-                          />
-                        </div>
+                    <div className="flex items-center space-x-4">
+                      <div className="bg-chart-3/10 p-3 rounded-lg">
+                        <TrendingUp className="h-6 w-6 text-chart-3" />
                       </div>
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        Sélectionnez un template pour voir l'aperçu
+                      <div>
+                        <p className="text-2xl font-bold">{emailStats?.sentToday || 0}</p>
+                        <p className="text-sm text-muted-foreground">Envoyés aujourd'hui</p>
                       </div>
-                    )}
+                    </div>
+                  </Card>
+
+                  <Card className="p-6">
+                    <div className="flex items-center space-x-4">
+                      <div className="bg-chart-4/10 p-3 rounded-lg">
+                        <CheckCircle className="h-6 w-6 text-chart-4" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold">{emailStats?.successRate || "0"}%</p>
+                        <p className="text-sm text-muted-foreground">Taux de réussite</p>
+                      </div>
+                    </div>
                   </Card>
                 </div>
               </TabsContent>
 
-              {/* Email Statistics Tab */}
-              <TabsContent value="stats" className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <Card className="p-6">
-                    <div className="flex items-center space-x-2">
-                      <Mail className="h-8 w-8 text-blue-600" />
-                      <div>
-                        <p className="text-2xl font-bold">{emailStats?.totalSent || 0}</p>
-                        <p className="text-xs text-muted-foreground">Total envoyés</p>
-                      </div>
-                    </div>
-                  </Card>
-                  
-                  <Card className="p-6">
-                    <div className="flex items-center space-x-2">
-                      <CheckCircle className="h-8 w-8 text-green-600" />
-                      <div>
-                        <p className="text-2xl font-bold">{emailStats?.sentToday || 0}</p>
-                        <p className="text-xs text-muted-foreground">Envoyés aujourd'hui</p>
-                      </div>
-                    </div>
-                  </Card>
-                  
-                  <Card className="p-6">
-                    <div className="flex items-center space-x-2">
-                      <AlertCircle className="h-8 w-8 text-red-600" />
-                      <div>
-                        <p className="text-2xl font-bold">{emailStats?.totalFailed || 0}</p>
-                        <p className="text-xs text-muted-foreground">Échecs</p>
-                      </div>
-                    </div>
-                  </Card>
-                  
-                  <Card className="p-6">
-                    <div className="flex items-center space-x-2">
-                      <BarChart3 className="h-8 w-8 text-purple-600" />
-                      <div>
-                        <p className="text-2xl font-bold">{emailStats?.successRate || '0%'}</p>
-                        <p className="text-xs text-muted-foreground">Taux de réussite</p>
-                      </div>
-                    </div>
-                  </Card>
-                </div>
-
+              <TabsContent value="test" className="space-y-6">
                 <Card className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">Activité récente</h3>
                   <div className="space-y-4">
-                    {emailHistory.slice(0, 10).map((email) => (
-                      <div key={email.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
-                        <div className="flex items-center space-x-3">
-                          <Badge 
-                            variant={email.status === 'sent' ? 'default' : email.status === 'failed' ? 'destructive' : 'secondary'}
-                            className="text-xs"
-                          >
-                            {email.status}
-                          </Badge>
-                          <span className="text-sm">{email.recipientEmail}</span>
-                        </div>
-                        <span className="text-xs text-muted-foreground">
-                          {email.sentAt ? new Date(email.sentAt).toLocaleTimeString('fr-FR') : 
-                           new Date(email.createdAt!).toLocaleTimeString('fr-FR')}
-                        </span>
+                    <h3 className="text-lg font-semibold">Tester un template</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="testEmail">Email de test</Label>
+                        <Input
+                          id="testEmail"
+                          type="email"
+                          placeholder="votre@email.com"
+                          value={testEmailForm.email}
+                          onChange={(e) => setTestEmailForm({...testEmailForm, email: e.target.value})}
+                          data-testid="input-test-email"
+                        />
                       </div>
-                    ))}
-                    {emailHistory.length === 0 && (
-                      <p className="text-center text-muted-foreground py-4">Aucune activité récente</p>
-                    )}
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="testName">Nom (optionnel)</Label>
+                        <Input
+                          id="testName"
+                          placeholder="Votre nom"
+                          value={testEmailForm.name}
+                          onChange={(e) => setTestEmailForm({...testEmailForm, name: e.target.value})}
+                          data-testid="input-test-name"
+                        />
+                      </div>
+                    </div>
+
+                    <Button
+                      disabled={!testEmailForm.email || !selectedTemplate}
+                      data-testid="button-send-test"
+                    >
+                      <Send className="h-4 w-4 mr-2" />
+                      Envoyer le test
+                    </Button>
                   </div>
                 </Card>
               </TabsContent>
             </Tabs>
-          </TabsContent>
+          </div>
+        );
 
-          <TabsContent value="sequences" className="space-y-6">
-            <EmailSequenceManager />
-          </TabsContent>
-        </Tabs>
-
-        {/* Template Modal */}
-        <Dialog open={showTemplateModal} onOpenChange={setShowTemplateModal}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle data-testid="modal-template-title">
-                {selectedTemplate ? 'Modifier le Template' : 'Nouveau Template'}
-              </DialogTitle>
-            </DialogHeader>
-            
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="template-name">Nom du template</Label>
-                  <Input
-                    id="template-name"
-                    value={templateForm.name}
-                    onChange={(e) => setTemplateForm(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Confirmation contact client"
-                    data-testid="input-template-name"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="template-category">Catégorie</Label>
-                  <Select value={templateForm.category} onValueChange={(value) => setTemplateForm(prev => ({ ...prev, category: value }))}>
-                    <SelectTrigger data-testid="select-template-category">
-                      <SelectValue placeholder="Choisir une catégorie" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="contact_confirmation">Contact - Confirmation</SelectItem>
-                      <SelectItem value="estimation_confirmation">Estimation - Confirmation</SelectItem>
-                      <SelectItem value="financing_confirmation">Financement - Confirmation</SelectItem>
-                      <SelectItem value="admin_notification">Admin - Notification</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="template-subject">Objet de l'email</Label>
-                <Input
-                  id="template-subject"
-                  value={templateForm.subject}
-                  onChange={(e) => setTemplateForm(prev => ({ ...prev, subject: e.target.value }))}
-                  placeholder="Merci pour votre demande {{firstName}}"
-                  data-testid="input-template-subject"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="template-html">Contenu HTML</Label>
-                <Textarea
-                  id="template-html"
-                  value={templateForm.htmlContent}
-                  onChange={(e) => setTemplateForm(prev => ({ ...prev, htmlContent: e.target.value }))}
-                  placeholder="<h2>Bonjour {{firstName}}</h2><p>Merci pour votre demande...</p>"
-                  className="min-h-64 font-mono text-sm"
-                  data-testid="textarea-template-html"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="template-text">Version texte</Label>
-                <Textarea
-                  id="template-text"
-                  value={templateForm.textContent}
-                  onChange={(e) => setTemplateForm(prev => ({ ...prev, textContent: e.target.value }))}
-                  placeholder="Bonjour {{firstName}}, merci pour votre demande..."
-                  className="min-h-32"
-                  data-testid="textarea-template-text"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="template-variables">Variables disponibles (JSON)</Label>
-                <Input
-                  id="template-variables"
-                  value={templateForm.variables}
-                  onChange={(e) => setTemplateForm(prev => ({ ...prev, variables: e.target.value }))}
-                  placeholder='["firstName", "lastName", "email", "phone"]'
-                  data-testid="input-template-variables"
-                />
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="template-active"
-                  checked={templateForm.isActive}
-                  onChange={(e) => setTemplateForm(prev => ({ ...prev, isActive: e.target.checked }))}
-                  data-testid="checkbox-template-active"
-                />
-                <Label htmlFor="template-active">Template actif</Label>
-              </div>
-
-              <div className="flex justify-between pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowTemplateModal(false)}
-                  data-testid="button-cancel-template"
-                >
-                  Annuler
-                </Button>
-                <Button
-                  onClick={async () => {
-                    try {
-                      const method = selectedTemplate ? 'PUT' : 'POST';
-                      const url = selectedTemplate ? `/api/email/templates/${selectedTemplate.id}` : '/api/email/templates';
-                      
-                      const response = await fetch(url, {
-                        method,
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(templateForm)
-                      });
-
-                      if (response.ok) {
-                        queryClientInstance.invalidateQueries({ queryKey: ['/api/email/templates'] });
-                        setShowTemplateModal(false);
-                        alert('Template sauvegardé avec succès !');
-                      } else {
-                        alert('Erreur lors de la sauvegarde du template');
-                      }
-                    } catch (error) {
-                      alert('Erreur de connexion au serveur');
-                    }
-                  }}
-                  data-testid="button-save-template"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  Sauvegarder
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Test Email Modal */}
-        <Dialog open={showTestEmailModal} onOpenChange={setShowTestEmailModal}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle data-testid="modal-test-email-title">
-                Tester le template: {selectedTemplate?.name}
-              </DialogTitle>
-            </DialogHeader>
-            
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="test-recipient-email">Email destinataire</Label>
-                <Input
-                  id="test-recipient-email"
-                  type="email"
-                  value={testEmailForm.email}
-                  onChange={(e) => setTestEmailForm(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="test@estimation-immobilier-gironde.fr"
-                  data-testid="input-test-recipient-email"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="test-recipient-name">Nom destinataire</Label>
-                <Input
-                  id="test-recipient-name"
-                  value={testEmailForm.name}
-                  onChange={(e) => setTestEmailForm(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Jean Dupont"
-                  data-testid="input-test-recipient-name"
-                />
-              </div>
-
-              <div className="flex justify-between pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowTestEmailModal(false)}
-                  data-testid="button-cancel-test-email"
-                >
-                  Annuler
-                </Button>
-                <Button
-                  onClick={async () => {
-                    if (!selectedTemplate || !testEmailForm.email) return;
-                    
-                    try {
-                      const response = await fetch('/api/email/test', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          templateId: selectedTemplate.id,
-                          email: testEmailForm.email,
-                          name: testEmailForm.name,
-                          variables: {
-                            firstName: testEmailForm.name.split(' ')[0] || 'Test',
-                            lastName: testEmailForm.name.split(' ').slice(1).join(' ') || 'User',
-                            email: testEmailForm.email
-                          }
-                        })
-                      });
-
-                      const result = await response.json();
-                      if (result.success) {
-                        alert('✅ Email de test envoyé avec succès !');
-                        setShowTestEmailModal(false);
-                      } else {
-                        alert(`❌ Erreur: ${result.error}`);
-                      }
-                    } catch (error) {
-                      alert('❌ Erreur de connexion au serveur');
-                    }
-                  }}
-                  disabled={!selectedTemplate || !testEmailForm.email}
-                  data-testid="button-send-test-email-modal"
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  Envoyer le test
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Bulk Email Modal */}
-        <Dialog open={showBulkEmailModal} onOpenChange={setShowBulkEmailModal}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle data-testid="modal-bulk-email-title">
-                Envoi en masse
-              </DialogTitle>
-            </DialogHeader>
-            
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="bulk-template">Template à utiliser</Label>
-                <Select value={bulkEmailForm.templateId} onValueChange={(value) => setBulkEmailForm(prev => ({ ...prev, templateId: value }))}>
-                  <SelectTrigger data-testid="select-bulk-template">
-                    <SelectValue placeholder="Choisir un template" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {emailTemplates.filter(t => t.isActive && t.id && t.id.trim() !== '').map((template) => (
-                      <SelectItem key={template.id} value={template.id}>
-                        {template.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="bulk-recipients">Emails destinataires (un par ligne)</Label>
-                <Textarea
-                  id="bulk-recipients"
-                  value={bulkEmailForm.recipients}
-                  onChange={(e) => setBulkEmailForm(prev => ({ ...prev, recipients: e.target.value }))}
-                  placeholder="email1@example.com&#10;email2@example.com"
-                  className="min-h-32"
-                  data-testid="textarea-bulk-recipients"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="bulk-delay">Délai entre envois (ms)</Label>
-                <Input
-                  id="bulk-delay"
-                  type="number"
-                  value={bulkEmailForm.delay}
-                  onChange={(e) => setBulkEmailForm(prev => ({ ...prev, delay: parseInt(e.target.value) || 1000 }))}
-                  min="100"
-                  data-testid="input-bulk-delay"
-                />
-              </div>
-
-              <div className="flex justify-between pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowBulkEmailModal(false)}
-                  data-testid="button-cancel-bulk-email"
-                >
-                  Annuler
-                </Button>
-                <Button
-                  onClick={async () => {
-                    if (!bulkEmailForm.templateId || !bulkEmailForm.recipients.trim()) return;
-                    
-                    try {
-                      const response = await fetch('/api/email/bulk', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(bulkEmailForm)
-                      });
-
-                      const result = await response.json();
-                      if (result.success) {
-                        alert(`✅ ${result.sent} emails envoyés avec succès !`);
-                        setShowBulkEmailModal(false);
-                        queryClientInstance.invalidateQueries({ queryKey: ['/api/email/history'] });
-                      } else {
-                        alert(`❌ Erreur: ${result.error}`);
-                      }
-                    } catch (error) {
-                      alert('❌ Erreur de connexion au serveur');
-                    }
-                  }}
-                  disabled={!bulkEmailForm.templateId || !bulkEmailForm.recipients.trim()}
-                  data-testid="button-send-bulk-emails"
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  Envoyer en masse
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Enhanced Preview Modal for Generated Articles */}
-        <Dialog 
-          open={showPreviewModal} 
-          onOpenChange={(open) => {
-            setShowPreviewModal(open);
-            if (!open) {
-              setPreviewArticle(null);
-            }
-          }}
-        >
-          <DialogContent className="max-w-6xl max-h-[90vh]">
-            <DialogHeader className="flex-shrink-0">
-              <DialogTitle data-testid="modal-preview-title" className="text-xl font-bold">
-                Prévisualisation de l'article généré
-              </DialogTitle>
-            </DialogHeader>
-            
-            {previewArticle && (
-              <div className="flex flex-col h-full overflow-hidden">
-                {/* Fixed Header - Article Metadata Section */}
-                <div className="flex-shrink-0 space-y-4 pb-4 border-b">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-3">
-                      <div className="p-3 bg-muted/50 rounded-lg">
-                        <Label className="text-xs font-semibold text-muted-foreground">TITRE</Label>
-                        <div className="font-semibold mt-1">{previewArticle.title}</div>
-                      </div>
-                      
-                      <div className="p-3 bg-muted/50 rounded-lg">
-                        <Label className="text-xs font-semibold text-muted-foreground">URL</Label>
-                        <div className="text-sm text-blue-600 font-mono mt-1">/{previewArticle.slug}</div>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div className="p-3 bg-muted/50 rounded-lg">
-                        <Label className="text-xs font-semibold text-muted-foreground">META DESCRIPTION</Label>
-                        <div className="text-sm mt-1 leading-relaxed">{previewArticle.metaDescription}</div>
-                      </div>
-                      
-                      <div className="p-3 bg-muted/50 rounded-lg">
-                        <Label className="text-xs font-semibold text-muted-foreground">MOTS-CLÉS</Label>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {previewArticle.keywords.slice(0, 4).map((keyword, index) => (
-                            <Badge key={index} variant="secondary" className="text-xs">
-                              {keyword}
-                            </Badge>
-                          ))}
-                          {previewArticle.keywords.length > 4 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{previewArticle.keywords.length - 4}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Scrollable Content Preview Section */}
-                <div className="flex-1 overflow-hidden flex flex-col pt-4">
-                  <Label className="text-lg font-semibold mb-3 flex-shrink-0">Aperçu du contenu</Label>
-                  <div className="flex-1 border border-border rounded-lg overflow-hidden bg-white dark:bg-card">
-                    <div className="bg-muted/30 px-4 py-2 border-b flex-shrink-0">
-                      <span className="text-sm text-muted-foreground">Contenu HTML généré</span>
-                    </div>
-                    <div className="h-full overflow-y-auto">
-                      <div 
-                        className="prose prose-sm max-w-none p-6"
-                        dangerouslySetInnerHTML={{ __html: previewArticle.content }}
-                      />
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Fixed Footer - Action Buttons Section */}
-                <div className="flex-shrink-0 border-t pt-4 mt-4">
-                  <div className="flex flex-col sm:flex-row justify-between gap-3">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setShowPreviewModal(false);
-                        setPreviewArticle(null);
-                      }}
-                      disabled={createArticleMutation.isPending}
-                      data-testid="button-cancel-preview"
-                      className="order-1 sm:order-none"
-                    >
-                      Annuler
-                    </Button>
-                    
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          createArticleMutation.mutate({
-                            ...previewArticle,
-                            status: 'draft',
-                            keywords: JSON.stringify(previewArticle.keywords)
-                          });
-                        }}
-                        disabled={createArticleMutation.isPending}
-                        data-testid="button-save-draft"
-                      >
-                        <Save className="h-4 w-4 mr-2" />
-                        Brouillon
-                      </Button>
-                      
-                      <Button
-                        variant="secondary"
-                        onClick={() => {
-                          // Close preview modal and open schedule modal exclusively
-                          setShowPreviewModal(false);
-                          setShowScheduleModal(true);
-                          setCalendarPopoverOpen(false);
-                        }}
-                        disabled={createArticleMutation.isPending}
-                        data-testid="button-schedule-publication"
-                      >
-                        <Clock className="h-4 w-4 mr-2" />
-                        Planifier
-                      </Button>
-                      
-                      <Button
-                        onClick={() => {
-                          createArticleMutation.mutate({
-                            ...previewArticle,
-                            status: 'published',
-                            publishedAt: new Date().toISOString(),
-                            keywords: JSON.stringify(previewArticle.keywords)
-                          });
-                        }}
-                        disabled={createArticleMutation.isPending}
-                        data-testid="button-publish-now"
-                      >
-                        {createArticleMutation.isPending ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Globe className="h-4 w-4 mr-2" />
-                        )}
-                        Publier
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-        
-        {/* Publication Scheduling Modal - Only render when showScheduleModal is true */}
-        {showScheduleModal && (
-          <Dialog 
-            open={showScheduleModal} 
-            onOpenChange={(open) => {
-              setShowScheduleModal(open);
-              if (!open) {
-                setCalendarPopoverOpen(false);
-                setScheduledDate(new Date());
-                setScheduledTime("09:00");
-              }
-            }}
-          >
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle data-testid="modal-schedule-title">Planifier la publication</DialogTitle>
-              </DialogHeader>
-              
+      case "conversion-funnel":
+        return (
+          <div className="space-y-6">
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Entonnoir de conversion</h3>
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Date de publication</Label>
-                  <Popover open={calendarPopoverOpen} onOpenChange={setCalendarPopoverOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start text-left font-normal"
-                        data-testid="button-select-date"
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {scheduledDate ? scheduledDate.toLocaleDateString('fr-FR') : "Sélectionner une date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={scheduledDate}
-                        onSelect={(date) => {
-                          setScheduledDate(date);
-                          setCalendarPopoverOpen(false);
-                        }}
-                        disabled={(date) => date < new Date()}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Heure de publication</Label>
-                  <Input
-                    type="time"
-                    value={scheduledTime}
-                    onChange={(e) => setScheduledTime(e.target.value)}
-                    data-testid="input-schedule-time"
-                  />
-                </div>
-                
-                <div className="flex gap-3 pt-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setShowScheduleModal(false);
-                      setCalendarPopoverOpen(false);
-                      // Re-open preview modal if article exists
-                      if (previewArticle) {
-                        setShowPreviewModal(true);
-                      }
-                    }}
-                    className="flex-1"
-                    data-testid="button-cancel-schedule"
-                  >
-                    Retour
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      if (scheduledDate && previewArticle) {
-                        const [hours, minutes] = scheduledTime.split(':');
-                        const scheduledDateTime = new Date(scheduledDate);
-                        scheduledDateTime.setHours(parseInt(hours), parseInt(minutes));
-                        
-                        createArticleMutation.mutate({
-                          ...previewArticle,
-                          status: 'published',
-                          publishedAt: scheduledDateTime.toISOString(),
-                          keywords: JSON.stringify(previewArticle.keywords)
-                        });
-                      }
-                    }}
-                    disabled={!scheduledDate || createArticleMutation.isPending}
-                    className="flex-1"
-                    data-testid="button-confirm-schedule"
-                  >
-                    {createArticleMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Clock className="h-4 w-4 mr-2" />
-                    )}
-                    Planifier
-                  </Button>
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">
+                    Visualisation de l'entonnoir de conversion en cours de développement...
+                  </p>
                 </div>
               </div>
-            </DialogContent>
-          </Dialog>
-        )}
+            </Card>
+          </div>
+        );
 
-        {/* Article Preview Modal */}
-        <Dialog 
-          open={showArticlePreviewModal} 
-          onOpenChange={(open) => {
-            setShowArticlePreviewModal(open);
-            if (!open) {
-              setPreviewingArticle(null);
-              // Ensure other modals are closed
-              setShowScheduleModal(false);
-              setCalendarPopoverOpen(false);
-            }
-          }}
-        >
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle data-testid="modal-article-preview-title" className="text-xl font-bold">
-                Prévisualisation de l'article
-              </DialogTitle>
-            </DialogHeader>
-            
-            {previewingArticle && (
-              <div className="space-y-6">
-                {/* Article Header Section */}
-                <div className="border-b pb-4">
-                  <div className="flex items-center gap-4 mb-3">
-                    <Badge 
-                      variant={previewingArticle.status === 'published' ? 'default' : 'secondary'}
-                      data-testid="badge-preview-status"
-                    >
-                      {previewingArticle.status === 'published' ? 'Publié' : 'Brouillon'}
-                    </Badge>
-                    {previewingArticle.category && (
-                      <Badge variant="outline" className="text-xs">
-                        {previewingArticle.category.charAt(0).toUpperCase() + previewingArticle.category.slice(1)}
-                      </Badge>
-                    )}
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2" data-testid="text-preview-title">
-                    {previewingArticle.title}
-                  </h1>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      {previewingArticle.publishedAt ? 
-                        new Date(previewingArticle.publishedAt).toLocaleDateString('fr-FR', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        }) : 
-                        'Non publié'
-                      }
-                    </div>
-                    {previewingArticle.authorName && (
-                      <div className="flex items-center">
-                        <User className="h-4 w-4 mr-2" />
-                        Par {previewingArticle.authorName}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Meta Description */}
-                {previewingArticle.metaDescription && (
-                  <div className="bg-muted/30 p-4 rounded-lg">
-                    <p className="text-lg text-muted-foreground leading-relaxed">
-                      {previewingArticle.metaDescription}
-                    </p>
-                  </div>
-                )}
-
-                {/* Article Content */}
-                <div className="space-y-6">
-                  <div className="bg-background border rounded-lg">
-                    <div className="p-4 border-b">
-                      <Label className="text-sm font-semibold text-muted-foreground">CONTENU DE L'ARTICLE</Label>
-                    </div>
-                    <div 
-                      className="prose prose-sm lg:prose-base max-w-none p-6 bg-white dark:bg-card"
-                      dangerouslySetInnerHTML={{ __html: previewingArticle.content }}
-                      data-testid="content-preview-article"
-                    />
-                  </div>
-                </div>
-
-                {/* Preview Actions */}
-                <div className="flex justify-between items-center pt-4 border-t gap-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setShowArticlePreviewModal(false);
-                      setPreviewingArticle(null);
-                    }}
-                    data-testid="button-close-preview"
-                  >
-                    Fermer
-                  </Button>
-                  
-                  <div className="flex gap-2">
-                    {previewingArticle.status === 'published' && (
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          window.open(`/actualites/${previewingArticle.slug}`, '_blank');
-                        }}
-                        data-testid="button-view-live-article"
-                      >
-                        <Globe className="h-4 w-4 mr-2" />
-                        Voir en direct
-                      </Button>
-                    )}
-                    
-                    <Button
-                      onClick={() => {
-                        const newStatus = previewingArticle.status === 'published' ? 'draft' : 'published';
-                        updateArticleMutation.mutate({ 
-                          id: previewingArticle.id, 
-                          status: newStatus,
-                          publishedAt: newStatus === 'published' ? new Date().toISOString() : undefined
-                        });
-                        setShowArticlePreviewModal(false);
-                      }}
-                      disabled={updateArticleMutation.isPending}
-                      data-testid="button-toggle-status-preview"
-                    >
-                      {updateArticleMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <FileText className="h-4 w-4 mr-2" />
-                      )}
-                      {previewingArticle.status === 'published' ? 'Dépublier' : 'Publier'}
-                    </Button>
-                  </div>
+      case "guides":
+        return (
+          <div className="space-y-6">
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Guides vendeurs</h3>
+              <div className="space-y-4">
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">
+                    Gestion des guides vendeurs en cours de développement...
+                  </p>
                 </div>
               </div>
-            )}
-          </DialogContent>
-        </Dialog>
-      </div>
-    </div>
-  );
+            </Card>
+          </div>
+        );
+
+      case "admin-settings":
+        return (
+          <div className="space-y-6">
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Configuration Admin</h3>
+              <div className="space-y-4">
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">
+                    Paramètres administrateur en cours de développement...
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
+        );
+
+      case "user-management":
+        return (
+          <div className="space-y-6">
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Gestion des utilisateurs</h3>
+              <div className="space-y-4">
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">
+                    Gestion des utilisateurs en cours de développement...
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
+        );
+
+      default:
+        return (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">
+              Section "{activeSection}" en cours de développement...
+            </p>
+          </div>
+        );
+    }
+  }
 }

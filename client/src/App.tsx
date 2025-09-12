@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Switch, Route, useRoute, useParams, Redirect } from "wouter";
+import { Switch, Route, useRoute, useParams, Redirect, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -35,9 +35,6 @@ import GuideReadPage from "@/pages/GuideReadPage";
 import Admin2FALogin from "@/components/Admin2FALogin";
 import bordeaux_house from "@assets/generated_images/Bordeaux_house_property_photo_41cf0370.png";
 import SEOHead, { createLocalBusinessSchema, createFAQSchema } from "@/components/SEOHead";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/AppSidebar";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 // Utility function to detect domain from Host header
 function getDomainFromHeaders(): string {
@@ -561,11 +558,10 @@ function LegacyAdminLoginPage() {
 
 // Admin Dashboard Page
 function AdminDashboardPage() {
-  return (
-    <div className="min-h-screen bg-background">
-      <AdminDashboard />
-    </div>
-  );
+  const domain = getDomainFromHeaders();
+  
+  // AdminDashboard has its own sidebar layout, no need to wrap
+  return <AdminDashboard domain={domain} />;
 }
 
 // Guides Page (using the new component)
@@ -686,6 +682,22 @@ function GuideRedirect() {
   );
 }
 
+// Public Layout Component - provides Header + Footer for public pages
+function PublicLayout({ children }: { children: React.ReactNode }) {
+  const domain = getDomainFromHeaders();
+  
+  return (
+    <div className="min-h-screen bg-background">
+      <Header domain={domain} />
+      <main>
+        {children}
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
+
 // Router Component
 function Router() {
   return (
@@ -724,33 +736,30 @@ function Router() {
 
 // Main App Component  
 export default function App() {
-  const domain = getDomainFromHeaders();
+  const [location] = useLocation();
   
-  // Custom sidebar width for real estate application
-  const style = {
-    "--sidebar-width": "18rem",       // 288px for better navigation
-    "--sidebar-width-icon": "4rem",   // default icon width
-  };
-
+  // Check if this is an admin route that should not use PublicLayout
+  const isAdminRoute = location.startsWith('/admin') || location === '/login' || location === '/gironde-login' || location === '/gironde-admin-dashboard';
+  
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
-          <SidebarProvider style={style as React.CSSProperties}>
-            <div className="flex h-screen w-full">
-              <AppSidebar domain={domain} />
-              <div className="flex flex-col flex-1">
-                <header className="flex items-center justify-between p-2 border-b border-border bg-background">
-                  <SidebarTrigger data-testid="button-sidebar-toggle" />
-                  <ThemeToggle />
-                </header>
-                <main className="flex-1 overflow-auto">
-                  <Router />
-                </main>
-              </div>
-            </div>
-          </SidebarProvider>
-          <Toaster />
+          {isAdminRoute ? (
+            // Admin routes render without PublicLayout (they have their own sidebar)
+            <>
+              <Router />
+              <Toaster />
+            </>
+          ) : (
+            // Public routes use PublicLayout with Header + Footer
+            <>
+              <PublicLayout>
+                <Router />
+              </PublicLayout>
+              <Toaster />
+            </>
+          )}
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>
