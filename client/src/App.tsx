@@ -35,6 +35,7 @@ import GuideReadPage from "@/pages/GuideReadPage";
 import Admin2FALogin from "@/components/Admin2FALogin";
 import bordeaux_house from "@assets/generated_images/Bordeaux_house_property_photo_41cf0370.png";
 import SEOHead, { createLocalBusinessSchema, createFAQSchema } from "@/components/SEOHead";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 
 // Utility function to detect domain from Host header
 function getDomainFromHeaders(): string {
@@ -47,6 +48,7 @@ function getDomainFromHeaders(): string {
 function HomePage() {
   const domain = getDomainFromHeaders();
   const websiteUrl = `https://${domain}`;
+  const [selectedAddress, setSelectedAddress] = useState('');
   
   // Structured data for local business
   const localBusinessSchema = createLocalBusinessSchema(
@@ -132,20 +134,17 @@ function HomePage() {
                 <span className="text-sm font-medium text-foreground">Recherche rapide :</span>
               </div>
               <div className="flex flex-wrap items-center gap-3">
+                <AddressAutocomplete 
+                  onAddressSelect={(address) => setSelectedAddress(address.formattedAddress)}
+                  placeholder="Où recherchez-vous ?"
+                  className="min-w-[200px] text-sm"
+                  data-testid="filter-address"
+                />
                 <select className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="filter-property-type">
                   <option value="">Type de bien</option>
                   <option value="maison">Maison</option>
                   <option value="appartement">Appartement</option>
                   <option value="terrain">Terrain</option>
-                </select>
-                <select className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="filter-city">
-                  <option value="">Ville</option>
-                  <option value="bordeaux">Bordeaux</option>
-                  <option value="merignac">Mérignac</option>
-                  <option value="pessac">Pessac</option>
-                  <option value="talence">Talence</option>
-                  <option value="villenave">Villenave-d'Ornon</option>
-                  <option value="begles">Bègles</option>
                 </select>
                 <select className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="filter-price">
                   <option value="">Budget</option>
