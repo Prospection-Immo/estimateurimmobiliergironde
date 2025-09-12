@@ -137,6 +137,40 @@ export default function Admin2FALogin({ domain }: Admin2FALoginProps) {
     }
   };
 
+  // DEV ONLY: Direct login without 2FA
+  const handleDevLogin = async () => {
+    if (import.meta.env.MODE !== 'development') return;
+    
+    setIsLoading(true);
+    setError("");
+    
+    try {
+      const response = await fetch('/api/auth/dev-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ 
+          email: email || 'oliviercolas83@gmail.com',
+          password: password || '0785617700Fdl'
+        }),
+      });
+      
+      if (response.ok) {
+        console.log('🚀 DEV: Login direct réussi');
+        window.location.href = '/admin';
+      } else {
+        const data = await response.json();
+        setError(data.error || "Erreur de connexion développement");
+      }
+    } catch (error) {
+      setError("Erreur de connexion développement");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const renderEmailStep = () => (
     <div className="space-y-6">
       {/* Header */}
@@ -444,6 +478,23 @@ export default function Admin2FALogin({ domain }: Admin2FALoginProps) {
           <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} Estimation Immobilier Gironde. Tous droits réservés.
           </p>
+          
+          {/* DEV ONLY: Quick access button */}
+          {import.meta.env.MODE === 'development' && (
+            <div className="mt-4 pt-4 border-t border-border">
+              <button
+                onClick={handleDevLogin}
+                disabled={isLoading}
+                className="px-4 py-2 text-xs bg-yellow-500/20 text-yellow-700 rounded-md hover:bg-yellow-500/30 disabled:opacity-50 transition-colors"
+                data-testid="button-dev-login"
+              >
+                🚀 Login Dev (Contourne 2FA)
+              </button>
+              <p className="text-xs text-yellow-600 mt-1">
+                Mode développement uniquement
+              </p>
+            </div>
+          )}
         </div>
       </footer>
     </div>
