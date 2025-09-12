@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Calendar, ArrowLeft, User, Clock } from "lucide-react";
 import { useEffect } from "react";
+import ArticleFloatingWidget from "@/components/ArticleFloatingWidget";
 
 interface Article {
   id: string;
@@ -229,6 +230,13 @@ export default function ArticleDetailPage({ domain = "estimation-immobilier-giro
           </footer>
         </article>
       </div>
+
+      {/* Floating Widget */}
+      <ArticleFloatingWidget 
+        articleSlug={slug || ''}
+        articleCategory={article?.category}
+        articleTitle={article?.title}
+      />
     </div>
   );
 }
