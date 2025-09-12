@@ -201,7 +201,14 @@ export default function EmailSequenceManager() {
     });
   };
 
-  const StatCard = ({ title, value, icon: Icon, color = "text-blue-600" }: any) => (
+  interface StatCardProps {
+    title: string;
+    value: number;
+    icon: React.ElementType;
+    color?: string;
+  }
+
+  const StatCard = ({ title, value, icon: Icon, color = "text-blue-600" }: StatCardProps) => (
     <Card>
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
@@ -378,29 +385,29 @@ export default function EmailSequenceManager() {
                 </Card>
               ))}
             </div>
-          ) : stats ? (
+          ) : (stats as SequenceStats) ? (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <StatCard
                 title="Total séquences"
-                value={stats.totalSequences}
+                value={(stats as SequenceStats).totalSequences}
                 icon={Mail}
                 color="text-blue-600"
               />
               <StatCard
                 title="Programmées"
-                value={stats.scheduled}
+                value={(stats as SequenceStats).scheduled}
                 icon={Clock}
                 color="text-yellow-600"
               />
               <StatCard
                 title="Envoyées"
-                value={stats.sent}
+                value={(stats as SequenceStats).sent}
                 icon={CheckCircle}
                 color="text-green-600"
               />
               <StatCard
                 title="Échecs"
-                value={stats.failed}
+                value={(stats as SequenceStats).failed}
                 icon={XCircle}
                 color="text-red-600"
               />
@@ -408,7 +415,7 @@ export default function EmailSequenceManager() {
           ) : null}
 
           {/* Personas Distribution */}
-          {stats && (
+          {(stats as SequenceStats) && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -418,7 +425,7 @@ export default function EmailSequenceManager() {
               </CardHeader>
               <CardContent>
                 <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
-                  {Object.entries(stats.byPersona).map(([persona, count]) => (
+                  {Object.entries((stats as SequenceStats).byPersona).map(([persona, count]) => (
                     <div key={persona} className="text-center">
                       <p className="text-2xl font-bold">{count}</p>
                       <p className="text-sm text-gray-600">

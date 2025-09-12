@@ -1891,7 +1891,7 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                             <SelectValue placeholder="Choisir un template" />
                           </SelectTrigger>
                           <SelectContent>
-                            {emailTemplates.map((template) => (
+                            {emailTemplates.filter(template => template.id && template.id.trim() !== '').map((template) => (
                               <SelectItem key={template.id} value={template.id}>
                                 {template.name}
                               </SelectItem>
@@ -2317,7 +2317,7 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                     <SelectValue placeholder="Choisir un template" />
                   </SelectTrigger>
                   <SelectContent>
-                    {emailTemplates.filter(t => t.isActive).map((template) => (
+                    {emailTemplates.filter(t => t.isActive && t.id && t.id.trim() !== '').map((template) => (
                       <SelectItem key={template.id} value={template.id}>
                         {template.name}
                       </SelectItem>
