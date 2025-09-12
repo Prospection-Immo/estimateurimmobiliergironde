@@ -15,6 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import EmailSequenceManager from "@/components/EmailSequenceManager";
+import AdminAnalyticsDashboard from "@/components/AdminAnalyticsDashboard";
 import { 
   Users, 
   User,
@@ -46,7 +47,8 @@ import {
   History,
   TestTube,
   BarChart3,
-  Filter
+  Filter,
+  PieChart
 } from "lucide-react";
 
 import type { Lead, Estimation, Contact, Article, EmailTemplate, EmailHistory } from "@shared/schema";
@@ -673,8 +675,12 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
         </div>
 
         {/* Main Content */}
-        <Tabs defaultValue="leads" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+        <Tabs defaultValue="analytics" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-7">
+            <TabsTrigger value="analytics" data-testid="tab-analytics">
+              <PieChart className="h-4 w-4 mr-2" />
+              Analytics
+            </TabsTrigger>
             <TabsTrigger value="leads" data-testid="tab-leads">Leads</TabsTrigger>
             <TabsTrigger value="estimations" data-testid="tab-estimations">Estimations</TabsTrigger>
             <TabsTrigger value="contacts" data-testid="tab-contacts">Messages</TabsTrigger>
@@ -682,6 +688,10 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
             <TabsTrigger value="emails" data-testid="tab-emails">Emails</TabsTrigger>
             <TabsTrigger value="sequences" data-testid="tab-sequences">Séquences</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="analytics" className="space-y-6" data-testid="analytics-tab-content">
+            <AdminAnalyticsDashboard />
+          </TabsContent>
 
           <TabsContent value="leads" className="space-y-6">
             {/* Filters */}

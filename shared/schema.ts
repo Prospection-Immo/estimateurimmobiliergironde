@@ -260,3 +260,166 @@ export const GUIDE_PERSONAS = {
 } as const;
 
 export type GuidePersona = keyof typeof GUIDE_PERSONAS;
+
+// Analytics response validation schemas
+export const dashboardAnalyticsSchema = z.object({
+  period: z.string(),
+  dateRange: z.object({
+    start: z.string(),
+    end: z.string()
+  }),
+  kpis: z.object({
+    totalLeads: z.number(),
+    qualifiedLeads: z.number(),
+    conversionRate: z.number(),
+    avgTimeToConversion: z.number(),
+    totalGuidesDownloaded: z.number()
+  }),
+  charts: z.object({
+    dailyLeads: z.array(z.object({
+      date: z.string(),
+      leads: z.number(),
+      qualified: z.number(),
+      estimation: z.number(),
+      financing: z.number(),
+      guides: z.number()
+    })),
+    leadSources: z.array(z.object({
+      source: z.string(),
+      count: z.number()
+    })),
+    leadTypes: z.array(z.object({
+      type: z.string(),
+      count: z.number()
+    })),
+    topCities: z.array(z.object({
+      city: z.string(),
+      count: z.number()
+    }))
+  }),
+  trends: z.object({
+    leadsGrowth: z.number(),
+    conversionGrowth: z.number()
+  })
+});
+
+export const guideAnalyticsSchema = z.object({
+  period: z.string(),
+  dateRange: z.object({
+    start: z.string(),
+    end: z.string()
+  }),
+  summary: z.object({
+    totalGuides: z.number(),
+    totalPageViews: z.number(),
+    totalDownloads: z.number(),
+    avgConversionRate: z.number(),
+    avgEngagementScore: z.number()
+  }),
+  guides: z.array(z.object({
+    id: z.string(),
+    title: z.string(),
+    persona: z.string(),
+    slug: z.string(),
+    metrics: z.object({
+      pageViews: z.number(),
+      downloads: z.number(),
+      leads: z.number(),
+      conversionRate: z.number(),
+      avgReadTime: z.number(),
+      bounceRate: z.number(),
+      completionRate: z.number()
+    }),
+    performance: z.object({
+      downloadRate: z.number(),
+      leadQuality: z.number(),
+      engagementScore: z.number()
+    })
+  })),
+  personaBreakdown: z.record(z.any())
+});
+
+export const leadFunnelAnalyticsSchema = z.object({
+  period: z.string(),
+  dateRange: z.object({
+    start: z.string(),
+    end: z.string()
+  }),
+  funnel: z.array(z.object({
+    stage: z.string(),
+    count: z.number(),
+    percentage: z.number(),
+    dropoff: z.number()
+  })),
+  conversionRates: z.object({
+    visitorToSms: z.number(),
+    smsToForm: z.number(),
+    formToQualified: z.number(),
+    qualifiedToConverted: z.number(),
+    overallConversion: z.number()
+  }),
+  topLeads: z.array(z.any()),
+  leadScoring: z.object({
+    avgScore: z.number(),
+    distribution: z.array(z.object({
+      min: z.number(),
+      max: z.number(),
+      label: z.string(),
+      count: z.number()
+    }))
+  })
+});
+
+export const emailAnalyticsSchema = z.object({
+  period: z.string(),
+  dateRange: z.object({
+    start: z.string(),
+    end: z.string()
+  }),
+  overview: z.object({
+    totalSent: z.number(),
+    totalFailed: z.number(),
+    totalPending: z.number(),
+    successRate: z.number(),
+    avgOpenRate: z.number(),
+    avgClickRate: z.number(),
+    estimatedRevenue: z.number()
+  }),
+  templatePerformance: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    category: z.string(),
+    sent: z.number(),
+    failed: z.number(),
+    openRate: z.number(),
+    clickRate: z.number(),
+    conversionRate: z.number(),
+    revenue: z.number()
+  })),
+  sequencePerformance: z.array(z.object({
+    persona: z.string(),
+    totalSent: z.number(),
+    scheduled: z.number(),
+    completed: z.number(),
+    cancelled: z.number()
+  })),
+  trends: z.object({
+    dailyEmails: z.array(z.object({
+      date: z.string(),
+      sent: z.number(),
+      failed: z.number(),
+      total: z.number()
+    })),
+    deliverabilityTrend: z.array(z.object({
+      week: z.string(),
+      deliverabilityRate: z.number(),
+      volume: z.number()
+    }))
+  })
+});
+
+// Analytics response types
+export type DashboardAnalytics = z.infer<typeof dashboardAnalyticsSchema>;
+export type GuideAnalytics = z.infer<typeof guideAnalyticsSchema>;
+export type LeadFunnelAnalytics = z.infer<typeof leadFunnelAnalyticsSchema>;
+export type EmailAnalytics = z.infer<typeof emailAnalyticsSchema>;

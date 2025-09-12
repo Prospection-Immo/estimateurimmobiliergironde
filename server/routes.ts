@@ -1336,6 +1336,557 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper functions for analytics calculations
+  function calculateGrowthRate(leads: any[], startDate: Date): number {
+    const midPoint = new Date(startDate.getTime() + (Date.now() - startDate.getTime()) / 2);
+    const firstHalf = leads.filter(l => new Date(l.createdAt || '') <= midPoint).length;
+    const secondHalf = leads.filter(l => new Date(l.createdAt || '') > midPoint).length;
+    
+    return firstHalf > 0 ? ((secondHalf - firstHalf) / firstHalf) * 100 : 0;
+  }
+
+  function calculateConversionGrowthRate(leads: any[], startDate: Date): number {
+    const midPoint = new Date(startDate.getTime() + (Date.now() - startDate.getTime()) / 2);
+    const firstHalfLeads = leads.filter(l => new Date(l.createdAt || '') <= midPoint);
+    const secondHalfLeads = leads.filter(l => new Date(l.createdAt || '') > midPoint);
+    
+    const firstHalfConverted = firstHalfLeads.filter(l => l.status === 'converted' || l.wantsExpertContact).length;
+    const secondHalfConverted = secondHalfLeads.filter(l => l.status === 'converted' || l.wantsExpertContact).length;
+    
+    const firstHalfRate = firstHalfLeads.length > 0 ? (firstHalfConverted / firstHalfLeads.length) * 100 : 0;
+    const secondHalfRate = secondHalfLeads.length > 0 ? (secondHalfConverted / secondHalfLeads.length) * 100 : 0;
+    
+    return firstHalfRate > 0 ? ((secondHalfRate - firstHalfRate) / firstHalfRate) * 100 : 0;
+  }
+
+  function calculatePersonaBreakdown(guideAnalytics: any[]) {
+    const personaMap = guideAnalytics.reduce((acc, guide) => {
+      const persona = guide.persona || 'unknown';
+      if (!acc[persona]) {
+        acc[persona] = { 
+          count: 0, 
+          totalViews: 0, 
+          totalDownloads: 0, 
+          totalLeads: 0,
+          avgEngagement: 0 
+        };
+      }
+      acc[persona].count++;
+      acc[persona].totalViews += guide.metrics.pageViews;
+      acc[persona].totalDownloads += guide.metrics.downloads;
+      acc[persona].totalLeads += guide.metrics.leads;
+      acc[persona].avgEngagement += guide.performance.engagementScore;
+      return acc;
+    }, {} as Record<string, any>);
+
+    // Calculate averages
+    Object.keys(personaMap).forEach(persona => {
+      const data = personaMap[persona];
+      data.avgEngagement = data.count > 0 ? data.avgEngagement / data.count : 0;
+      data.conversionRate = data.totalViews > 0 ? (data.totalLeads / data.totalViews) * 100 : 0;
+    });
+
+    return personaMap;
+  }
+
+  function calculateLeadScore(lead: any): number {
+    let score = 0;
+    
+    // Base score for different lead types
+    if (lead.leadType === 'estimation_detailed') score += 30;
+    else if (lead.leadType === 'estimation_quick') score += 20;
+    else if (lead.leadType === 'financing') score += 40;
+    else if (lead.leadType === 'guide_download') score += 15;
+
+    // Contact preference bonus
+    if (lead.wantsExpertContact) score += 25;
+    
+    // Phone provided bonus
+    if (lead.phone) score += 15;
+    
+    // Property value bonus (for estimation leads)
+    if (lead.estimatedValue) {
+      const value = parseInt(lead.estimatedValue);
+      if (value > 500000) score += 20;
+      else if (value > 300000) score += 15;
+      else if (value > 200000) score += 10;
+    }
+
+    // Sale timeline urgency
+    if (lead.saleTimeline === 'immediate') score += 20;
+    else if (lead.saleTimeline === '3m') score += 15;
+    else if (lead.saleTimeline === '6m') score += 10;
+
+    // Recency bonus
+    const daysSinceCreated = lead.createdAt ? 
+      Math.floor((Date.now() - new Date(lead.createdAt).getTime()) / (1000 * 60 * 60 * 24)) : 30;
+    if (daysSinceCreated <= 1) score += 10;
+    else if (daysSinceCreated <= 3) score += 5;
+
+    return Math.min(100, Math.max(0, score));
+  }
+
+  function calculateScoreDistribution(scoredLeads: any[]) {
+    const ranges = [
+      { min: 0, max: 20, label: 'Faible (0-20)', count: 0 },
+      { min: 21, max: 40, label: 'Moyen (21-40)', count: 0 },
+      { min: 41, max: 60, label: 'Bon (41-60)', count: 0 },
+      { min: 61, max: 80, label: 'Élevé (61-80)', count: 0 },
+      { min: 81, max: 100, label: 'Excellent (81-100)', count: 0 }
+    ];
+
+    scoredLeads.forEach(lead => {
+      const range = ranges.find(r => lead.score >= r.min && lead.score <= r.max);
+      if (range) range.count++;
+    });
+
+    return ranges;
+  }
+
+  // Advanced analytics dashboard endpoint
+  app.get('/api/analytics/dashboard', requireAuth, async (req, res) => {
+    try {
+      const { period = '7d', persona, source } = req.query;
+      
+      // Calculate date range based on period
+      const now = new Date();
+      let startDate = new Date();
+      
+      switch (period) {
+        case '1d':
+          startDate.setDate(now.getDate() - 1);
+          break;
+        case '7d':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case '30d':
+          startDate.setDate(now.getDate() - 30);
+          break;
+        case '90d':
+          startDate.setDate(now.getDate() - 90);
+          break;
+        default:
+          startDate.setDate(now.getDate() - 7);
+      }
+
+      // Get all data for the period
+      const [allLeads, allContacts, allGuides] = await Promise.all([
+        storage.getLeads(2000),
+        storage.getContacts(1000),
+        storage.getGuides()
+      ]);
+
+      // Filter leads by date range and optional filters
+      const periodLeads = allLeads.filter(lead => {
+        const leadDate = new Date(lead.createdAt || '');
+        const inPeriod = leadDate >= startDate && leadDate <= now;
+        const matchesPersona = !persona || lead.guideSlug?.includes(persona as string);
+        const matchesSource = !source || lead.source === source;
+        return inPeriod && matchesPersona && matchesSource;
+      });
+
+      // Calculate KPIs
+      const totalLeads = periodLeads.length;
+      const qualifiedLeads = periodLeads.filter(l => l.status === 'converted' || l.wantsExpertContact).length;
+      const conversionRate = totalLeads > 0 ? (qualifiedLeads / totalLeads) * 100 : 0;
+      
+      // Group leads by day for chart
+      const dailyData = [];
+      for (let d = new Date(startDate); d <= now; d.setDate(d.getDate() + 1)) {
+        const dayStart = new Date(d);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(d);
+        dayEnd.setHours(23, 59, 59, 999);
+        
+        const dayLeads = periodLeads.filter(lead => {
+          const leadDate = new Date(lead.createdAt || '');
+          return leadDate >= dayStart && leadDate <= dayEnd;
+        });
+        
+        dailyData.push({
+          date: dayStart.toISOString().split('T')[0],
+          leads: dayLeads.length,
+          qualified: dayLeads.filter(l => l.status === 'converted' || l.wantsExpertContact).length,
+          estimation: dayLeads.filter(l => l.leadType?.includes('estimation')).length,
+          financing: dayLeads.filter(l => l.leadType === 'financing').length,
+          guides: dayLeads.filter(l => l.leadType === 'guide_download').length
+        });
+      }
+
+      // Lead sources breakdown
+      const leadSources = periodLeads.reduce((acc, lead) => {
+        acc[lead.source] = (acc[lead.source] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      // Lead types breakdown
+      const leadTypes = periodLeads.reduce((acc, lead) => {
+        const type = lead.leadType || 'unknown';
+        acc[type] = (acc[type] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      // Cities breakdown (top 10)
+      const cities = periodLeads
+        .filter(lead => lead.city)
+        .reduce((acc, lead) => {
+          const city = lead.city!;
+          acc[city] = (acc[city] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+
+      const topCities = Object.entries(cities)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 10)
+        .map(([city, count]) => ({ city, count }));
+
+      const dashboardData = {
+        period,
+        dateRange: { start: startDate.toISOString(), end: now.toISOString() },
+        kpis: {
+          totalLeads,
+          qualifiedLeads,
+          conversionRate: Number(conversionRate.toFixed(1)),
+          avgTimeToConversion: 2.3, // Mock for now
+          totalGuidesDownloaded: periodLeads.filter(l => l.leadType === 'guide_download').length
+        },
+        charts: {
+          dailyLeads: dailyData,
+          leadSources: Object.entries(leadSources).map(([source, count]) => ({ source, count })),
+          leadTypes: Object.entries(leadTypes).map(([type, count]) => ({ type, count })),
+          topCities
+        },
+        trends: {
+          leadsGrowth: calculateGrowthRate(periodLeads, startDate),
+          conversionGrowth: calculateConversionGrowthRate(periodLeads, startDate)
+        }
+      };
+
+      res.json(dashboardData);
+    } catch (error) {
+      console.error('Error fetching dashboard analytics:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Guide analytics endpoint
+  app.get('/api/analytics/guides', requireAuth, async (req, res) => {
+    try {
+      const { period = '30d', persona } = req.query;
+      
+      const now = new Date();
+      let startDate = new Date();
+      startDate.setDate(now.getDate() - (period === '7d' ? 7 : period === '30d' ? 30 : 90));
+
+      const [allGuides, allLeads, allDownloads] = await Promise.all([
+        storage.getGuides(persona as string),
+        storage.getLeads(2000),
+        storage.getGuideDownloads()
+      ]);
+
+      // Calculate guide performance metrics
+      const guideAnalytics = await Promise.all(
+        allGuides.map(async (guide) => {
+          const guideLeads = allLeads.filter(lead => 
+            lead.guideSlug === guide.slug &&
+            new Date(lead.createdAt || '') >= startDate
+          );
+
+          const guideDownloads = allDownloads.filter(download => 
+            download.guideId === guide.id &&
+            new Date(download.createdAt || '') >= startDate
+          );
+
+          // Mock analytics data - in a real app, you'd get this from guideAnalytics table
+          const pageViews = Math.floor(Math.random() * 500) + 100;
+          const avgReadTime = Math.floor(Math.random() * 300) + 120; // seconds
+          const bounceRate = Math.random() * 0.4 + 0.2; // 20-60%
+
+          return {
+            id: guide.id,
+            title: guide.title,
+            persona: guide.persona,
+            slug: guide.slug,
+            metrics: {
+              pageViews,
+              downloads: guideDownloads.length,
+              leads: guideLeads.length,
+              conversionRate: pageViews > 0 ? (guideLeads.length / pageViews) * 100 : 0,
+              avgReadTime,
+              bounceRate: bounceRate * 100,
+              completionRate: (1 - bounceRate) * 100
+            },
+            performance: {
+              downloadRate: pageViews > 0 ? (guideDownloads.length / pageViews) * 100 : 0,
+              leadQuality: guideLeads.filter(l => l.wantsExpertContact || l.status === 'converted').length,
+              engagementScore: Math.floor(((1 - bounceRate) * avgReadTime / 180) * 100)
+            }
+          };
+        })
+      );
+
+      // Sort by performance score
+      guideAnalytics.sort((a, b) => b.performance.engagementScore - a.performance.engagementScore);
+
+      const summary = {
+        totalGuides: guideAnalytics.length,
+        totalPageViews: guideAnalytics.reduce((sum, g) => sum + g.metrics.pageViews, 0),
+        totalDownloads: guideAnalytics.reduce((sum, g) => sum + g.metrics.downloads, 0),
+        avgConversionRate: guideAnalytics.length > 0 
+          ? guideAnalytics.reduce((sum, g) => sum + g.metrics.conversionRate, 0) / guideAnalytics.length
+          : 0,
+        avgEngagementScore: guideAnalytics.length > 0
+          ? guideAnalytics.reduce((sum, g) => sum + g.performance.engagementScore, 0) / guideAnalytics.length
+          : 0
+      };
+
+      res.json({
+        period,
+        dateRange: { start: startDate.toISOString(), end: now.toISOString() },
+        summary,
+        guides: guideAnalytics,
+        personaBreakdown: calculatePersonaBreakdown(guideAnalytics)
+      });
+    } catch (error) {
+      console.error('Error fetching guide analytics:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Lead funnel analytics
+  app.get('/api/analytics/leads/funnel', requireAuth, async (req, res) => {
+    try {
+      const { period = '30d', source, persona } = req.query;
+      
+      const now = new Date();
+      let startDate = new Date();
+      startDate.setDate(now.getDate() - (period === '7d' ? 7 : period === '30d' ? 30 : 90));
+
+      const allLeads = await storage.getLeads(2000);
+      const periodLeads = allLeads.filter(lead => {
+        const leadDate = new Date(lead.createdAt || '');
+        const inPeriod = leadDate >= startDate && leadDate <= now;
+        const matchesSource = !source || lead.source === source;
+        const matchesPersona = !persona || lead.guideSlug?.includes(persona as string);
+        return inPeriod && matchesSource && matchesPersona;
+      });
+
+      // Calculate funnel stages
+      const totalVisitors = Math.floor(periodLeads.length * 15); // Estimate visitors from leads
+      const smsVerifications = periodLeads.filter(l => l.phone).length;
+      const formCompletions = periodLeads.length;
+      const qualifiedLeads = periodLeads.filter(l => l.wantsExpertContact || l.status === 'converted').length;
+      const convertedLeads = periodLeads.filter(l => l.status === 'converted').length;
+
+      const funnelData = [
+        {
+          stage: 'Visiteurs',
+          count: totalVisitors,
+          percentage: 100,
+          dropoff: 0
+        },
+        {
+          stage: 'SMS Vérifiés',
+          count: smsVerifications,
+          percentage: (smsVerifications / totalVisitors) * 100,
+          dropoff: totalVisitors - smsVerifications
+        },
+        {
+          stage: 'Formulaires Complétés',
+          count: formCompletions,
+          percentage: (formCompletions / totalVisitors) * 100,
+          dropoff: smsVerifications - formCompletions
+        },
+        {
+          stage: 'Leads Qualifiés',
+          count: qualifiedLeads,
+          percentage: (qualifiedLeads / totalVisitors) * 100,
+          dropoff: formCompletions - qualifiedLeads
+        },
+        {
+          stage: 'Clients Convertis',
+          count: convertedLeads,
+          percentage: (convertedLeads / totalVisitors) * 100,
+          dropoff: qualifiedLeads - convertedLeads
+        }
+      ];
+
+      // Lead scoring based on multiple factors
+      const scoredLeads = periodLeads.map(lead => ({
+        ...lead,
+        score: calculateLeadScore(lead)
+      })).sort((a, b) => b.score - a.score);
+
+      res.json({
+        period,
+        dateRange: { start: startDate.toISOString(), end: now.toISOString() },
+        funnel: funnelData,
+        conversionRates: {
+          visitorToSms: (smsVerifications / totalVisitors) * 100,
+          smsToForm: (formCompletions / smsVerifications) * 100,
+          formToQualified: (qualifiedLeads / formCompletions) * 100,
+          qualifiedToConverted: qualifiedLeads > 0 ? (convertedLeads / qualifiedLeads) * 100 : 0,
+          overallConversion: (convertedLeads / totalVisitors) * 100
+        },
+        topLeads: scoredLeads.slice(0, 20),
+        leadScoring: {
+          avgScore: scoredLeads.length > 0 ? scoredLeads.reduce((sum, l) => sum + l.score, 0) / scoredLeads.length : 0,
+          distribution: calculateScoreDistribution(scoredLeads)
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching lead funnel analytics:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Email analytics endpoint
+  app.get('/api/analytics/email', requireAuth, async (req, res) => {
+    try {
+      const { period = '30d', persona, templateId } = req.query;
+      
+      const now = new Date();
+      let startDate = new Date();
+      startDate.setDate(now.getDate() - (period === '7d' ? 7 : period === '30d' ? 30 : 90));
+
+      const [emailHistory, emailTemplates, emailSequences] = await Promise.all([
+        storage.getEmailHistory(2000),
+        storage.getEmailTemplates(),
+        storage.getGuideEmailSequences()
+      ]);
+
+      // Filter email history by date range
+      const periodEmails = emailHistory.filter(email => {
+        const emailDate = new Date(email.createdAt || '');
+        const inPeriod = emailDate >= startDate && emailDate <= now;
+        const matchesTemplate = !templateId || email.templateId === templateId;
+        return inPeriod && matchesTemplate;
+      });
+
+      // Calculate email performance metrics
+      const totalSent = periodEmails.filter(e => e.status === 'sent').length;
+      const totalFailed = periodEmails.filter(e => e.status === 'failed').length;
+      const totalPending = periodEmails.filter(e => e.status === 'pending').length;
+
+      // Mock open rates and click rates (in real app, you'd track these)
+      const mockOpenRate = 0.25 + Math.random() * 0.15; // 25-40%
+      const mockClickRate = 0.03 + Math.random() * 0.05; // 3-8%
+
+      // Group by template for performance comparison
+      const templatePerformance = emailTemplates.map(template => {
+        const templateEmails = periodEmails.filter(e => e.templateId === template.id);
+        const sent = templateEmails.filter(e => e.status === 'sent').length;
+        
+        return {
+          id: template.id,
+          name: template.name,
+          category: template.category,
+          sent,
+          failed: templateEmails.filter(e => e.status === 'failed').length,
+          openRate: (mockOpenRate + Math.random() * 0.1) * 100,
+          clickRate: (mockClickRate + Math.random() * 0.02) * 100,
+          conversionRate: Math.random() * 5 + 1, // 1-6%
+          revenue: Math.floor(Math.random() * 50000) + 10000
+        };
+      });
+
+      // Email sequence performance
+      const sequencePerformance = emailSequences
+        .filter(seq => new Date(seq.createdAt || '') >= startDate)
+        .reduce((acc, seq) => {
+          const key = seq.persona || 'unknown';
+          if (!acc[key]) {
+            acc[key] = {
+              persona: key,
+              totalSent: 0,
+              scheduled: 0,
+              completed: 0,
+              cancelled: 0,
+              avgDelay: 0
+            };
+          }
+          
+          acc[key].totalSent++;
+          if (seq.status === 'scheduled') acc[key].scheduled++;
+          else if (seq.status === 'sent') acc[key].completed++;
+          else if (seq.status === 'cancelled') acc[key].cancelled++;
+          
+          return acc;
+        }, {} as Record<string, any>);
+
+      res.json({
+        period,
+        dateRange: { start: startDate.toISOString(), end: now.toISOString() },
+        overview: {
+          totalSent,
+          totalFailed,
+          totalPending,
+          successRate: totalSent + totalFailed > 0 ? (totalSent / (totalSent + totalFailed)) * 100 : 0,
+          avgOpenRate: mockOpenRate * 100,
+          avgClickRate: mockClickRate * 100,
+          estimatedRevenue: templatePerformance.reduce((sum, t) => sum + t.revenue, 0)
+        },
+        templatePerformance: templatePerformance.sort((a, b) => b.conversionRate - a.conversionRate),
+        sequencePerformance: Object.values(sequencePerformance),
+        trends: {
+          dailyEmails: generateDailyEmailTrends(periodEmails, startDate, now),
+          deliverabilityTrend: generateDeliverabilityTrend(periodEmails, startDate, now)
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching email analytics:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Helper functions for email trends
+  function generateDailyEmailTrends(emails: any[], startDate: Date, endDate: Date) {
+    const dailyData = [];
+    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+      const dayStart = new Date(d);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(d);
+      dayEnd.setHours(23, 59, 59, 999);
+      
+      const dayEmails = emails.filter(email => {
+        const emailDate = new Date(email.createdAt || '');
+        return emailDate >= dayStart && emailDate <= dayEnd;
+      });
+      
+      dailyData.push({
+        date: dayStart.toISOString().split('T')[0],
+        sent: dayEmails.filter(e => e.status === 'sent').length,
+        failed: dayEmails.filter(e => e.status === 'failed').length,
+        total: dayEmails.length
+      });
+    }
+    return dailyData;
+  }
+
+  function generateDeliverabilityTrend(emails: any[], startDate: Date, endDate: Date) {
+    const weeklyData = [];
+    const weekMs = 7 * 24 * 60 * 60 * 1000;
+    
+    for (let d = new Date(startDate); d <= endDate; d = new Date(d.getTime() + weekMs)) {
+      const weekEnd = new Date(Math.min(d.getTime() + weekMs - 1, endDate.getTime()));
+      
+      const weekEmails = emails.filter(email => {
+        const emailDate = new Date(email.createdAt || '');
+        return emailDate >= d && emailDate <= weekEnd;
+      });
+      
+      const sent = weekEmails.filter(e => e.status === 'sent').length;
+      const total = weekEmails.length;
+      
+      weeklyData.push({
+        week: d.toISOString().split('T')[0],
+        deliverabilityRate: total > 0 ? (sent / total) * 100 : 0,
+        volume: total
+      });
+    }
+    return weeklyData;
+  }
+
   // Articles routes
   app.get('/api/articles', async (req, res) => {
     try {
