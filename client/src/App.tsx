@@ -34,6 +34,7 @@ import GuideThanksPage from "@/pages/GuideThanksPage";
 import GuideReadPage from "@/pages/GuideReadPage";
 import Admin2FALogin from "@/components/Admin2FALogin";
 import bordeaux_house from "@assets/generated_images/Bordeaux_house_property_photo_41cf0370.png";
+import SEOHead, { createLocalBusinessSchema, createFAQSchema } from "@/components/SEOHead";
 
 // Utility function to detect domain from Host header
 function getDomainFromHeaders(): string {
@@ -45,9 +46,80 @@ function getDomainFromHeaders(): string {
 // Home Page Component
 function HomePage() {
   const domain = getDomainFromHeaders();
+  const websiteUrl = `https://${domain}`;
+  
+  // Structured data for local business
+  const localBusinessSchema = createLocalBusinessSchema(
+    "Estimation Immobilière Gironde",
+    "Expert en estimation immobilière gratuite en Gironde. Service d'évaluation précise pour maisons et appartements à Bordeaux et dans toute la Gironde. Technologie IA avancée et données DVF officielles.",
+    "33 Rue de la République",
+    "Bordeaux", 
+    "33000",
+    "05.56.00.00.00",
+    "contact@estimation-immobilier-gironde.fr",
+    websiteUrl
+  );
+  
+  // FAQ Schema for common real estate questions
+  const faqSchema = createFAQSchema([
+    {
+      question: "Comment estimer gratuitement ma maison en Gironde ?",
+      answer: "Notre estimateur gratuit utilise l'intelligence artificielle et les données officielles DVF pour analyser plus de 50 critères et vous donner une estimation précise en 3 minutes. Renseignez simplement les caractéristiques de votre bien : type, surface, localisation, état général."
+    },
+    {
+      question: "L'estimation en ligne est-elle fiable en Gironde ?",
+      answer: "Oui, notre estimation est basée sur les vraies ventes DVF (Demandes de Valeurs Foncières) de votre quartier et analysée par notre IA exclusive. Nous garantissons des résultats précis en croisant données officielles et critères de marché locaux."
+    },
+    {
+      question: "Combien coûte l'estimation immobilière ?",
+      answer: "Notre service d'estimation est 100% gratuit et sans engagement. Vous recevez immédiatement votre fourchette de prix et un rapport détaillé par email, sans aucun frais ni obligation."
+    },
+    {
+      question: "Quels types de biens peut-on estimer en Gironde ?",
+      answer: "Nous estimons tous types de biens : maisons, appartements, terrains, propriétés atypiques dans toute la Gironde : Bordeaux, Mérignac, Pessac, Talence, Villenave-d'Ornon, et toutes autres communes."
+    },
+    {
+      question: "Puis-je avoir une expertise officielle après l'estimation ?",
+      answer: "Oui, si vous souhaitez une expertise officielle certifiée, nous pouvons vous mettre en relation avec nos experts partenaires agréés en Gironde pour un diagnostic approfondi de votre bien."
+    }
+  ]);
   
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title="Estimation Immobilière Gratuite Gironde | Expert Local Bordeaux 2025"
+        description="✅ Estimation gratuite et instantanée de votre bien en Gironde. IA + données DVF officielles = résultats précis garantis. Expert local Bordeaux. Rapport détaillé offert."
+        keywords={[
+          'estimation immobilière Gironde',
+          'estimation gratuite Bordeaux', 
+          'prix immobilier Gironde',
+          'évaluation maison Bordeaux',
+          'estimation appartement Gironde',
+          'expert immobilier Bordeaux',
+          'DVF Gironde',
+          'prix m2 Bordeaux',
+          'vendre maison Gironde',
+          'estimation en ligne gratuite'
+        ]}
+        canonical={websiteUrl}
+        openGraph={{
+          title: "Estimation Immobilière Gratuite Gironde | Expert Local",
+          description: "Estimation gratuite et instantanée de votre bien en Gironde avec l'IA + données DVF officielles. Résultats précis garantis en 3 minutes.",
+          image: bordeaux_house,
+          url: websiteUrl,
+          type: "website",
+          siteName: "Estimation Immobilière Gironde"
+        }}
+        twitterCard={{
+          card: "summary_large_image",
+          site: "@EstimationGironde",
+          title: "Estimation Immobilière Gratuite Gironde",
+          description: "Estimation gratuite et instantanée avec IA + données DVF. Résultats précis en 3 minutes.",
+          image: bordeaux_house
+        }}
+        structuredData={[localBusinessSchema, faqSchema]}
+        robots="index, follow"
+      />
       <Header domain={domain} />
       <main>
         <Hero domain={domain} />
@@ -286,7 +358,7 @@ function PrixM2Page() {
         <div className="absolute inset-0 z-0">
           <img
             src={bordeaux_house}
-            alt="Belle propriété en Gironde"
+            alt="Estimation gratuite maison Bordeaux Gironde - Expert immobilier local"
             className="w-full h-full object-cover opacity-20"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-blue-900/90 to-blue-800/80"></div>

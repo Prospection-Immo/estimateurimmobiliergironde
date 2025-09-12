@@ -125,7 +125,7 @@ export default function PropertyEstimationForm() {
         <div className="absolute inset-0 z-0">
           <img
             src={bordeaux_house}
-            alt="Belle propriété en Gironde"
+            alt="Formulaire estimation immobilière Gironde - Évaluation gratuite"
             className="w-full h-full object-cover opacity-20"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-blue-900/90 to-blue-800/80"></div>

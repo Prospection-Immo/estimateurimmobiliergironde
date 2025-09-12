@@ -8,6 +8,7 @@ import { CheckCircle, Shield, Clock, Euro, Users, TrendingUp, Lightbulb, Target,
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import bordeaux_house from "@assets/generated_images/Bordeaux_house_property_photo_41cf0370.png";
+import SEOHead from "@/components/SEOHead";
 
 interface FinancementPageProps {
   domain?: string;
@@ -78,15 +79,100 @@ export default function FinancementPage({ domain = "estimation-immobilier-girond
     }
   };
 
+  // Structured data for financing service
+  const financingServiceSchema = {
+    "@context": "https://schema.org",
+    "@type": "FinancialService",
+    "name": "Financement Immobilier Gironde",
+    "description": "Service d'accompagnement personnalisé pour le financement de projets immobiliers en Gironde. Solutions de crédit immobilier adaptées à chaque situation.",
+    "url": `https://${domain}/financement`,
+    "provider": {
+      "@type": "LocalBusiness",
+      "name": "Estimation Immobilière Gironde",
+      "address": {
+        "@type": "PostalAddress", 
+        "addressLocality": "Bordeaux",
+        "postalCode": "33000",
+        "addressCountry": "FR"
+      },
+      "areaServed": {
+        "@type": "State",
+        "name": "Gironde"
+      }
+    },
+    "serviceType": "Financement immobilier",
+    "hasOfferCatalog": {
+      "@type": "OfferCatalog",
+      "name": "Solutions de financement",
+      "itemListElement": [
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "Service",
+            "name": "Crédit immobilier résidence principale",
+            "description": "Financement pour l'achat de votre résidence principale en Gironde"
+          }
+        },
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "Service",
+            "name": "Investissement locatif",
+            "description": "Solutions de crédit pour investissements locatifs en Gironde"
+          }
+        },
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "Service",
+            "name": "Rachat de crédit immobilier",
+            "description": "Renégociation et rachat de prêts immobiliers existants"
+          }
+        }
+      ]
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title="Financement Immobilier Gironde | Crédit & Prêt Expert Local 2025"
+        description="💰 Solutions de financement immobilier en Gironde. Accompagnement personnalisé, taux avantageux, experts locaux. Crédit résidence principale et investissement."
+        keywords={[
+          'financement immobilier Gironde',
+          'crédit immobilier Bordeaux',
+          'prêt immobilier Gironde',
+          'courtier immobilier Bordeaux',
+          'taux crédit immobilier Gironde',
+          'financement résidence principale',
+          'investissement locatif Bordeaux',
+          'rachat crédit Gironde',
+          'expert financement immobilier',
+          'prêt immobilier Bordeaux'
+        ]}
+        canonical={`https://${domain}/financement`}
+        openGraph={{
+          title: "Financement Immobilier Gironde | Expert Local",
+          description: "Solutions de financement immobilier personnalisées en Gironde. Accompagnement expert, taux avantageux, démarches simplifiées.",
+          image: bordeaux_house,
+          url: `https://${domain}/financement`,
+          type: "website"
+        }}
+        twitterCard={{
+          card: "summary_large_image",
+          title: "Financement Immobilier Gironde",
+          description: "Solutions de financement personnalisées en Gironde. Expert local, taux avantageux.",
+          image: bordeaux_house
+        }}
+        structuredData={financingServiceSchema}
+      />
       {/* Hero Section */}
       <section className="relative min-h-[50vh] bg-gradient-to-br from-background to-muted flex items-center">
         {/* Hero Background */}
         <div className="absolute inset-0 z-0">
           <img
             src={bordeaux_house}
-            alt="Belle propriété en Gironde"
+            alt="Financement immobilier Gironde - Solutions crédit Bordeaux"
             className="w-full h-full object-cover opacity-20"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-blue-900/90 to-blue-800/80"></div>

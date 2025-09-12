@@ -6,6 +6,7 @@ import { Calendar, ArrowRight, FileText } from "lucide-react";
 import { Link } from "wouter";
 import { useEffect } from "react";
 import bordeaux_house from "@assets/generated_images/Bordeaux_house_property_photo_41cf0370.png";
+import SEOHead from "@/components/SEOHead";
 
 interface Article {
   id: string;
@@ -25,14 +26,6 @@ interface ActualitesPageProps {
 export default function ActualitesPage({ domain = "estimation-immobilier-gironde.fr" }: ActualitesPageProps) {
   const isGironde = domain.includes("gironde");
   const cityName = isGironde ? "Gironde" : "Bordeaux";
-
-  useEffect(() => {
-    document.title = `Actualités immobilières ${cityName} - Estimation Gironde`;
-    const metaDescription = document.querySelector('meta[name="description"]');
-    if (metaDescription) {
-      metaDescription.setAttribute('content', `Découvrez nos derniers articles et conseils sur l'immobilier en ${cityName}. Analyses de marché, tendances et guides pratiques.`);
-    }
-  }, [cityName]);
 
   const { data: articles, isLoading, error } = useQuery({
     queryKey: ['/api/articles'],
@@ -65,6 +58,34 @@ export default function ActualitesPage({ domain = "estimation-immobilier-gironde
     return labels[category || ''] || 'Article';
   };
 
+  // Structured data for blog/articles
+  const blogSchema = {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    "name": `Actualités Immobilières ${cityName}`,
+    "description": `Blog d'actualités et conseils immobiliers en ${cityName}. Analyses de marché, tendances, guides pratiques et conseils d'experts.`,
+    "url": `https://${domain}/actualites`,
+    "publisher": {
+      "@type": "Organization",
+      "name": "Estimation Immobilière Gironde"
+    },
+    "blogPost": (articles || []).map(article => ({
+      "@type": "BlogPosting",
+      "headline": article.title,
+      "description": article.metaDescription || article.summary,
+      "url": `https://${domain}/articles/${article.slug}`,
+      "datePublished": article.publishedAt,
+      "author": {
+        "@type": "Person",
+        "name": article.authorName || "Expert Immobilier Gironde"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Estimation Immobilière Gironde"
+      }
+    }))
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -74,7 +95,7 @@ export default function ActualitesPage({ domain = "estimation-immobilier-gironde
           <div className="absolute inset-0 z-0">
             <img
               src={bordeaux_house}
-              alt="Belle propriété en Gironde"
+              alt="Actualités immobilières Gironde - Marché et tendances Bordeaux"
               className="w-full h-full object-cover opacity-20"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-blue-900/90 to-blue-800/80"></div>
@@ -128,7 +149,7 @@ export default function ActualitesPage({ domain = "estimation-immobilier-gironde
           <div className="absolute inset-0 z-0">
             <img
               src={bordeaux_house}
-              alt="Belle propriété en Gironde"
+              alt="Actualités immobilières Gironde - Marché et tendances Bordeaux"
               className="w-full h-full object-cover opacity-20"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-blue-900/90 to-blue-800/80"></div>
@@ -170,6 +191,37 @@ export default function ActualitesPage({ domain = "estimation-immobilier-gironde
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title={`Actualités Immobilières ${cityName} | Marché & Conseils Experts 2025`}
+        description={`📰 Actualités et conseils immobiliers ${cityName}. Analyses de marché, tendances, investissement. Expert local, conseils gratuits pour réussir vos projets.`}
+        keywords={[
+          `actualités immobilières ${cityName}`,
+          `marché immobilier ${cityName}`,
+          'conseils immobilier Gironde',
+          'blog immobilier Bordeaux',
+          'tendances immobilières Gironde',
+          'investissement immobilier Bordeaux',
+          'prix immobilier Gironde',
+          'expert immobilier Bordeaux',
+          'guides immobiliers gratuits',
+          'actualité immobilier Gironde'
+        ]}
+        canonical={`https://${domain}/actualites`}
+        openGraph={{
+          title: `Actualités Immobilières ${cityName}`,
+          description: `Actualités et conseils immobiliers ${cityName}. Analyses de marché, tendances et guides pratiques par nos experts locaux.`,
+          image: bordeaux_house,
+          url: `https://${domain}/actualites`,
+          type: "website"
+        }}
+        twitterCard={{
+          card: "summary_large_image",
+          title: `Actualités Immobilières ${cityName}`,
+          description: `Actualités immobilier ${cityName}. Analyses marché, conseils experts.`,
+          image: bordeaux_house
+        }}
+        structuredData={blogSchema}
+      />
       {/* Hero Section */}
       <section className="relative min-h-[50vh] bg-gradient-to-br from-background to-muted flex items-center">
         {/* Hero Background */}

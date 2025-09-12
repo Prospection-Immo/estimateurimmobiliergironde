@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  
+  <!-- Homepage - Priorité maximale -->
+  <url>
+    <loc>https://estimation-immobilier-gironde.fr/</loc>
+    <lastmod>2025-09-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- Pages services critiques -->
+  <url>
+    <loc>https://estimation-immobilier-gironde.fr/guides</loc>
+    <lastmod>2025-09-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://estimation-immobilier-gironde.fr/financement</loc>
+    <lastmod>2025-09-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://estimation-immobilier-gironde.fr/actualites</loc>
+    <lastmod>2025-09-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Formulaire d'estimation -->
+  <url>
+    <loc>https://estimation-immobilier-gironde.fr/estimation</loc>
+    <lastmod>2025-09-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Pages légales (importantes pour RGPD) -->
+  <url>
+    <loc>https://estimation-immobilier-gironde.fr/mentions-legales</loc>
+    <lastmod>2025-09-11</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+  <url>
+    <loc>https://estimation-immobilier-gironde.fr/politique-de-confidentialite</loc>
+    <lastmod>2025-09-11</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+  <url>
+    <loc>https://estimation-immobilier-gironde.fr/cookies</loc>
+    <lastmod>2025-09-11</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+</urlset>

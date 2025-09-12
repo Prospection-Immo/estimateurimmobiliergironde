@@ -1,0 +1,27 @@
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://estimation-immobilier-gironde.fr/sitemap.xml
+
+# Important pages to crawl
+Allow: /
+Allow: /guides
+Allow: /guides/*
+Allow: /financement
+Allow: /actualites
+Allow: /actualites/*
+
+# Block admin and private areas
+Disallow: /admin
+Disallow: /api/
+Disallow: /*?
+Disallow: /*.json
+
+# Allow CSS and JS for better rendering
+Allow: /src/
+Allow: /*.css
+Allow: /*.js
+
+# Crawl-delay for respectful crawling
+Crawl-delay: 1

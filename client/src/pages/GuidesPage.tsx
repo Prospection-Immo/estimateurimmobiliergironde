@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { type Guide, GUIDE_PERSONAS } from "@shared/schema";
+import SEOHead from "@/components/SEOHead";
 
 export default function GuidesPage() {
   const [selectedPersona, setSelectedPersona] = useState<string>("");
@@ -32,8 +33,83 @@ export default function GuidesPage() {
     count: guides.filter(g => g.persona === persona).length
   }));
 
+  // Structured data for guides catalog
+  const guidesCollectionSchema = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name": "Guides Vendeurs Immobilier Gironde",
+    "description": "Collection de guides spécialisés pour vendeurs immobiliers en Gironde selon votre profil et situation de vente",
+    "url": "https://estimation-immobilier-gironde.fr/guides",
+    "mainEntity": {
+      "@type": "ItemList",
+      "numberOfItems": guides.length,
+      "itemListElement": guides.map((guide, index) => ({
+        "@type": "CreativeWork",
+        "position": index + 1,
+        "name": guide.title,
+        "description": guide.summary || guide.metaDescription,
+        "author": {
+          "@type": "Organization",
+          "name": "Estimation Immobilière Gironde"
+        },
+        "genre": "Guide immobilier",
+        "audience": {
+          "@type": "Audience",
+          "audienceType": GUIDE_PERSONAS[guide.persona as keyof typeof GUIDE_PERSONAS]
+        },
+        "url": `https://estimation-immobilier-gironde.fr/guides/${guide.slug}`
+      }))
+    },
+    "breadcrumb": {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Accueil",
+          "item": "https://estimation-immobilier-gironde.fr"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Guides Vendeurs",
+          "item": "https://estimation-immobilier-gironde.fr/guides"
+        }
+      ]
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title="Guides Vendeurs Immobilier Gironde | Conseils Experts Vente 2025"
+        description="📚 Guides spécialisés pour vendre votre bien en Gironde selon votre profil. Conseils experts, stratégies personnalisées, PDF gratuits. 6 situations couvertes."
+        keywords={[
+          'guide vendeur Gironde',
+          'vendre maison Bordeaux',
+          'conseils vente immobilière Gironde',
+          'guide immobilier gratuit',
+          'vente immobilière Bordeaux',
+          'expert vente Gironde',
+          'conseil vendeur immobilier',
+          'guide PDF immobilier',
+          'stratégie vente maison',
+          'aide vendeur Gironde'
+        ]}
+        canonical="https://estimation-immobilier-gironde.fr/guides"
+        openGraph={{
+          title: "Guides Vendeurs Immobilier Gironde | Conseils Experts",
+          description: "Guides spécialisés pour vendre votre bien en Gironde selon votre profil. Conseils experts et stratégies personnalisées.",
+          url: "https://estimation-immobilier-gironde.fr/guides",
+          type: "website"
+        }}
+        twitterCard={{
+          card: "summary_large_image",
+          title: "Guides Vendeurs Immobilier Gironde",
+          description: "Guides spécialisés pour vendre selon votre profil en Gironde. Conseils experts gratuits."
+        }}
+        structuredData={guidesCollectionSchema}
+      />
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-primary/10 via-background to-primary/5 py-16">
         <div className="container mx-auto px-4">
