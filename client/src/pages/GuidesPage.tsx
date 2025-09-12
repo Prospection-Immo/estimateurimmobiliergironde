@@ -8,9 +8,17 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { type Guide, GUIDE_PERSONAS } from "@shared/schema";
 import SEOHead from "@/components/SEOHead";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+
+// Utility function to detect domain from Host header
+function getDomainFromHeaders(): string {
+  return "estimation-immobilier-gironde.fr";
+}
 
 export default function GuidesPage() {
   const [selectedPersona, setSelectedPersona] = useState<string>("all");
+  const domain = getDomainFromHeaders();
 
   const { data: guides = [], isLoading } = useQuery<Guide[]>({
     queryKey: ['/api/guides', selectedPersona],
@@ -81,6 +89,7 @@ export default function GuidesPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Header domain={domain} />
       <SEOHead
         title="Guides Vendeurs Immobilier Gironde | Conseils Experts Vente 2025"
         description="📚 Guides spécialisés pour vendre votre bien en Gironde selon votre profil. Conseils experts, stratégies personnalisées, PDF gratuits. 6 situations couvertes."
@@ -110,28 +119,29 @@ export default function GuidesPage() {
         }}
         structuredData={guidesCollectionSchema}
       />
+      
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-primary/10 via-background to-primary/5 py-16">
+      <section className="bg-primary text-primary-foreground py-20">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6" data-testid="heading-guides">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6" data-testid="heading-guides">
               Guides Vendeurs Gironde
             </h1>
-            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto text-primary-foreground/90">
               Des guides personnalisés selon votre situation pour vendre au meilleur prix et dans les meilleures conditions en Gironde.
             </p>
-            <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
+            <div className="flex flex-wrap justify-center gap-6 text-primary-foreground/80 mb-8">
               <div className="flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                <span>6 profils vendeurs</span>
+                <Users className="w-5 h-5" />
+                <span className="font-medium">6 profils vendeurs</span>
               </div>
               <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                <span>15-30 min de lecture</span>
+                <Clock className="w-5 h-5" />
+                <span className="font-medium">15-30 min de lecture</span>
               </div>
               <div className="flex items-center gap-2">
-                <Download className="w-4 h-4" />
-                <span>Format PDF inclus</span>
+                <Download className="w-5 h-5" />
+                <span className="font-medium">Format PDF inclus</span>
               </div>
             </div>
           </div>
@@ -325,6 +335,8 @@ export default function GuidesPage() {
           </div>
         </div>
       </section>
+      
+      <Footer domain={domain} />
     </div>
   );
 }

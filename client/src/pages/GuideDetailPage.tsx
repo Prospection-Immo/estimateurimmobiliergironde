@@ -124,8 +124,9 @@ function LeadCaptureForm({ guide }: { guide: Guide }) {
         firstName: data.firstName,
         email: data.email,
         city: data.city,
-        leadType: 'guide_download',
-        guideSlug: data.guideSlug
+        guideSlug: data.guideSlug,
+        acceptTerms: data.acceptTerms,
+        source: 'website'
       });
     },
     onSuccess: (response, variables) => {
@@ -135,7 +136,7 @@ function LeadCaptureForm({ guide }: { guide: Guide }) {
         email: variables.email,
         city: variables.city,
         guideSlug: variables.guideSlug,
-        token: response.leadToken // Secure token from backend
+        token: (response as any).leadToken // Secure token from backend
       };
       
       localStorage.setItem('guide-lead-context', JSON.stringify(leadContext));
