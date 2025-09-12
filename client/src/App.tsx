@@ -35,7 +35,6 @@ import GuideReadPage from "@/pages/GuideReadPage";
 import Admin2FALogin from "@/components/Admin2FALogin";
 import bordeaux_house from "@assets/generated_images/Bordeaux_house_property_photo_41cf0370.png";
 import SEOHead, { createLocalBusinessSchema, createFAQSchema } from "@/components/SEOHead";
-import AddressAutocomplete from "@/components/AddressAutocomplete";
 
 // Utility function to detect domain from Host header
 function getDomainFromHeaders(): string {
@@ -48,7 +47,6 @@ function getDomainFromHeaders(): string {
 function HomePage() {
   const domain = getDomainFromHeaders();
   const websiteUrl = `https://${domain}`;
-  const [selectedAddress, setSelectedAddress] = useState('');
   
   // Structured data for local business
   const localBusinessSchema = createLocalBusinessSchema(
@@ -125,49 +123,6 @@ function HomePage() {
       <Header domain={domain} />
       <main>
         <Hero domain={domain} />
-        
-        {/* Filtres de recherche rapide */}
-        <section className="py-8 bg-background border-b">
-          <div className="max-w-6xl mx-auto px-4">
-            <div className="flex flex-wrap items-center justify-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-foreground">Recherche rapide :</span>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <AddressAutocomplete 
-                  onAddressSelect={(address) => setSelectedAddress(address.formattedAddress)}
-                  placeholder="Où recherchez-vous ?"
-                  className="min-w-[200px] text-sm"
-                  data-testid="filter-address"
-                />
-                <select className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="filter-property-type">
-                  <option value="">Type de bien</option>
-                  <option value="maison">Maison</option>
-                  <option value="appartement">Appartement</option>
-                  <option value="terrain">Terrain</option>
-                </select>
-                <select className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="filter-price">
-                  <option value="">Budget</option>
-                  <option value="0-200000">- 200k €</option>
-                  <option value="200000-350000">200k - 350k €</option>
-                  <option value="350000-500000">350k - 500k €</option>
-                  <option value="500000-750000">500k - 750k €</option>
-                  <option value="750000+">750k € +</option>
-                </select>
-                <select className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="filter-rooms">
-                  <option value="">Pièces</option>
-                  <option value="1-2">1-2 pièces</option>
-                  <option value="3">3 pièces</option>
-                  <option value="4">4 pièces</option>
-                  <option value="5+">5+ pièces</option>
-                </select>
-                <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover-elevate transition-colors" data-testid="button-search">
-                  Rechercher
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
         
         {/* Section Estimateur */}
         <section className="py-16 bg-muted/20">
