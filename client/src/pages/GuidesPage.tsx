@@ -11,6 +11,16 @@ import SEOHead from "@/components/SEOHead";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
+// Images réalistes pour chaque persona
+const PERSONA_IMAGES: Record<string, string> = {
+  presse: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop&crop=face",
+  maximisateur: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=300&fit=crop&crop=face", 
+  succession: "https://images.unsplash.com/photo-1566492031773-4f4e44671d66?w=400&h=300&fit=crop&crop=face",
+  nouvelle_vie: "https://images.unsplash.com/photo-1494790108755-2616c33c9ad4?w=400&h=300&fit=crop&crop=face",
+  investisseur: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=300&fit=crop&crop=face",
+  primo: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=300&fit=crop&crop=face"
+};
+
 // Utility function to detect domain from Host header
 function getDomainFromHeaders(): string {
   return "estimation-immobilier-gironde.fr";
@@ -263,17 +273,29 @@ export default function GuidesPage() {
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {guides.map(guide => (
-                <Card key={guide.id} className="flex flex-col hover-elevate" data-testid={`card-guide-${guide.id}`}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <Badge variant="secondary" className="text-xs">
+                <Card key={guide.id} className="flex flex-col hover-elevate overflow-hidden" data-testid={`card-guide-${guide.id}`}>
+                  {/* Image de la persona */}
+                  <div className="relative h-48 overflow-hidden">
+                    <img 
+                      src={guide.imageUrl || PERSONA_IMAGES[guide.persona] || PERSONA_IMAGES.primo}
+                      alt={`Guide pour ${GUIDE_PERSONAS[guide.persona as keyof typeof GUIDE_PERSONAS]}`}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                    <div className="absolute top-3 left-3">
+                      <Badge variant="secondary" className="text-xs bg-white/90 text-gray-800">
                         {GUIDE_PERSONAS[guide.persona as keyof typeof GUIDE_PERSONAS]}
                       </Badge>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    </div>
+                    <div className="absolute top-3 right-3">
+                      <div className="flex items-center gap-1 text-xs text-white bg-black/50 px-2 py-1 rounded-full">
                         <Clock className="w-3 h-3" />
                         {guide.readingTime} min
                       </div>
                     </div>
+                  </div>
+                  
+                  <CardHeader className="pb-2">
                     <CardTitle className="text-lg leading-tight" data-testid={`title-${guide.id}`}>
                       {guide.title}
                     </CardTitle>

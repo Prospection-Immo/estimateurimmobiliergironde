@@ -184,6 +184,7 @@ export const guides = pgTable('guides', {
   content: text('content').notNull(), // Contenu HTML du guide
   summary: text('summary'), // Sommaire
   pdfContent: text('pdf_content'), // Contenu spécifique pour PDF (avec bonus)
+  imageUrl: text('image_url'), // URL de l'image illustrative du guide
   metaDescription: text('meta_description'),
   seoTitle: text('seo_title'),
   isActive: boolean('is_active').default(true),
