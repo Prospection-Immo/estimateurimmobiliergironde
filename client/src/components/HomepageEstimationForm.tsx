@@ -13,6 +13,10 @@ export default function HomepageEstimationForm() {
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [postalCode, setPostalCode] = useState("");
+  // BANT Qualification fields
+  const [projectType, setProjectType] = useState(""); // Need: projet de vente vs renseignement
+  const [timeline, setTimeline] = useState(""); // Timeline: délai souhaité
+  const [ownershipStatus, setOwnershipStatus] = useState(""); // Authority: propriétaire ou mandataire
   const [step, setStep] = useState<'form' | 'verification' | 'results'>('form');
   const [error, setError] = useState("");
   const { toast } = useToast();
@@ -22,7 +26,7 @@ export default function HomepageEstimationForm() {
     setError("");
 
     // Validation
-    if (!propertyType || !surface || !address) {
+    if (!propertyType || !surface || !address || !projectType || !timeline || !ownershipStatus) {
       setError("Tous les champs sont requis");
       return;
     }
@@ -55,6 +59,10 @@ export default function HomepageEstimationForm() {
           city,
           address,
           postalCode,
+          // BANT qualification data
+          projectType,
+          timeline,
+          ownershipStatus,
           wantsExpertContact: true,
           smsVerified: true,
           sessionId
@@ -91,7 +99,10 @@ export default function HomepageEstimationForm() {
       surface,
       address,
       city,
-      postalCode
+      postalCode,
+      projectType,
+      timeline,
+      ownershipStatus
     };
     
     return (
@@ -151,6 +162,72 @@ export default function HomepageEstimationForm() {
               required
               data-testid="input-address"
             />
+          </div>
+
+          {/* BANT Qualification Questions */}
+          <div className="border-t pt-4 mt-6">
+            <h4 className="text-base font-medium text-card-foreground mb-4 flex items-center">
+              <span className="w-2 h-2 bg-primary rounded-full mr-2"></span>
+              Quelques questions pour personnaliser votre estimation
+            </h4>
+            
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="text-sm font-medium text-card-foreground block mb-2">
+                  Dans quel contexte souhaitez-vous cette estimation ?
+                </label>
+                <Select value={projectType} onValueChange={setProjectType} required>
+                  <SelectTrigger data-testid="select-project-type">
+                    <SelectValue placeholder="Choisissez votre situation" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="vente_immediate">Projet de vente immédiate</SelectItem>
+                    <SelectItem value="vente_6mois">Projet de vente dans 6 mois</SelectItem>
+                    <SelectItem value="vente_1an">Projet de vente dans l'année</SelectItem>
+                    <SelectItem value="curiosite">Simple curiosité / renseignement</SelectItem>
+                    <SelectItem value="succession">Estimation pour succession</SelectItem>
+                    <SelectItem value="divorce">Estimation pour divorce</SelectItem>
+                    <SelectItem value="fiscal">Estimation fiscale</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-card-foreground block mb-2">
+                  Si c'est un projet de vente, dans quel délai ?
+                </label>
+                <Select value={timeline} onValueChange={setTimeline} required>
+                  <SelectTrigger data-testid="select-timeline">
+                    <SelectValue placeholder="Sélectionnez un délai" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1_3_mois">1 à 3 mois</SelectItem>
+                    <SelectItem value="3_6_mois">3 à 6 mois</SelectItem>
+                    <SelectItem value="6_12_mois">6 mois à 1 an</SelectItem>
+                    <SelectItem value="plus_1_an">Plus d'1 an</SelectItem>
+                    <SelectItem value="non_applicable">Non applicable (pas de vente)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-card-foreground block mb-2">
+                  Vous êtes ?
+                </label>
+                <Select value={ownershipStatus} onValueChange={setOwnershipStatus} required>
+                  <SelectTrigger data-testid="select-ownership">
+                    <SelectValue placeholder="Votre statut" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="proprietaire_unique">Propriétaire unique</SelectItem>
+                    <SelectItem value="coproprietaire">Copropriétaire</SelectItem>
+                    <SelectItem value="mandataire_famille">Mandataire (famille)</SelectItem>
+                    <SelectItem value="notaire_conseil">Notaire / Conseil</SelectItem>
+                    <SelectItem value="autre">Autre</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
 
           {error && (

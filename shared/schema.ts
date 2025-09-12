@@ -33,6 +33,10 @@ export const leads = pgTable("leads", {
   saleTimeline: text("sale_timeline").default("6m"), // "3m" | "6m" | "immediate"
   wantsExpertContact: boolean("wants_expert_contact").default(false),
   estimatedValue: decimal("estimated_value", { precision: 10, scale: 2 }),
+  // BANT Qualification fields
+  projectType: text("project_type"), // BANT Need: "vente_immediate" | "curiosite" | "succession" | etc.
+  timeline: text("timeline"), // BANT Timeline: "1_3_mois" | "3_6_mois" | "non_applicable" | etc.
+  ownershipStatus: text("ownership_status"), // BANT Authority: "proprietaire_unique" | "coproprietaire" | etc.
   // Financing specific fields
   financingProjectType: text("financing_project_type"), // For financing leads: "Achat résidence principale", "Investissement locatif", etc.
   projectAmount: text("project_amount"), // Amount as text (e.g., "250 000 €")

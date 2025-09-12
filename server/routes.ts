@@ -315,6 +315,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         constructionYear: propertyData.constructionYear,
         saleTimeline: propertyData.saleTimeline || "6m",
         wantsExpertContact: propertyData.wantsExpertContact || true,
+        // BANT qualification fields
+        projectType: propertyData.projectType,
+        timeline: propertyData.timeline,
+        ownershipStatus: propertyData.ownershipStatus,
         source: domain || 'estimation-immobilier-gironde.fr'
       };
 
