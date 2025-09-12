@@ -420,6 +420,6 @@ export const emailAnalyticsSchema = z.object({
 
 // Analytics response types
 export type DashboardAnalytics = z.infer<typeof dashboardAnalyticsSchema>;
-export type GuideAnalytics = z.infer<typeof guideAnalyticsSchema>;
+export type GuideAnalyticsResponse = z.infer<typeof guideAnalyticsSchema>;
 export type LeadFunnelAnalytics = z.infer<typeof leadFunnelAnalyticsSchema>;
 export type EmailAnalytics = z.infer<typeof emailAnalyticsSchema>;
