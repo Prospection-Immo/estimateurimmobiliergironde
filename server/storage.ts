@@ -94,6 +94,7 @@ export interface IStorage {
   // Guides
   createGuide(guide: InsertGuide): Promise<Guide>;
   getGuides(persona?: string): Promise<Guide[]>;
+  getGuideById(id: string): Promise<Guide | undefined>;
   getGuideBySlug(slug: string): Promise<Guide | undefined>;
   updateGuide(id: string, updates: Partial<InsertGuide>): Promise<Guide>;
   deleteGuide(id: string): Promise<void>;
@@ -349,6 +350,15 @@ export class SupabaseStorage implements IStorage {
       .from(guides)
       .where(eq(guides.isActive, true))
       .orderBy(guides.sortOrder, guides.createdAt);
+  }
+
+  async getGuideById(id: string): Promise<Guide | undefined> {
+    const [guide] = await db
+      .select()
+      .from(guides)
+      .where(and(eq(guides.id, id), eq(guides.isActive, true)))
+      .limit(1);
+    return guide;
   }
 
   async getGuideBySlug(slug: string): Promise<Guide | undefined> {

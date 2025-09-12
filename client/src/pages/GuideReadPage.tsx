@@ -25,6 +25,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { type Guide, GUIDE_PERSONAS } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import { useLeadContext } from "@/lib/leadContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -33,16 +34,6 @@ function getDomainFromHeaders(): string {
   return "estimation-immobilier-gironde.fr";
 }
 
-// Extract query parameters from URL
-function useQueryParams() {
-  const [location] = useLocation();
-  const params = new URLSearchParams(location.split('?')[1] || '');
-  return {
-    firstName: params.get('firstName') || 'Utilisateur',
-    email: params.get('email') || '',
-    city: params.get('city') || ''
-  };
-}
 
 // Reading progress tracking hook
 function useReadingProgress(contentRef: React.RefObject<HTMLElement>) {
@@ -171,55 +162,6 @@ function ReadingStats({ progress, timeSpent, estimatedTime }: {
   );
 }
 
-// Lead context management with localStorage and token system
-function useLeadContext() {
-  const [leadContext, setLeadContext] = useState<{
-    firstName: string;
-    email: string;
-    city: string;
-    guideSlug: string;
-    token?: string;
-  } | null>(null);
-
-  useEffect(() => {
-    // Try to get lead context from localStorage first
-    const storedContext = localStorage.getItem('guide-lead-context');
-    if (storedContext) {
-      try {
-        const parsed = JSON.parse(storedContext);
-        setLeadContext(parsed);
-        return;
-      } catch (error) {
-        console.error('Error parsing stored lead context:', error);
-        localStorage.removeItem('guide-lead-context');
-      }
-    }
-
-    // Fallback to URL query params if no localStorage (legacy support)
-    const urlParams = new URLSearchParams(window.location.search);
-    const firstName = urlParams.get('firstName');
-    const email = urlParams.get('email');
-    const city = urlParams.get('city');
-    
-    if (firstName && email && city) {
-      const context = { firstName, email, city, guideSlug: '' };
-      setLeadContext(context);
-      // Store in localStorage for future use
-      localStorage.setItem('guide-lead-context', JSON.stringify(context));
-    }
-  }, []);
-
-  const updateLeadContext = (context: typeof leadContext) => {
-    setLeadContext(context);
-    if (context) {
-      localStorage.setItem('guide-lead-context', JSON.stringify(context));
-    } else {
-      localStorage.removeItem('guide-lead-context');
-    }
-  };
-
-  return { leadContext, updateLeadContext };
-}
 
 // Process content to add section IDs for table of contents
 function renderContentWithSections(content: string): string {
@@ -238,8 +180,7 @@ function renderContentWithSections(content: string): string {
 export default function GuideReadPage() {
   const domain = getDomainFromHeaders();
   const [, params] = useRoute("/guides/:slug/lire");
-  const queryParams = useQueryParams();
-  const { leadContext, updateLeadContext } = useLeadContext();
+  const { leadContext, isLoading: leadContextLoading } = useLeadContext();
   const { toast } = useToast();
   
   const [activeSection, setActiveSection] = useState<string>("");
@@ -279,17 +220,15 @@ export default function GuideReadPage() {
       eventType: string;
       eventValue?: string;
     }) => {
-      // Use leadContext from localStorage (secure) or fallback to queryParams (legacy)
-      const context = leadContext || {
-        firstName: queryParams.firstName,
-        email: queryParams.email,
-        city: queryParams.city
-      };
+      if (!leadContext?.email) {
+        console.error('No lead context available for analytics');
+        return;
+      }
 
       return apiRequest('POST', '/api/guides/analytics', {
         guideId: eventData.guideId,
         sessionId: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-        leadEmail: context.email,
+        leadEmail: leadContext.email,
         eventType: eventData.eventType,
         eventValue: eventData.eventValue,
         userAgent: navigator.userAgent,
@@ -350,26 +289,30 @@ export default function GuideReadPage() {
 
   // Handle PDF download with secure token system
   const handlePdfDownload = () => {
-    if (!guide) return;
+    if (!guide || !leadContext) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de télécharger le PDF. Veuillez rafraîchir la page.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     trackAnalyticsMutation.mutate({
       guideId: guide.id,
       eventType: 'pdf_download_from_reader'
     });
 
-    // Use leadContext from localStorage (secure) or fallback to queryParams (legacy)
-    const context = leadContext || {
-      firstName: queryParams.firstName,
-      email: queryParams.email,
-      city: queryParams.city
-    };
-
-    if (context.token) {
+    if (leadContext.token) {
       // Use secure token system (RGPD-compliant)
-      window.open(`/api/guides/${slug}/download-pdf?token=${encodeURIComponent(context.token)}`, '_blank');
+      window.open(`/api/guides/${slug}/download-pdf?token=${encodeURIComponent(leadContext.token)}`, '_blank');
     } else {
-      // Fallback to legacy system (temporary)
-      window.open(`/api/guides/${slug}/download-pdf?email=${encodeURIComponent(context.email)}&firstName=${encodeURIComponent(context.firstName)}&city=${encodeURIComponent(context.city)}`, '_blank');
+      toast({
+        title: "Erreur",
+        description: "Token de sécurité manquant. Veuillez recommencer le processus.",
+        variant: "destructive"
+      });
+      return;
     }
     
     toast({
@@ -386,7 +329,22 @@ export default function GuideReadPage() {
     });
   };
 
-  if (isLoading) {
+  // Redirect if no lead context (user didn't go through proper flow)
+  useEffect(() => {
+    if (!leadContextLoading && !leadContext) {
+      toast({
+        title: "Accès non autorisé",
+        description: "Vous devez d'abord demander le guide pour accéder à cette page.",
+        variant: "destructive"
+      });
+      // Redirect to guides page after a short delay
+      setTimeout(() => {
+        window.location.href = '/guides';
+      }, 2000);
+    }
+  }, [leadContext, leadContextLoading, toast]);
+
+  if (isLoading || leadContextLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Header domain={domain} />
@@ -398,6 +356,29 @@ export default function GuideReadPage() {
                 <div className="h-4 bg-muted rounded w-1/2"></div>
                 <div className="h-64 bg-muted rounded"></div>
               </div>
+            </div>
+          </div>
+        </main>
+        <Footer domain={domain} />
+      </div>
+    );
+  }
+
+  // Show error if no lead context
+  if (!leadContextLoading && !leadContext) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header domain={domain} />
+        <main className="py-16">
+          <div className="container mx-auto px-4">
+            <div className="max-w-2xl mx-auto text-center">
+              <h1 className="text-2xl font-bold text-destructive mb-4">Accès non autorisé</h1>
+              <p className="text-muted-foreground mb-6">
+                Vous devez d'abord demander le guide pour accéder à cette page.
+              </p>
+              <Button asChild>
+                <Link href="/guides">Voir tous les guides</Link>
+              </Button>
             </div>
           </div>
         </main>
@@ -442,7 +423,7 @@ export default function GuideReadPage() {
               {/* Navigation */}
               <div className="flex items-center gap-4 mb-6">
                 <Button asChild variant="ghost" size="sm">
-                  <Link href={`/guides/${slug}/merci?firstName=${encodeURIComponent(queryParams.firstName)}&email=${encodeURIComponent(queryParams.email)}&city=${encodeURIComponent(queryParams.city)}`}>
+                  <Link href={`/guides/${slug}/merci`}>
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     Retour
                   </Link>
@@ -531,7 +512,7 @@ export default function GuideReadPage() {
                             <CheckCircle className="w-6 h-6 text-green-500 flex-shrink-0 mt-1" />
                             <div>
                               <h3 className="text-lg font-semibold text-green-900 dark:text-green-100 mb-2">
-                                Félicitations {leadContext?.firstName || queryParams.firstName} !
+                                Félicitations {leadContext?.firstName || 'cher utilisateur'} !
                               </h3>
                               <p className="text-green-800 dark:text-green-200 mb-4">
                                 Vous avez terminé la lecture de ce guide. Vous possédez maintenant toutes les clés pour optimiser la vente de votre bien en Gironde.

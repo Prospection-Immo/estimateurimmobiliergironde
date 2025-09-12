@@ -5,6 +5,8 @@ import { insertLeadSchema, insertEstimationSchema, insertContactSchema, insertAr
 import { sanitizeArticleContent } from "./services/htmlSanitizer";
 import { generateRealEstateArticle } from "./services/openai";
 import emailService from "./services/emailService";
+import emailSequenceService from "./services/emailSequenceService";
+import emailTemplateGenerator from "./services/emailTemplateGenerator";
 import { z } from "zod";
 import crypto from "crypto";
 import twilio from "twilio";
@@ -605,6 +607,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } catch (emailError) {
         console.error('Error sending admin guide notification email:', emailError);
+      }
+
+      // Trigger automated email sequence for this persona
+      try {
+        const sequenceResult = await emailSequenceService.triggerSequence({
+          guideId: guide.id,
+          leadEmail: validatedData.email,
+          leadFirstName: validatedData.firstName,
+          leadCity: validatedData.city,
+          persona: guide.persona as any, // Guide has persona field
+          source: domain
+        });
+
+        if (sequenceResult.success) {
+          console.log(`✅ Email sequence triggered for ${validatedData.email} - persona: ${guide.persona}`);
+          console.log(`Sequence IDs: ${sequenceResult.sequenceIds.join(', ')}`);
+        } else {
+          console.warn(`⚠️ Failed to trigger email sequence: ${sequenceResult.error}`);
+        }
+      } catch (sequenceError) {
+        console.error('Error triggering email sequence:', sequenceError);
+        // Don't fail the request if sequence triggering fails
       }
 
       // Create secure token for lead context (RGPD-compliant)
@@ -2389,21 +2413,19 @@ Actions à effectuer:
       }
       
       // Get lead data from secure token (RGPD-compliant)
-      let leadData = null;
-      if (token) {
-        leadData = getLeadFromToken(token as string);
-      }
-      
-      // Fallback to legacy query params for backwards compatibility (temporary)
-      const { email, firstName, city } = req.query;
-      if (!leadData && (!email || !firstName)) {
+      if (!token) {
         return res.status(400).json({ error: 'Token requis pour télécharger le PDF' });
       }
       
-      const finalLeadData = leadData || {
-        firstName: firstName as string,
-        email: email as string,
-        city: (city as string) || 'Gironde',
+      const leadData = getLeadFromToken(token as string);
+      if (!leadData) {
+        return res.status(401).json({ error: 'Token invalide ou expiré' });
+      }
+      
+      const finalLeadData = {
+        firstName: leadData.firstName,
+        email: leadData.email,
+        city: leadData.city,
         guideSlug: slug
       };
       
@@ -3661,6 +3683,252 @@ Actions à effectuer:
     }
   });
   */
+
+  // ===== EMAIL SEQUENCE MANAGEMENT ROUTES =====
+
+  // Get all email sequences with filtering and pagination
+  app.get('/api/admin/email-sequences', requireAuth, async (req, res) => {
+    try {
+      const { leadEmail, persona, status, limit, offset } = req.query;
+
+      let sequences = await storage.getGuideEmailSequences(leadEmail as string);
+
+      // Apply filters
+      if (persona && persona !== 'all') {
+        sequences = sequences.filter(s => s.persona === persona);
+      }
+      if (status && status !== 'all') {
+        sequences = sequences.filter(s => s.status === status);
+      }
+
+      // Apply pagination
+      const limitNum = limit ? parseInt(limit as string) : 50;
+      const offsetNum = offset ? parseInt(offset as string) : 0;
+      const paginatedSequences = sequences.slice(offsetNum, offsetNum + limitNum);
+
+      res.json({
+        sequences: paginatedSequences,
+        total: sequences.length,
+        limit: limitNum,
+        offset: offsetNum
+      });
+    } catch (error) {
+      console.error('Error fetching email sequences:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Get email sequence statistics
+  app.get('/api/admin/email-sequences/stats', requireAuth, async (req, res) => {
+    try {
+      const stats = await emailSequenceService.getSequenceStats();
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching sequence stats:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Process scheduled emails manually
+  app.post('/api/admin/email-sequences/process', requireAuth, async (req, res) => {
+    try {
+      const result = await emailSequenceService.processScheduledEmails();
+      res.json({
+        success: true,
+        message: `Processing complete: ${result.sent} sent, ${result.failed} failed`,
+        result
+      });
+    } catch (error) {
+      console.error('Error processing scheduled emails:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Update email sequence status
+  app.put('/api/admin/email-sequences/:id', requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, scheduledFor } = req.body;
+
+      // Validate status
+      const validStatuses = ['scheduled', 'sent', 'failed', 'cancelled'];
+      if (status && !validStatuses.includes(status)) {
+        return res.status(400).json({ error: 'Invalid status' });
+      }
+
+      const updates: any = {};
+      if (status) updates.status = status;
+      if (scheduledFor) updates.scheduledFor = new Date(scheduledFor);
+
+      await storage.updateGuideEmailSequence(id, updates);
+      res.json({ success: true, message: 'Sequence updated successfully' });
+    } catch (error) {
+      console.error('Error updating email sequence:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Cancel email sequence
+  app.delete('/api/admin/email-sequences/:id', requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.updateGuideEmailSequence(id, { status: 'cancelled' });
+      res.json({ success: true, message: 'Sequence cancelled successfully' });
+    } catch (error) {
+      console.error('Error cancelling email sequence:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Get sequences for specific lead email
+  app.get('/api/admin/email-sequences/lead/:email', requireAuth, async (req, res) => {
+    try {
+      const { email } = req.params;
+      const sequences = await storage.getGuideEmailSequences(email);
+      res.json(sequences);
+    } catch (error) {
+      console.error('Error fetching lead sequences:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Trigger new sequence manually (admin only)
+  app.post('/api/admin/email-sequences/trigger', requireAuth, async (req, res) => {
+    try {
+      const { guideId, leadEmail, leadFirstName, leadCity, persona, source } = req.body;
+
+      if (!guideId || !leadEmail || !leadFirstName || !persona) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const result = await emailSequenceService.triggerSequence({
+        guideId,
+        leadEmail,
+        leadFirstName,
+        leadCity,
+        persona,
+        source
+      });
+
+      if (result.success) {
+        res.json({
+          success: true,
+          message: 'Email sequence triggered successfully',
+          sequenceIds: result.sequenceIds
+        });
+      } else {
+        res.status(400).json({ error: result.error });
+      }
+    } catch (error) {
+      console.error('Error triggering email sequence:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Public unsubscribe endpoint (no auth required)
+  app.post('/api/unsubscribe', async (req, res) => {
+    try {
+      const { token } = req.body;
+
+      if (!token) {
+        return res.status(400).json({ error: 'Token required' });
+      }
+
+      // Decode token to get email and sequence ID
+      let email: string;
+      try {
+        const decoded = Buffer.from(token, 'base64').toString('utf-8');
+        const [decodedEmail] = decoded.split(':');
+        email = decodedEmail;
+      } catch {
+        return res.status(400).json({ error: 'Invalid token' });
+      }
+
+      const result = await emailSequenceService.unsubscribeUser(email);
+
+      if (result.success) {
+        res.json({
+          success: true,
+          message: 'Successfully unsubscribed from all email sequences'
+        });
+      } else {
+        res.status(500).json({ error: result.error });
+      }
+    } catch (error) {
+      console.error('Error unsubscribing user:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Get unsubscribe page info (no auth required)
+  app.get('/api/unsubscribe/:token', async (req, res) => {
+    try {
+      const { token } = req.params;
+
+      // Decode token to get email
+      let email: string;
+      try {
+        const decoded = Buffer.from(token, 'base64').toString('utf-8');
+        const [decodedEmail] = decoded.split(':');
+        email = decodedEmail;
+      } catch {
+        return res.status(400).json({ error: 'Invalid token' });
+      }
+
+      // Get active sequences for this email
+      const sequences = await storage.getGuideEmailSequences(email);
+      const activeSequences = sequences.filter(s => s.status === 'scheduled');
+
+      res.json({
+        email,
+        activeSequences: activeSequences.length,
+        personas: [...new Set(activeSequences.map(s => s.persona))]
+      });
+    } catch (error) {
+      console.error('Error getting unsubscribe info:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Initialize email sequence templates (setup endpoint)
+  app.post('/api/admin/email-sequences/setup-templates', requireAuth, async (req, res) => {
+    try {
+      const result = await emailTemplateGenerator.generateAllTemplates();
+
+      if (result.success) {
+        res.json({
+          success: true,
+          message: `Email sequence templates setup complete: ${result.created} templates created`,
+          created: result.created
+        });
+      } else {
+        res.status(500).json({
+          error: 'Failed to setup templates',
+          errors: result.errors
+        });
+      }
+    } catch (error) {
+      console.error('Error setting up email templates:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Start background email processor (development only)
+  if (process.env.NODE_ENV === 'development') {
+    app.post('/api/admin/email-sequences/start-processor', requireAuth, async (req, res) => {
+      try {
+        const { intervalMinutes = 30 } = req.body;
+        emailSequenceService.startBackgroundProcessor(intervalMinutes);
+        res.json({
+          success: true,
+          message: `Background email processor started (every ${intervalMinutes} minutes)`
+        });
+      } catch (error) {
+        console.error('Error starting background processor:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    });
+  }
 
   const httpServer = createServer(app);
   return httpServer;

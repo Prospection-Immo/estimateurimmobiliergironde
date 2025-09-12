@@ -14,6 +14,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import EmailSequenceManager from "@/components/EmailSequenceManager";
 import { 
   Users, 
   User,
@@ -673,12 +674,13 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
 
         {/* Main Content */}
         <Tabs defaultValue="leads" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="leads" data-testid="tab-leads">Leads</TabsTrigger>
             <TabsTrigger value="estimations" data-testid="tab-estimations">Estimations</TabsTrigger>
             <TabsTrigger value="contacts" data-testid="tab-contacts">Messages</TabsTrigger>
             <TabsTrigger value="articles" data-testid="tab-articles">Articles</TabsTrigger>
             <TabsTrigger value="emails" data-testid="tab-emails">Emails</TabsTrigger>
+            <TabsTrigger value="sequences" data-testid="tab-sequences">Séquences</TabsTrigger>
           </TabsList>
 
           <TabsContent value="leads" className="space-y-6">
@@ -2062,6 +2064,10 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                 </Card>
               </TabsContent>
             </Tabs>
+          </TabsContent>
+
+          <TabsContent value="sequences" className="space-y-6">
+            <EmailSequenceManager />
           </TabsContent>
         </Tabs>
 

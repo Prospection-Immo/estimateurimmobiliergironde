@@ -21,6 +21,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { type Guide, GUIDE_PERSONAS } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import { useLeadContext } from "@/lib/leadContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -29,73 +30,12 @@ function getDomainFromHeaders(): string {
   return "estimation-immobilier-gironde.fr";
 }
 
-// Lead context management with localStorage and token system (same as GuideReadPage)
-function useLeadContext() {
-  const [leadContext, setLeadContext] = useState<{
-    firstName: string;
-    email: string;
-    city: string;
-    guideSlug: string;
-    token?: string;
-  } | null>(null);
-
-  useEffect(() => {
-    // Try to get lead context from localStorage first
-    const storedContext = localStorage.getItem('guide-lead-context');
-    if (storedContext) {
-      try {
-        const parsed = JSON.parse(storedContext);
-        setLeadContext(parsed);
-        return;
-      } catch (error) {
-        console.error('Error parsing stored lead context:', error);
-        localStorage.removeItem('guide-lead-context');
-      }
-    }
-
-    // Fallback to URL query params if no localStorage (legacy support)
-    const urlParams = new URLSearchParams(window.location.search);
-    const firstName = urlParams.get('firstName');
-    const email = urlParams.get('email');
-    const city = urlParams.get('city');
-    
-    if (firstName && email && city) {
-      const context = { firstName, email, city, guideSlug: '' };
-      setLeadContext(context);
-      // Store in localStorage for future use
-      localStorage.setItem('guide-lead-context', JSON.stringify(context));
-    }
-  }, []);
-
-  const updateLeadContext = (context: typeof leadContext) => {
-    setLeadContext(context);
-    if (context) {
-      localStorage.setItem('guide-lead-context', JSON.stringify(context));
-    } else {
-      localStorage.removeItem('guide-lead-context');
-    }
-  };
-
-  return { leadContext, updateLeadContext };
-}
-
-// Extract query parameters from URL (legacy fallback)
-function useQueryParams() {
-  const [location] = useLocation();
-  const params = new URLSearchParams(location.split('?')[1] || '');
-  return {
-    firstName: params.get('firstName') || 'Utilisateur',
-    email: params.get('email') || '',
-    city: params.get('city') || ''
-  };
-}
 
 // Guide thanks page component
 export default function GuideThanksPage() {
   const domain = getDomainFromHeaders();
   const [, params] = useRoute("/guides/:slug/merci");
-  const queryParams = useQueryParams();
-  const { leadContext, updateLeadContext } = useLeadContext();
+  const { leadContext, isLoading: leadContextLoading } = useLeadContext();
   const { toast } = useToast();
   const [hasTrackedView, setHasTrackedView] = useState(false);
 
@@ -122,17 +62,15 @@ export default function GuideThanksPage() {
       eventType: string;
       eventValue?: string;
     }) => {
-      // Use leadContext from localStorage (secure) or fallback to queryParams (legacy)
-      const context = leadContext || {
-        firstName: queryParams.firstName,
-        email: queryParams.email,
-        city: queryParams.city
-      };
+      if (!leadContext?.email) {
+        console.error('No lead context available for analytics');
+        return;
+      }
 
       return apiRequest('POST', '/api/guides/analytics', {
         guideId: eventData.guideId,
         sessionId: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-        leadEmail: context.email,
+        leadEmail: leadContext.email,
         eventType: eventData.eventType,
         eventValue: eventData.eventValue,
         userAgent: navigator.userAgent,
@@ -146,19 +84,25 @@ export default function GuideThanksPage() {
 
   // Track page view on mount
   useEffect(() => {
-    const context = leadContext || queryParams;
-    if (guide && !hasTrackedView && context.email) {
+    if (guide && !hasTrackedView && leadContext?.email) {
       trackAnalyticsMutation.mutate({
         guideId: guide.id,
         eventType: 'thank_you_page_view'
       });
       setHasTrackedView(true);
     }
-  }, [guide, hasTrackedView, leadContext, queryParams]);
+  }, [guide, hasTrackedView, leadContext]);
 
   // Handle PDF download with secure token system
   const handlePdfDownload = () => {
-    if (!guide) return;
+    if (!guide || !leadContext) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de télécharger le PDF. Veuillez rafraîchir la page.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     // Track intent
     trackAnalyticsMutation.mutate({
@@ -166,19 +110,16 @@ export default function GuideThanksPage() {
       eventType: 'pdf_download_click'
     });
 
-    // Use leadContext from localStorage (secure) or fallback to queryParams (legacy)
-    const context = leadContext || {
-      firstName: queryParams.firstName,
-      email: queryParams.email,
-      city: queryParams.city
-    };
-
-    if (context.token) {
+    if (leadContext.token) {
       // Use secure token system (RGPD-compliant)
-      window.open(`/api/guides/${slug}/download-pdf?token=${encodeURIComponent(context.token)}`, '_blank');
+      window.open(`/api/guides/${slug}/download-pdf?token=${encodeURIComponent(leadContext.token)}`, '_blank');
     } else {
-      // Fallback to legacy system (temporary)
-      window.open(`/api/guides/${slug}/download-pdf?email=${encodeURIComponent(context.email)}&firstName=${encodeURIComponent(context.firstName)}&city=${encodeURIComponent(context.city)}`, '_blank');
+      toast({
+        title: "Erreur",
+        description: "Token de sécurité manquant. Veuillez recommencer le processus.",
+        variant: "destructive"
+      });
+      return;
     }
     
     toast({
@@ -198,7 +139,22 @@ export default function GuideThanksPage() {
     });
   };
 
-  if (isLoading) {
+  // Redirect if no lead context (user didn't go through proper flow)
+  useEffect(() => {
+    if (!leadContextLoading && !leadContext) {
+      toast({
+        title: "Accès non autorisé",
+        description: "Vous devez d'abord demander le guide pour accéder à cette page.",
+        variant: "destructive"
+      });
+      // Redirect to guides page after a short delay
+      setTimeout(() => {
+        window.location.href = '/guides';
+      }, 2000);
+    }
+  }, [leadContext, leadContextLoading, toast]);
+
+  if (isLoading || leadContextLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Header domain={domain} />
@@ -209,6 +165,29 @@ export default function GuideThanksPage() {
                 <div className="h-8 bg-muted rounded w-3/4 mx-auto"></div>
                 <div className="h-4 bg-muted rounded w-1/2 mx-auto"></div>
               </div>
+            </div>
+          </div>
+        </main>
+        <Footer domain={domain} />
+      </div>
+    );
+  }
+
+  // Show error if no lead context
+  if (!leadContextLoading && !leadContext) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header domain={domain} />
+        <main className="py-16">
+          <div className="container mx-auto px-4">
+            <div className="max-w-2xl mx-auto text-center">
+              <h1 className="text-2xl font-bold text-destructive mb-4">Accès non autorisé</h1>
+              <p className="text-muted-foreground mb-6">
+                Vous devez d'abord demander le guide pour accéder à cette page.
+              </p>
+              <Button asChild>
+                <Link href="/guides">Voir tous les guides</Link>
+              </Button>
             </div>
           </div>
         </main>
@@ -259,7 +238,7 @@ export default function GuideThanksPage() {
               
               {/* Thank you message */}
               <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4" data-testid="heading-thanks">
-                Merci {queryParams.firstName} !
+                Merci {leadContext?.firstName || 'cher utilisateur'} !
               </h1>
               
               <p className="text-xl text-muted-foreground mb-2">
@@ -267,7 +246,7 @@ export default function GuideThanksPage() {
               </p>
               
               <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
-                Nous avons également envoyé une copie à <strong>{queryParams.email}</strong> pour que vous puissiez y accéder à tout moment.
+                Nous avons également envoyé une copie à <strong>{leadContext?.email || 'votre adresse email'}</strong> pour que vous puissiez y accéder à tout moment.
               </p>
               
               {/* Guide Preview Card */}
