@@ -127,7 +127,7 @@ export default function ArticleFloatingWidget({
             {/* Related Guide */}
             {relatedGuide && (
               <Link 
-                href={`/guides/${relatedGuide.slug}/lire`}
+                href={`/guides/${relatedGuide.slug}`}
                 className="block"
                 data-testid="link-related-guide"
               >
