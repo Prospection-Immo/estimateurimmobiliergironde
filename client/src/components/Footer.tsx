@@ -50,8 +50,8 @@ export default function Footer({ domain = "estimation-immobilier-gironde.fr" }: 
               <Link href="/actualites" className="block text-sm text-muted-foreground hover:text-primary hover-elevate px-2 py-1 rounded" data-testid="link-footer-news">
                 Actualités
               </Link>
-              <Link href="/guide-landing" className="block text-sm text-muted-foreground hover:text-primary hover-elevate px-2 py-1 rounded" data-testid="link-footer-guide">
-                Guide immobilier
+              <Link href="/guides" className="block text-sm text-muted-foreground hover:text-primary hover-elevate px-2 py-1 rounded" data-testid="link-footer-guide">
+                Guides vendeurs
               </Link>
               <Link href="/investir" className="block text-sm text-muted-foreground hover:text-primary hover-elevate px-2 py-1 rounded" data-testid="link-footer-invest">
                 Investissement
