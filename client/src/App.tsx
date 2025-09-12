@@ -709,6 +709,26 @@ function ArticleRedirect() {
   );
 }
 
+// Guide Redirect Component (for legacy /guide/ URLs)
+function GuideRedirect() {
+  const params = useParams<{ slug: string }>();
+  
+  useEffect(() => {
+    if (params.slug) {
+      // Redirect to the new guide URL format
+      window.location.replace(`/guides/${params.slug}`);
+    }
+  }, [params.slug]);
+  
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="text-center">
+        <p className="text-lg">Redirection en cours...</p>
+      </div>
+    </div>
+  );
+}
+
 // Router Component
 function Router() {
   return (
@@ -726,8 +746,9 @@ function Router() {
       <Route path="/actualites" component={ActualitesPage} />
       <Route path="/actualites/:slug" component={ArticleDetailPage} />
       <Route path="/lexique-immobilier" component={LexiquePageComponentWrapper} />
-      {/* Redirect old article URLs to new format */}
+      {/* Redirect old URLs to new format */}
       <Route path="/articles/:slug" component={ArticleRedirect} />
+      <Route path="/guide/:slug" component={GuideRedirect} />
       <Route path="/login" component={AdminLoginPage} />
       <Route path="/admin/login" component={AdminLoginPage} />
       <Route path="/admin" component={AdminDashboardPage} />
