@@ -41,6 +41,25 @@ const insertFinancingLeadSchema = insertLeadSchema.extend({
   phone: z.string().trim().max(20).optional()
 });
 
+// Guide leads validation schema with RGPD compliance
+const insertGuideLeadSchema = z.object({
+  firstName: z.string().trim().min(2, "Le prénom doit contenir au moins 2 caractères").max(100),
+  email: z.string().email("Veuillez entrer une adresse email valide").trim().max(255),
+  city: z.string().trim().min(2, "La ville doit contenir au moins 2 caractères").max(100),
+  guideSlug: z.string().trim().min(1, "Le guide est requis").max(255),
+  acceptTerms: z.boolean().refine(val => val === true, "Vous devez accepter les conditions"),
+  source: z.string().optional()
+});
+
+// Get client IP address helper
+function getClientIp(req: any): string {
+  return req.headers['x-forwarded-for']?.split(',')[0] || 
+         req.headers['x-real-ip'] || 
+         req.connection.remoteAddress || 
+         req.socket.remoteAddress || 
+         '127.0.0.1';
+}
+
 // Estimation algorithm based on Gironde real estate data
 function calculateEstimation(propertyData: {
   propertyType: string;
@@ -351,25 +370,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create guide download lead
-  app.post('/api/guide-leads', async (req, res) => {
+  // Create guide download lead - SECURED with RGPD compliance and rate limiting
+  app.post('/api/guide-leads', rateLimit(5, 60000), async (req, res) => {
     try {
       const domain = req.headers['x-domain'] as string;
+      const clientIp = getClientIp(req);
       
-      // Validate the request body for guide download leads
-      const validatedData = insertLeadSchema.parse({
-        ...req.body,
+      // Validate the request body for guide download leads with strict RGPD compliance
+      const validatedData = insertGuideLeadSchema.parse(req.body);
+
+      // Verify that the guide exists before creating the lead
+      const guide = await storage.getGuideBySlug(validatedData.guideSlug);
+      if (!guide) {
+        return res.status(404).json({ error: 'Guide not found' });
+      }
+
+      // Create lead with RGPD compliance data
+      const leadData = {
+        firstName: validatedData.firstName,
+        lastName: '', // Guide leads don't collect last name for better UX
+        email: validatedData.email,
+        city: validatedData.city,
         source: domain,
-        leadType: 'guide_download'
-      });
+        leadType: 'guide_download' as const,
+        status: 'new' as const,
+        // RGPD compliance fields
+        consentAt: new Date(),
+        consentSource: 'guide_download',
+        ipAddress: clientIp,
+        guideSlug: validatedData.guideSlug
+      };
 
       // Save guide download lead
-      const lead = await storage.createLead(validatedData);
+      const lead = await storage.createLead(leadData);
 
-      res.json(lead);
+      // Send confirmation email with the guide PDF
+      try {
+        const clientTemplate = await storage.getEmailTemplateByCategory('guide_confirmation');
+        if (clientTemplate && clientTemplate.isActive) {
+          const clientVariables = {
+            firstName: validatedData.firstName,
+            email: validatedData.email,
+            city: validatedData.city,
+            guideTitle: guide.title,
+            guideSlug: validatedData.guideSlug
+          };
+
+          const clientResult = await emailService.sendTemplatedEmail(
+            clientTemplate,
+            clientVariables,
+            validatedData.email,
+            validatedData.firstName
+          );
+
+          if (clientResult.emailHistory) {
+            await storage.createEmailHistory(clientResult.emailHistory);
+          }
+        }
+      } catch (emailError) {
+        console.error('Error sending guide confirmation email:', emailError);
+        // Don't fail the request if email fails, but log it
+      }
+
+      // Send admin notification
+      try {
+        const adminTemplate = await storage.getEmailTemplateByCategory('admin_notification');
+        if (adminTemplate && adminTemplate.isActive) {
+          const currentTime = new Date().toLocaleString('fr-FR', { 
+            timeZone: 'Europe/Paris',
+            dateStyle: 'full',
+            timeStyle: 'short'
+          });
+
+          const adminVariables = {
+            leadType: 'Téléchargement de guide',
+            firstName: validatedData.firstName,
+            email: validatedData.email,
+            city: validatedData.city,
+            guideTitle: guide.title,
+            source: domain,
+            ipAddress: clientIp,
+            consentDate: currentTime
+          };
+
+          const adminResult = await emailService.sendTemplatedEmail(
+            adminTemplate,
+            adminVariables,
+            'admin@estimation-immobilier-gironde.fr',
+            'Administration'
+          );
+
+          if (adminResult.emailHistory) {
+            await storage.createEmailHistory(adminResult.emailHistory);
+          }
+        }
+      } catch (emailError) {
+        console.error('Error sending admin guide notification email:', emailError);
+      }
+
+      res.json({ 
+        success: true, 
+        message: 'Guide envoyé avec succès',
+        lead: {
+          id: lead.id,
+          firstName: lead.firstName,
+          email: lead.email,
+          guideSlug: lead.guideSlug
+        }
+      });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          error: 'Données invalides', 
+          details: error.errors.map(e => e.message).join(', ')
+        });
+      }
       console.error('Error creating guide lead:', error);
-      res.status(400).json({ error: 'Invalid data provided' });
+      res.status(500).json({ error: 'Une erreur est survenue. Veuillez réessayer.' });
     }
   });
 
@@ -1815,12 +1932,20 @@ Actions à effectuer:
     }
   });
 
-  // Guides routes
+  // Guides routes - SECURED with HTML sanitization
   app.get('/api/guides', async (req, res) => {
     try {
       const { persona } = req.query;
       const guides = await storage.getGuides(persona as string);
-      res.json(guides);
+      
+      // Sanitize HTML content to prevent XSS attacks
+      const sanitizedGuides = guides.map(guide => ({
+        ...guide,
+        content: sanitizeArticleContent(guide.content || ''),
+        summary: sanitizeArticleContent(guide.summary || '')
+      }));
+      
+      res.json(sanitizedGuides);
     } catch (error) {
       console.error('Error fetching guides:', error);
       res.status(500).json({ error: 'Internal server error' });
@@ -1836,7 +1961,14 @@ Actions à effectuer:
         return res.status(404).json({ error: 'Guide not found' });
       }
       
-      res.json(guide);
+      // Sanitize HTML content to prevent XSS attacks
+      const sanitizedGuide = {
+        ...guide,
+        content: sanitizeArticleContent(guide.content || ''),
+        summary: sanitizeArticleContent(guide.summary || '')
+      };
+      
+      res.json(sanitizedGuide);
     } catch (error) {
       console.error('Error fetching guide:', error);
       res.status(500).json({ error: 'Internal server error' });
@@ -1877,11 +2009,19 @@ Actions à effectuer:
     }
   });
 
-  // Admin guides routes
+  // Admin guides routes - SECURED with HTML sanitization
   app.post('/api/admin/guides', requireAuth, async (req, res) => {
     try {
       const validatedData = insertGuideSchema.parse(req.body);
-      const guide = await storage.createGuide(validatedData);
+      
+      // Sanitize HTML content before saving to prevent XSS attacks
+      const sanitizedData = {
+        ...validatedData,
+        content: sanitizeArticleContent(validatedData.content || ''),
+        summary: sanitizeArticleContent(validatedData.summary || '')
+      };
+      
+      const guide = await storage.createGuide(sanitizedData);
       res.json(guide);
     } catch (error) {
       console.error('Error creating guide:', error);
@@ -1921,83 +2061,1064 @@ Actions à effectuer:
     }
   });
 
-  // Seed default guides endpoint (temporary)
+  // Seed default guides endpoint (admin only)
   app.post('/api/admin/seed-guides', requireAuth, async (req, res) => {
     try {
+      // Check if guides already exist
+      const existingGuides = await storage.getGuides();
+      if (existingGuides.length > 0) {
+        return res.json({ 
+          success: false, 
+          message: `${existingGuides.length} guides already exist in database`,
+          existingGuides: existingGuides.map(g => ({ id: g.id, title: g.title, persona: g.persona }))
+        });
+      }
+
       const defaultGuides = [
         {
-          title: "Guide du Vendeur Pressé - Vendre en moins de 60 jours",
+          title: "Guide du Vendeur Pressé - Vendre en moins de 60 jours en Gironde",
           slug: "guide-vendeur-presse",
           persona: "presse",
-          shortBenefit: "Vendez rapidement sans sacrifier le prix grâce à notre méthode éprouvée",
+          shortBenefit: "Vendez rapidement sans sacrifier le prix grâce à notre méthode éprouvée en Gironde",
           readingTime: 15,
-          content: `<h1>Guide du Vendeur Pressé</h1>
-            <p>Vous devez vendre rapidement ? Ce guide vous révèle les 5 stratégies pour vendre en moins de 60 jours sans brader votre prix.</p>
+          content: `<div class="guide-content">
+            <h1>Guide du Vendeur Pressé - Vendre en moins de 60 jours en Gironde</h1>
+            
+            <div class="intro-section">
+              <p><strong>Mutation, divorce, succession urgente ?</strong> Vous devez vendre rapidement votre bien en Gironde sans brader le prix ? Ce guide vous révèle les 5 stratégies éprouvées pour vendre en moins de 60 jours au juste prix.</p>
+              <p>En Gironde, le délai moyen de vente est de 89 jours. Avec notre méthode, nos clients vendent en moyenne en 45 jours.</p>
+            </div>
+
             <h2>1. Fixez le bon prix dès le départ</h2>
-            <p>En Gironde, 80% des biens qui se vendent rapidement sont prix correctement dès la mise sur le marché...</p>
-            <h2>2. Optimisez votre bien pour les visites</h2>
-            <p>Les acheteurs décident en moyenne en 30 secondes. Voici comment maximiser l'impact...</p>`,
-          summary: "Introduction, Stratégie prix, Home staging, Marketing digital, Négociation express",
-          pdfContent: `Contenu PDF avec checklist bonus pour vendeurs pressés`,
-          metaDescription: "Guide pour vendre rapidement son bien immobilier en Gironde en moins de 60 jours",
-          seoTitle: "Guide Vendeur Pressé Gironde - Vendre en 60 jours",
+            <p><strong>Erreur n°1 :</strong> Surestimer son prix "pour avoir de la marge". En Gironde, 80% des biens qui se vendent rapidement sont prix correctement dès la mise sur le marché.</p>
+            <ul>
+              <li><strong>Bordeaux Centre :</strong> 4 200€/m² en moyenne (variation selon quartiers : Chartrons 4 800€/m², Saint-Pierre 4 500€/m²)</li>
+              <li><strong>Mérignac :</strong> 3 800€/m² (proche tramway) à 3 200€/m² (zones résidentielles)</li>
+              <li><strong>Pessac :</strong> 3 600€/m² (secteur université) à 3 100€/m²</li>
+              <li><strong>Talence :</strong> 3 900€/m² (proche campus) à 3 400€/m²</li>
+            </ul>
+            <p><strong>Astuce Gironde :</strong> Analysez les ventes des 6 derniers mois dans votre quartier exact. Le marché varie énormément entre Bordeaux-Métropole et le reste du département.</p>
+
+            <h2>2. Home staging express pour vendeur pressé</h2>
+            <p>Les acheteurs décident en 30 secondes. En Gironde, les biens "coup de cœur" se vendent 20% plus vite.</p>
+            <ul>
+              <li><strong>Désencombrement :</strong> Libérez 30% de l'espace visible</li>
+              <li><strong>Lumière :</strong> Changez toutes les ampoules (LED blanc chaud 2700K)</li>
+              <li><strong>Odeurs :</strong> Attention à l'humidité (fréquent près de la Garonne)</li>
+              <li><strong>Couleurs :</strong> Blanc cassé ou gris clair sur les murs principaux</li>
+            </ul>
+
+            <h2>3. Marketing digital intensif</h2>
+            <p><strong>Spécificité Gironde :</strong> 73% des recherches immobilières commencent en ligne. Votre bien doit être visible partout rapidement.</p>
+            <ul>
+              <li>Publication simultanée sur 15+ sites (SeLoger, LeBonCoin, PAP, etc.)</li>
+              <li>Photos professionnelles (budget 200-300€, ROI immédiat)</li>
+              <li>Visite virtuelle pour les acquéreurs hors Gironde (20% des acheteurs)</li>
+              <li>Réseaux sociaux locaux (groupes Facebook Bordeaux, Gironde Immobilier)</li>
+            </ul>
+
+            <h2>4. Organisation des visites "express"</h2>
+            <ul>
+              <li><strong>Disponibilité maximale :</strong> Créneaux 7j/7 si nécessaire</li>
+              <li><strong>Visites groupées :</strong> Créer l'émulation (samedi 14h-17h)</li>
+              <li><strong>Dossier acquéreur :</strong> Pré-qualifiez financièrement</li>
+              <li><strong>Relance 24h :</strong> Système de suivi automatisé</li>
+            </ul>
+
+            <h2>5. Négociation express et signature rapide</h2>
+            <p><strong>Objectif :</strong> Signature sous 72h après visite d'un acquéreur motivé.</p>
+            <ul>
+              <li>Conditions de vente claires dès l'annonce</li>
+              <li>Diagnostics déjà réalisés</li>
+              <li>Notaire choisi et contacté</li>
+              <li>Marge de négociation définie (max 3-5%)</li>
+            </ul>
+
+            <h2>Checklist vendeur pressé</h2>
+            <ul>
+              <li>☐ Prix validé par 3 estimations récentes</li>
+              <li>☐ Home staging réalisé (3 jours max)</li>
+              <li>☐ Photos pro + plan</li>
+              <li>☐ Annonce diffusée sur 15+ sites</li>
+              <li>☐ Planning visites optimisé</li>
+              <li>☐ Diagnostics en cours</li>
+              <li>☐ Notaire pré-contacté</li>
+            </ul>
+
+            <div class="cta-section">
+              <h3>Besoin d'aide pour une vente express en Gironde ?</h3>
+              <p>Notre équipe spécialisée vous accompagne pour vendre en moins de 60 jours. Estimation gratuite et plan d'action personnalisé.</p>
+            </div>
+          </div>`,
+          summary: "Introduction urgence, Stratégie prix Gironde, Home staging express, Marketing digital, Visites groupées, Négociation rapide, Checklist complète",
+          pdfContent: `Version PDF enrichie avec : Checklist détaillée vendeur pressé, Tableau prix par communes Gironde, Scripts de négociation express, Contacts notaires rapides Bordeaux`,
+          metaDescription: "Guide complet pour vendre rapidement son bien immobilier en Gironde en moins de 60 jours. Prix, home staging, marketing digital.",
+          seoTitle: "Guide Vendeur Pressé Gironde - Vendre en 60 jours | Estimation Immobilier Gironde",
           sortOrder: 1
         },
         {
-          title: "Guide du Maximisateur - Obtenir le meilleur prix",
+          title: "Guide du Maximisateur - Obtenir le meilleur prix en Gironde",
           slug: "guide-maximisateur-prix",
           persona: "maximisateur",
-          shortBenefit: "Maximisez la valeur de votre bien avec nos techniques d'optimisation",
+          shortBenefit: "Maximisez la valeur de votre bien avec nos techniques d'optimisation spécifiques au marché Girondin",
           readingTime: 20,
-          content: `<h1>Guide du Maximisateur</h1>
-            <p>Vous voulez obtenir le meilleur prix ? Découvrez comment augmenter la valeur perçue de votre bien.</p>
-            <h2>1. Analysez finement le marché local</h2>
-            <p>En Gironde, certains quartiers permettent des plus-values de 15% avec les bonnes techniques...</p>`,
-          summary: "Analyse marché, Valorisation, Travaux rentables, Timing optimal, Négociation avancée",
+          content: `<div class="guide-content">
+            <h1>Guide du Maximisateur - Obtenir le meilleur prix en Gironde</h1>
+            
+            <div class="intro-section">
+              <p><strong>Vous ne vendez pas par urgence ?</strong> Parfait. Vous avez alors l'opportunité de maximiser la valeur de votre bien. En Gironde, avec la bonne stratégie, il est possible d'obtenir 10 à 15% au-dessus du prix moyen du marché.</p>
+              <p>Ce guide vous révèle les techniques des professionnels pour extraire la valeur maximale de votre propriété.</p>
+            </div>
+
+            <h2>1. Analyse fine du micro-marché Girondin</h2>
+            <p><strong>Principe :</strong> Le prix ne se détermine pas au niveau "Gironde" mais au niveau de votre rue, votre résidence, votre étage.</p>
+            
+            <h3>Segmentation par zones Gironde :</h3>
+            <ul>
+              <li><strong>Bordeaux Hypercentre :</strong> 
+                <ul>
+                  <li>Triangle d'Or : 5 500-6 500€/m²</li>
+                  <li>Saint-Pierre : 4 500-5 200€/m²</li>
+                  <li>Chartrons : 4 800-5 500€/m²</li>
+                  <li>Bastide : 3 800-4 400€/m²</li>
+                </ul>
+              </li>
+              <li><strong>Bordeaux Périphérie :</strong>
+                <ul>
+                  <li>Caudéran : 4 200-4 800€/m²</li>
+                  <li>Nansouty : 3 900-4 500€/m²</li>
+                  <li>Bacalan : 3 600-4 200€/m²</li>
+                </ul>
+              </li>
+              <li><strong>Communes CUB Premium :</strong>
+                <ul>
+                  <li>Talence (Thouars) : 4 200-4 600€/m²</li>
+                  <li>Mérignac Centre : 3 800-4 200€/m²</li>
+                  <li>Pessac (Montaigne) : 3 900-4 300€/m²</li>
+                </ul>
+              </li>
+            </ul>
+
+            <p><strong>Technique du Maximisateur :</strong> Positionnez-vous dans le top 10% de votre micro-zone en justifiant chaque euro d'écart.</p>
+
+            <h2>2. Travaux rentables et valorisation</h2>
+            <p><strong>ROI immédiat :</strong> Certains travaux rapportent 2-3€ pour 1€ investi en Gironde.</p>
+
+            <h3>Travaux ROI positif :</h3>
+            <ul>
+              <li><strong>Cuisine (rénovation) :</strong> 8 000-15 000€ → +15 000-25 000€ valeur</li>
+              <li><strong>Salle de bain :</strong> 5 000-10 000€ → +10 000-18 000€ valeur</li>
+              <li><strong>Parquet (rénovation/pose) :</strong> 30-60€/m² → +80-120€/m² valeur</li>
+              <li><strong>Peinture générale :</strong> 15-25€/m² → +50-80€/m² valeur</li>
+              <li><strong>Isolation extérieure :</strong> 12 000-20 000€ → +20 000-35 000€ (DPE A/B)</li>
+            </ul>
+
+            <h3>Spécificités climatiques Gironde :</h3>
+            <ul>
+              <li><strong>Humidité :</strong> VMC double flux valorisée (+3-5%)</li>
+              <li><strong>Chaleur été :</strong> Climatisation réversible (+5-8%)</li>
+              <li><strong>Ecologie :</strong> Pompe à chaleur, panneaux solaires (+8-12%)</li>
+            </ul>
+
+            <h2>3. Timing optimal du marché Girondin</h2>
+            <p><strong>Analyse saisonnière des prix en Gironde :</strong></p>
+            <ul>
+              <li><strong>Printemps (Mars-Mai) :</strong> +3-5% vs moyenne annuelle</li>
+              <li><strong>Été (Juin-Août) :</strong> +1-2% mais volume baisse</li>
+              <li><strong>Rentrée (Sept-Nov) :</strong> Prix moyens, fort volume</li>
+              <li><strong>Hiver (Déc-Fév) :</strong> -2-4% mais négociation possible</li>
+            </ul>
+            
+            <p><strong>Stratégie Maximisateur :</strong> Préparation hiver → Lancement marché début mars → Vente mai/juin</p>
+
+            <h2>4. Mise en scène "haut de gamme"</h2>
+            <ul>
+              <li><strong>Home staging premium :</strong> Budget 2-3% valeur bien</li>
+              <li><strong>Mobilier de qualité :</strong> Location 6 mois (1 500-3 000€)</li>
+              <li><strong>Éclairage d'ambiance :</strong> LED variables, spots orientés</li>
+              <li><strong>Senteurs subtiles :</strong> Bougies haut de gamme</li>
+              <li><strong>Végétation :</strong> Plantes vertes, fleurs fraîches</li>
+            </ul>
+
+            <h2>5. Négociation de maximisation</h2>
+            <p><strong>Psychologie de l'acheteur Girondin :</strong></p>
+            <ul>
+              <li>Prix affiché = prix de départ négociation (attendu)</li>
+              <li>Justification de chaque élément de valeur</li>
+              <li>Comparatifs précis avec biens similaires vendus</li>
+              <li>Conditions de vente attractives (délai, notaire, etc.)</li>
+            </ul>
+
+            <h3>Techniques avancées :</h3>
+            <ul>
+              <li><strong>Prix d'appel :</strong> -5% du prix cible pour générer visites</li>
+              <li><strong>Révision à la hausse :</strong> Si forte demande après 15 jours</li>
+              <li><strong>Enchères encadrées :</strong> Si plusieurs acquéreurs sérieux</li>
+              <li><strong>Offres conditionnelles :</strong> Bonus si signature rapide</li>
+            </ul>
+
+            <h2>Plan d'action Maximisateur - 6 mois</h2>
+            <h3>Mois 1-2 : Préparation</h3>
+            <ul>
+              <li>Étude micro-marché approfondie</li>
+              <li>Définition travaux rentables</li>
+              <li>Planification budget et délais</li>
+            </ul>
+
+            <h3>Mois 3-4 : Valorisation</h3>
+            <ul>
+              <li>Réalisation travaux sélectionnés</li>
+              <li>Home staging premium</li>
+              <li>Photos/vidéos professionnelles</li>
+            </ul>
+
+            <h3>Mois 5-6 : Commercialisation</h3>
+            <ul>
+              <li>Lancement marketing premium</li>
+              <li>Visites sélectionnées et accompagnées</li>
+              <li>Négociation optimisée</li>
+            </ul>
+
+            <div class="cta-section">
+              <h3>Accompagnement Maximisateur Gironde</h3>
+              <p>Notre service "Maximisateur" vous accompagne pour optimiser chaque euro de valeur. Audit complet et stratégie personnalisée.</p>
+            </div>
+          </div>`,
+          summary: "Analyse micro-marché Gironde, Travaux rentables ROI, Timing saisonnier optimal, Home staging premium, Négociation maximisation, Plan 6 mois",
+          pdfContent: `Version PDF complète avec : Tableau prix détaillé par rues Bordeaux-Métropole, Calculateur ROI travaux, Planning Maximisateur 6 mois, Scripts négociation premium`,
+          metaDescription: "Guide pour maximiser la valeur de vente de son bien immobilier en Gironde. Travaux rentables, timing optimal, négociation avancée.",
+          seoTitle: "Guide Maximisateur Prix Gironde - Optimiser la Vente | Estimation Immobilier",
           sortOrder: 2
         },
         {
-          title: "Guide Succession - Vendre un bien hérité",
+          title: "Guide Succession - Vendre un bien hérité en Gironde",
           slug: "guide-succession-heritage",
           persona: "succession",
-          shortBenefit: "Simplifiez la vente d'un bien en succession avec notre accompagnement",
+          shortBenefit: "Simplifiez la vente d'un bien en succession avec notre accompagnement spécialisé Gironde",
           readingTime: 25,
-          content: `<h1>Guide Succession</h1>
-            <p>Vendre un bien en succession nécessite une approche spécifique. Ce guide vous accompagne étape par étape.</p>`,
-          summary: "Aspects légaux, Évaluation succession, Fiscalité, Partage, Vente optimisée",
+          content: `<div class="guide-content">
+            <h1>Guide Succession - Vendre un bien hérité en Gironde</h1>
+            
+            <div class="intro-section">
+              <p><strong>Vendre un bien en succession</strong> nécessite une approche spécifique, entre aspects légaux, émotionnels et fiscaux. En Gironde, nous accompagnons chaque année plus de 200 successions immobilières.</p>
+              <p>Ce guide vous éclaire sur toutes les étapes, de l'ouverture de succession à la signature définitive.</p>
+            </div>
+
+            <h2>1. Aspects légaux de la succession en Gironde</h2>
+            
+            <h3>Ouverture de succession :</h3>
+            <ul>
+              <li><strong>Déclaration décès :</strong> Mairie du lieu de décès (délai 24h)</li>
+              <li><strong>Notaire :</strong> Désignation dans les 6 mois (obligatoire si bien immobilier)</li>
+              <li><strong>Inventaire :</strong> Liste exhaustive des biens (3-6 mois)</li>
+              <li><strong>Acceptation/Renonciation :</strong> Décision héritiers (4 mois)</li>
+            </ul>
+
+            <h3>Spécificités juridiques Gironde :</h3>
+            <ul>
+              <li><strong>Notaires recommandés :</strong> 
+                <ul>
+                  <li>Bordeaux : Études spécialisées succession (15+)</li>
+                  <li>Communes CUB : Notaires de proximité</li>
+                  <li>Rural Gironde : Notaires généralistes expérimentés</li>
+                </ul>
+              </li>
+              <li><strong>Délais moyens en Gironde :</strong>
+                <ul>
+                  <li>Succession simple : 6-8 mois</li>
+                  <li>Succession complexe : 12-18 mois</li>
+                  <li>Contentieux : 24+ mois</li>
+                </ul>
+              </li>
+            </ul>
+
+            <h2>2. Évaluation du bien en succession</h2>
+            
+            <h3>Obligation fiscale :</h3>
+            <p><strong>Valeur de déclaration :</strong> Doit correspondre à la valeur vénale réelle au jour du décès.</p>
+            <ul>
+              <li><strong>Expertise :</strong> Souvent nécessaire (coût 300-800€)</li>
+              <li><strong>Références marché :</strong> Prix ventes récentes quartier</li>
+              <li><strong>État du bien :</strong> Vétusté, travaux nécessaires</li>
+            </ul>
+
+            <h3>Particularités évaluation Gironde :</h3>
+            <ul>
+              <li><strong>Marché rural :</strong> Experts spécialisés vignoble/agricole</li>
+              <li><strong>Bordeaux-ville :</strong> Variation forte selon rue/étage</li>
+              <li><strong>Littoral :</strong> Expertise spécifique (érosion, PLU)</li>
+              <li><strong>Bâti ancien :</strong> Diagnostic structure souvent requis</li>
+            </ul>
+
+            <h2>3. Fiscalité succession Gironde</h2>
+            
+            <h3>Droits de succession :</h3>
+            <ul>
+              <li><strong>Abattement conjoint :</strong> 80 724€</li>
+              <li><strong>Abattement enfant :</strong> 100 000€ par enfant</li>
+              <li><strong>Barème progressif :</strong> 5% à 45% selon montant et lien</li>
+            </ul>
+
+            <h3>Plus-value succession :</h3>
+            <p><strong>Exonération totale</strong> sur résidence principale du défunt.</p>
+            <p><strong>Bien locatif/secondaire :</strong></p>
+            <ul>
+              <li>Base calcul : Prix vente - Valeur succession</li>
+              <li>Abattement durée détention : 6% par an dès la 6e année</li>
+              <li>Exonération totale après 22 ans détention</li>
+            </ul>
+
+            <h2>4. Organisation de la vente</h2>
+            
+            <h3>Accord héritiers :</h3>
+            <ul>
+              <li><strong>Unanimité requise :</strong> Tous héritiers d'accord pour vendre</li>
+              <li><strong>Mandataire :</strong> Désignation héritier référent</li>
+              <li><strong>Répartition :</strong> Quote-parts définies notaire</li>
+            </ul>
+
+            <h3>Préparation du bien :</h3>
+            <ul>
+              <li><strong>Vidage/nettoyage :</strong> Souvent nécessaire (budget 500-2000€)</li>
+              <li><strong>Petits travaux :</strong> Sécurité/salubrité prioritaires</li>
+              <li><strong>Diagnostics :</strong> Obligatoires avant vente</li>
+            </ul>
+
+            <h2>5. Stratégie commerciale succession</h2>
+            
+            <h3>Communication spécifique :</h3>
+            <ul>
+              <li><strong>Transparence :</strong> Mentionner "succession" rassure acquéreurs</li>
+              <li><strong>Histoire du bien :</strong> Valoriser vécu familial si positif</li>
+              <li><strong>Flexibilité :</strong> Négociation possible sur délais</li>
+            </ul>
+
+            <h3>Prix et négociation :</h3>
+            <ul>
+              <li><strong>Prix juste :</strong> Basé sur expertise succession</li>
+              <li><strong>Marge limitée :</strong> Héritiers souvent pressés de finaliser</li>
+              <li><strong>Conditions :</strong> Délai signature parfois négociable</li>
+            </ul>
+
+            <h2>6. Étapes pratiques succession Gironde</h2>
+            
+            <h3>Phase 1 : Légal (2-4 mois)</h3>
+            <ul>
+              <li>☐ Déclaration décès et formalités</li>
+              <li>☐ Contact notaire spécialisé</li>
+              <li>☐ Inventaire succession</li>
+              <li>☐ Accord héritiers sur principe vente</li>
+            </ul>
+
+            <h3>Phase 2 : Évaluation (1-2 mois)</h3>
+            <ul>
+              <li>☐ Expertise immobilière officielle</li>
+              <li>☐ Estimation commerciale (plusieurs avis)</li>
+              <li>☐ Étude fiscale (droits + plus-value)</li>
+            </ul>
+
+            <h3>Phase 3 : Préparation vente (1-2 mois)</h3>
+            <ul>
+              <li>☐ Nettoyage/vidage du bien</li>
+              <li>☐ Travaux urgents si nécessaires</li>
+              <li>☐ Diagnostics immobiliers</li>
+              <li>☐ Photos professionnelles</li>
+            </ul>
+
+            <h3>Phase 4 : Commercialisation (2-4 mois)</h3>
+            <ul>
+              <li>☐ Diffusion annonce tous supports</li>
+              <li>☐ Organisation visites</li>
+              <li>☐ Négociation et accord</li>
+              <li>☐ Signature promesse vente</li>
+            </ul>
+
+            <h3>Phase 5 : Finalisation (2-3 mois)</h3>
+            <ul>
+              <li>☐ Conditions suspensives acquéreur</li>
+              <li>☐ Finalisation acte notarié</li>
+              <li>☐ Signature définitive</li>
+              <li>☐ Répartition produit vente</li>
+            </ul>
+
+            <h2>Contacts utiles Gironde</h2>
+            <ul>
+              <li><strong>Chambre Notaires Gironde :</strong> 33000 Bordeaux</li>
+              <li><strong>Service Enregistrement :</strong> Hôtel des Finances Bordeaux</li>
+              <li><strong>Experts immobiliers assermentés :</strong> Liste tribunal Bordeaux</li>
+            </ul>
+
+            <div class="cta-section">
+              <h3>Accompagnement succession Gironde</h3>
+              <p>Nos experts succession vous accompagnent à chaque étape. Service complet : légal, fiscal, immobilier.</p>
+            </div>
+          </div>`,
+          summary: "Aspects légaux succession, Évaluation fiscale, Droits et plus-values, Organisation familiale, Stratégie vente, Étapes complètes, Contacts utiles Gironde",
+          pdfContent: `Guide PDF complet : Checklist étapes succession, Formulaires types, Contacts notaires Gironde, Simulateur fiscal succession, Modèles accords héritiers`,
+          metaDescription: "Guide complet pour vendre un bien immobilier en succession en Gironde. Aspects légaux, fiscaux, étapes pratiques.",
+          seoTitle: "Guide Succession Immobilier Gironde - Vente Héritage | Expert Succession",
           sortOrder: 3
         },
         {
-          title: "Guide Nouvelle Vie - Vendre pour un nouveau projet",
+          title: "Guide Nouvelle Vie - Vendre pour un nouveau projet en Gironde",
           slug: "guide-nouvelle-vie",
           persona: "nouvelle_vie",
-          shortBenefit: "Financez votre nouveau projet de vie grâce à une vente optimisée",
+          shortBenefit: "Financez votre nouveau projet de vie grâce à une vente optimisée en Gironde",
           readingTime: 18,
-          content: `<h1>Guide Nouvelle Vie</h1>
-            <p>Changement de vie, déménagement, nouveau projet ? Vendez dans les meilleures conditions.</p>`,
-          summary: "Planification, Timing, Financement pont, Démarchage, Accompagnement émotionnel",
+          content: `<div class="guide-content">
+            <h1>Guide Nouvelle Vie - Vendre pour un nouveau projet en Gironde</h1>
+            
+            <div class="intro-section">
+              <p><strong>Retraite, mutation, changement familial ?</strong> Vous vendez votre bien en Gironde pour financer un nouveau projet de vie. Cette vente doit être parfaitement orchestrée pour réussir votre transition.</p>
+              <p>Ce guide vous accompagne pour vendre dans les meilleures conditions et optimiser le financement de votre nouvelle vie.</p>
+            </div>
+
+            <h2>1. Définir son projet de nouvelle vie</h2>
+            
+            <h3>Types de projets fréquents en Gironde :</h3>
+            <ul>
+              <li><strong>Retraite :</strong> Déménagement résidence principale
+                <ul>
+                  <li>Vers campagne girondine (Médoc, Entre-deux-Mers)</li>
+                  <li>Vers littoral (Arcachon, Cap-Ferret)</li>
+                  <li>Vers autre région (Sud, montagne)</li>
+                </ul>
+              </li>
+              <li><strong>Mutation professionnelle :</strong>
+                <ul>
+                  <li>Départ de Bordeaux-Métropole</li>
+                  <li>Arrivée en Gironde (autres régions)</li>
+                </ul>
+              </li>
+              <li><strong>Évolution familiale :</strong>
+                <ul>
+                  <li>Agrandissement famille → maison plus grande</li>
+                  <li>Enfants partis → logement plus petit</li>
+                  <li>Séparation → division patrimoine</li>
+                </ul>
+              </li>
+              <li><strong>Investissement :</strong>
+                <ul>
+                  <li>Achat résidence secondaire</li>
+                  <li>Investissement locatif</li>
+                  <li>Création d'entreprise</li>
+                </ul>
+              </li>
+            </ul>
+
+            <h3>Budget et calendrier :</h3>
+            <ul>
+              <li><strong>Évaluer le besoin financier :</strong> Montant requis pour nouveau projet</li>
+              <li><strong>Calculer la capacité :</strong> Prix vente - remboursement crédit - frais</li>
+              <li><strong>Planifier le timing :</strong> Synchroniser vente/achat si nécessaire</li>
+            </ul>
+
+            <h2>2. Optimiser le timing en Gironde</h2>
+            
+            <h3>Calendrier scolaire (si enfants) :</h3>
+            <ul>
+              <li><strong>Vente idéale :</strong> Février-mai (emménagement été)</li>
+              <li><strong>Éviter :</strong> Novembre-janvier (déménagement hiver)</li>
+            </ul>
+
+            <h3>Calendrier professionnel :</h3>
+            <ul>
+              <li><strong>Mutation :</strong> Anticiper 6 mois minimum</li>
+              <li><strong>Retraite :</strong> Commencer démarches 1 an avant</li>
+            </ul>
+
+            <h3>Marché immobilier Gironde :</h3>
+            <ul>
+              <li><strong>Haute saison :</strong> Mars-juin (prix optimaux)</li>
+              <li><strong>Basse saison :</strong> Décembre-février (délais plus longs)</li>
+            </ul>
+
+            <h2>3. Solutions de financement transitoire</h2>
+            
+            <h3>Crédit relais :</h3>
+            <p><strong>Principe :</strong> Financer l'achat avant la vente (banques girondines partenaires)</p>
+            <ul>
+              <li><strong>Durée :</strong> 12-24 mois maximum</li>
+              <li><strong>Montant :</strong> 70-80% valeur bien à vendre</li>
+              <li><strong>Taux :</strong> +0,5 à +1% vs crédit classique</li>
+              <li><strong>Avantages :</strong> Pas de contrainte timing, sérénité négociation</li>
+            </ul>
+
+            <h3>Vente en viager :</h3>
+            <p><strong>Si retraite :</strong> Alternative intéressante selon situation</p>
+            <ul>
+              <li><strong>Viager occupé :</strong> Rester dans le logement</li>
+              <li><strong>Viager libre :</strong> Capital + rente viagère</li>
+              <li><strong>Spécialistes Gironde :</strong> Notaires et conseillers patrimoine</li>
+            </ul>
+
+            <h2>4. Préparation émotionnelle et pratique</h2>
+            
+            <h3>Aspect émotionnel :</h3>
+            <ul>
+              <li><strong>Détachement :</strong> Se projeter dans nouvelle vie</li>
+              <li><strong>Tri et rangement :</strong> Commencer 6 mois avant</li>
+              <li><strong>Souvenirs :</strong> Sélectionner objets à conserver</li>
+              <li><strong>Famille :</strong> Impliquer conjoint/enfants dans projet</li>
+            </ul>
+
+            <h3>Préparation pratique :</h3>
+            <ul>
+              <li><strong>Désencombrement progressif :</strong> 20% du mobilier/objets</li>
+              <li><strong>Travaux de rafraîchissement :</strong> Peinture, petites réparations</li>
+              <li><strong>Neutralisation :</strong> Dépersonnaliser l'espace</li>
+              <li><strong>Valorisation :</strong> Optimiser points forts du bien</li>
+            </ul>
+
+            <h2>5. Négociation "projet de vie"</h2>
+            
+            <h3>Arguments de négociation :</h3>
+            <ul>
+              <li><strong>Flexibilité délais :</strong> Adaptation aux besoins acquéreur</li>
+              <li><strong>État impeccable :</strong> Bien entretenu par propriétaire occupant</li>
+              <li><strong>Histoire positive :</strong> Valoriser le vécu familial</li>
+              <li><strong>Motivation sincère :</strong> Projet de vie vs spéculation</li>
+            </ul>
+
+            <h3>Conditions de vente :</h3>
+            <ul>
+              <li><strong>Prix ferme :</strong> Pas de négociation si projet défini</li>
+              <li><strong>Délai signature :</strong> Selon impératifs nouveau projet</li>
+              <li><strong>Conditions suspensives :</strong> Minimales pour sécuriser</li>
+            </ul>
+
+            <h2>6. Checklist nouvelle vie Gironde</h2>
+
+            <h3>Phase préparation (6 mois avant) :</h3>
+            <ul>
+              <li>☐ Définition précise nouveau projet</li>
+              <li>☐ Budget et financement étudié</li>
+              <li>☐ Calendrier optimal défini</li>
+              <li>☐ Début désencombrement</li>
+            </ul>
+
+            <h3>Phase étude (3 mois avant) :</h3>
+            <ul>
+              <li>☐ Estimation bien actuel</li>
+              <li>☐ Étude financement (crédit relais ?)</li>
+              <li>☐ Recherche nouveau logement si applicable</li>
+              <li>☐ Préparation administrative</li>
+            </ul>
+
+            <h3>Phase lancement (1 mois avant) :</h3>
+            <ul>
+              <li>☐ Travaux de rafraîchissement finalisés</li>
+              <li>☐ Photos professionnelles</li>
+              <li>☐ Annonce rédigée et diffusée</li>
+              <li>☐ Planning visites organisé</li>
+            </ul>
+
+            <h3>Phase négociation :</h3>
+            <ul>
+              <li>☐ Sélection acquéreurs sérieux</li>
+              <li>☐ Négociation basée sur projet de vie</li>
+              <li>☐ Compromis sécurisé</li>
+              <li>☐ Coordination avec nouveau logement</li>
+            </ul>
+
+            <h2>Spécificités géographiques Gironde</h2>
+            
+            <h3>Départ de Bordeaux-Métropole :</h3>
+            <ul>
+              <li><strong>Acquéreurs cibles :</strong> Primo-accédants, familles, investisseurs</li>
+              <li><strong>Arguments :</strong> Proximité transports, services, emploi</li>
+              <li><strong>Prix :</strong> Généralement attractifs pour nouveaux arrivants</li>
+            </ul>
+
+            <h3>Déménagement intra-Gironde :</h3>
+            <ul>
+              <li><strong>Connaissance locale :</strong> Valoriser expertise secteur</li>
+              <li><strong>Réseau :</strong> Recommandations artisans, services</li>
+              <li><strong>Accompagnement :</strong> Conseils nouvelle commune</li>
+            </ul>
+
+            <div class="cta-section">
+              <h3>Accompagnement nouvelle vie Gironde</h3>
+              <p>Nos conseillers "Nouvelle Vie" vous accompagnent dans votre projet de A à Z. Estimation, financement, coordination.</p>
+            </div>
+          </div>`,
+          summary: "Définition projet de vie, Timing optimal Gironde, Solutions financement transitoire, Préparation émotionnelle, Négociation projet, Checklist complète, Spécificités géographiques",
+          pdfContent: `Guide PDF : Calculateur budget nouvelle vie, Checklist déménagement, Contacts crédit relais Gironde, Planning coordination vente/achat, Conseils tri et rangement`,
+          metaDescription: "Guide pour vendre son bien immobilier en Gironde dans le cadre d'un nouveau projet de vie. Timing, financement, préparation.",
+          seoTitle: "Guide Nouvelle Vie Gironde - Vendre pour Projet de Vie | Estimation Immobilier",
           sortOrder: 4
         },
         {
-          title: "Guide Investisseur - Optimiser la revente",
+          title: "Guide Investisseur - Optimiser la revente en Gironde",
           slug: "guide-investisseur-revente",
           persona: "investisseur",
-          shortBenefit: "Maximisez votre ROI avec notre stratégie de sortie d'investissement",
+          shortBenefit: "Maximisez votre ROI avec notre stratégie de sortie d'investissement immobilier en Gironde",
           readingTime: 22,
-          content: `<h1>Guide Investisseur</h1>
-            <p>Optimisez la revente de votre investissement locatif en Gironde.</p>`,
-          summary: "Fiscalité investissement, Plus-values, Timing marché, Stratégie patrimoniale",
+          content: `<div class="guide-content">
+            <h1>Guide Investisseur - Optimiser la revente en Gironde</h1>
+            
+            <div class="intro-section">
+              <p><strong>Investisseur immobilier ?</strong> La sortie d'investissement en Gironde nécessite une approche stratégique pour optimiser votre ROI. Fiscalité, timing marché, plus-values : chaque détail compte.</p>
+              <p>Ce guide vous révèle les techniques pour maximiser le résultat net de votre cession immobilière.</p>
+            </div>
+
+            <h2>1. Analyse ROI et stratégie de sortie</h2>
+            
+            <h3>Calcul de performance actuel :</h3>
+            <ul>
+              <li><strong>Rentabilité locative :</strong> Loyers nets / Prix d'achat</li>
+              <li><strong>Plus-value latente :</strong> Valeur actuelle - Prix acquisition - Travaux</li>
+              <li><strong>Performance globale :</strong> (Loyers cumulés + Plus-value) / Capital investi</li>
+            </ul>
+
+            <h3>Indicateurs marché Gironde :</h3>
+            <ul>
+              <li><strong>Rendements locatifs moyens 2024 :</strong>
+                <ul>
+                  <li>Bordeaux Centre : 3,2-3,8%</li>
+                  <li>Bordeaux Périphérie : 3,8-4,5%</li>
+                  <li>CUB (Mérignac, Pessac, Talence) : 3,5-4,2%</li>
+                  <li>Communes périphérie : 4,5-5,5%</li>
+                  <li>Littoral (Arcachon) : 2,8-3,5%</li>
+                </ul>
+              </li>
+              <li><strong>Évolution prix 3 ans :</strong>
+                <ul>
+                  <li>Bordeaux : +12-18%</li>
+                  <li>Métropole : +8-15%</li>
+                  <li>Communes périphérie : +15-25%</li>
+                </ul>
+              </li>
+            </ul>
+
+            <h2>2. Optimisation fiscale plus-values</h2>
+            
+            <h3>Mécanisme plus-values immobilières :</h3>
+            <ul>
+              <li><strong>Base calcul :</strong> Prix vente - Prix achat - Travaux déductibles - Frais acquisition</li>
+              <li><strong>Taux global :</strong> 36,2% (IR + PS) sur plus-value brute</li>
+              <li><strong>Abattements durée :</strong>
+                <ul>
+                  <li>IR : 6% par an dès 6e année, exonération 22 ans</li>
+                  <li>PS : 1,65% par an dès 6e année, exonération 30 ans</li>
+                </ul>
+              </li>
+            </ul>
+
+            <h3>Stratégies d'optimisation :</h3>
+            <ul>
+              <li><strong>Timing optimal :</strong> Vente après 6 ans minimum (début abattements)</li>
+              <li><strong>Travaux déductibles :</strong> Conserver toutes factures (15% forfaitaire possible)</li>
+              <li><strong>Frais acquisition :</strong> 7,5% forfait ou frais réels si supérieurs</li>
+              <li><strong>Plus-value reportée :</strong> Réinvestissement Art. 150-0 B ter (rare)</li>
+            </ul>
+
+            <h3>Cas particuliers Gironde :</h3>
+            <ul>
+              <li><strong>Zone tendue :</strong> Bordeaux-Métropole = taxation majorée si vacance</li>
+              <li><strong>Bien historique :</strong> Secteur sauvegardé = avantages fiscaux possibles</li>
+              <li><strong>Monument historique :</strong> Régime spécial si applicable</li>
+            </ul>
+
+            <h2>3. Timing et cycle de marché</h2>
+            
+            <h3>Analyse cyclique Gironde :</h3>
+            <ul>
+              <li><strong>2018-2020 :</strong> Forte hausse prix (+15-20%)</li>
+              <li><strong>2021-2023 :</strong> Stabilisation relative (+5-8%/an)</li>
+              <li><strong>2024-2025 :</strong> Marché plus sélectif, prix stable</li>
+            </ul>
+
+            <h3>Indicateurs de sortie :</h3>
+            <ul>
+              <li><strong>Ratio prix/loyer élevé :</strong> >25 = signal vente potentiel</li>
+              <li><strong>Baisse rendement :</strong> Si <3% en centre-ville</li>
+              <li><strong>Évolution quartier :</strong> Dégradation ou sur-densification</li>
+              <li><strong>Fiscalité locative :</strong> Évolutions réglementaires défavorables</li>
+            </ul>
+
+            <h2>4. Préparation du bien locatif</h2>
+            
+            <h3>État des lieux de sortie :</h3>
+            <ul>
+              <li><strong>Diagnostic technique :</strong> Structure, installations, conformité</li>
+              <li><strong>Bilan locatif :</strong> Dégradations, usure normale, sinistres</li>
+              <li><strong>Mise aux normes :</strong> Électricité, gaz, accessibilité si nécessaire</li>
+            </ul>
+
+            <h3>Stratégie de présentation :</h3>
+            <ul>
+              <li><strong>Bien libre :</strong> +10-15% de prix mais délai préavis locataire</li>
+              <li><strong>Bien occupé :</strong> Vente à investisseur ou primo avec locataire</li>
+              <li><strong>Home staging investisseur :</strong> Neutre et fonctionnel</li>
+            </ul>
+
+            <h2>5. Commercialisation spécifique investisseur</h2>
+            
+            <h3>Argumentation ROI :</h3>
+            <ul>
+              <li><strong>Rentabilité démontrée :</strong> Historique loyers 3-5 ans</li>
+              <li><strong>Potentiel d'évolution :</strong> Quartier, transports, projets</li>
+              <li><strong>Charges maîtrisées :</strong> Copropriété, entretien, fiscalité</li>
+            </ul>
+
+            <h3>Cibles acquéreurs Gironde :</h3>
+            <ul>
+              <li><strong>Investisseurs locaux :</strong> Connaissance marché, gestion directe</li>
+              <li><strong>Parisiens :</strong> Diversification géographique, prix attractifs vs Paris</li>
+              <li><strong>Primo-investisseurs :</strong> Bordeaux = marché "sûr" et dynamique</li>
+              <li><strong>SCI familiales :</strong> Transmission patrimoine</li>
+            </ul>
+
+            <h2>6. Négociation et conditions de vente</h2>
+            
+            <h3>Prix de vente optimal :</h3>
+            <ul>
+              <li><strong>Méthode capitalisation :</strong> Loyer annuel × 20-25 (selon secteur)</li>
+              <li><strong>Méthode comparative :</strong> Prix m² biens similaires libres - 10%</li>
+              <li><strong>Méthode coût reconstruction :</strong> Terrain + Construction + Marge</li>
+            </ul>
+
+            <h3>Conditions de vente investisseur :</h3>
+            <ul>
+              <li><strong>Délai signature :</strong> Plus court (financement souvent bouclé)</li>
+              <li><strong>Conditions suspensives :</strong> Minimales</li>
+              <li><strong>État du bien :</strong> Acceptation de l'usure locative normale</li>
+              <li><strong>Documentation :</strong> Bilans locatifs, charges, sinistres</li>
+            </ul>
+
+            <h2>7. Stratégies avancées</h2>
+            
+            <h3>Démembrement temporaire :</h3>
+            <ul>
+              <li><strong>Principe :</strong> Vente usufruit temporaire + nue-propriété</li>
+              <li><strong>Avantages :</strong> Capital immédiat + récupération bien</li>
+              <li><strong>Inconvénients :</strong> Complexité juridique, marché restreint</li>
+            </ul>
+
+            <h3>Vente en bloc (si plusieurs biens) :</h3>
+            <ul>
+              <li><strong>Décote acceptable :</strong> 5-10% vs vente unitaire</li>
+              <li><strong>Acquéreurs :</strong> Investisseurs institutionnels, fonds</li>
+              <li><strong>Simplification :</strong> Une seule transaction</li>
+            </ul>
+
+            <h2>Checklist sortie investissement Gironde</h2>
+
+            <h3>Analyse préalable (2-3 mois) :</h3>
+            <ul>
+              <li>☐ Calcul ROI global depuis acquisition</li>
+              <li>☐ Simulation fiscale plus-value</li>
+              <li>☐ Analyse marché local actuel</li>
+              <li>☐ Décision timing optimal</li>
+            </ul>
+
+            <h3>Préparation technique (1-2 mois) :</h3>
+            <ul>
+              <li>☐ Audit état du bien</li>
+              <li>☐ Travaux nécessaires identifiés</li>
+              <li>☐ Diagnostic immobilier</li>
+              <li>☐ Documentation locative à jour</li>
+            </ul>
+
+            <h3>Commercialisation (2-4 mois) :</h3>
+            <ul>
+              <li>☐ Stratégie libre/occupé définie</li>
+              <li>☐ Prix optimal calculé</li>
+              <li>☐ Annonce investisseur rédigée</li>
+              <li>☐ Diffusion ciblée professionnels</li>
+            </ul>
+
+            <h3>Négociation/Finalisation :</h3>
+            <ul>
+              <li>☐ Sélection acquéreur final</li>
+              <li>☐ Négociation conditions</li>
+              <li>☐ Optimisation fiscale finale</li>
+              <li>☐ Signature et transmission</li>
+            </ul>
+
+            <div class="cta-section">
+              <h3>Accompagnement investisseur Gironde</h3>
+              <p>Nos experts investissement optimisent votre sortie : analyse ROI, fiscalité, négociation. Maximisez votre plus-value.</p>
+            </div>
+          </div>`,
+          summary: "Analyse ROI investissement, Optimisation fiscale plus-values, Timing cycle marché, Préparation bien locatif, Commercialisation ciblée, Négociation investisseur, Stratégies avancées",
+          pdfContent: `Guide PDF investisseur : Calculateur ROI complet, Simulateur fiscal plus-value, Tableau rendements Gironde, Modèles contrats investisseur, Check-list sortie investissement`,
+          metaDescription: "Guide pour optimiser la revente d'un investissement immobilier locatif en Gironde. ROI, fiscalité, timing marché.",
+          seoTitle: "Guide Investisseur Revente Gironde - Optimiser ROI | Expert Investissement Immobilier",
           sortOrder: 5
         },
         {
-          title: "Guide Primo-Vendeur - Réussir sa première vente",
+          title: "Guide Primo-Vendeur - Réussir sa première vente en Gironde",
           slug: "guide-primo-vendeur",
           persona: "primo",
-          shortBenefit: "Évitez les pièges de la première vente avec notre guide complet",
+          shortBenefit: "Évitez les pièges de la première vente avec notre guide complet spécialement conçu pour la Gironde",
           readingTime: 30,
-          content: `<h1>Guide Primo-Vendeur</h1>
-            <p>Première vente ? Ce guide vous évite tous les pièges et vous accompagne pas à pas.</p>`,
-          summary: "Processus vente, Documents, Négociation, Pièges à éviter, Checklist complète",
+          content: `<div class="guide-content">
+            <h1>Guide Primo-Vendeur - Réussir sa première vente en Gironde</h1>
+            
+            <div class="intro-section">
+              <p><strong>Première vente immobilière ?</strong> C'est une étape importante qui peut sembler complexe. En Gironde, nous accompagnons chaque année plus de 800 primo-vendeurs dans leur première transaction.</p>
+              <p>Ce guide complet vous évite tous les pièges et vous accompagne étape par étape vers une vente réussie.</p>
+            </div>
+
+            <h2>1. Comprendre le processus de vente</h2>
+            
+            <h3>Les grandes étapes d'une vente :</h3>
+            <ol>
+              <li><strong>Préparation :</strong> Estimation, diagnostics, préparation du bien (1-2 mois)</li>
+              <li><strong>Commercialisation :</strong> Annonce, visites, négociation (2-4 mois)</li>
+              <li><strong>Compromis de vente :</strong> Accord avec l'acquéreur (7-10 jours)</li>
+              <li><strong>Délai de rétractation :</strong> 10 jours pour l'acquéreur</li>
+              <li><strong>Conditions suspensives :</strong> Crédit, diagnostics (2-3 mois)</li>
+              <li><strong>Acte définitif :</strong> Signature chez le notaire</li>
+            </ol>
+
+            <h3>Durée moyenne en Gironde :</h3>
+            <ul>
+              <li><strong>Bordeaux Centre :</strong> 3-4 mois</li>
+              <li><strong>Bordeaux-Métropole :</strong> 4-6 mois</li>
+              <li><strong>Communes périphérie :</strong> 6-8 mois</li>
+              <li><strong>Secteur rural :</strong> 8-12 mois</li>
+            </ul>
+
+            <h2>2. Estimation : fixer le bon prix</h2>
+            
+            <h3>Méthodes d'estimation :</h3>
+            <ul>
+              <li><strong>Comparaison marché :</strong> Biens similaires vendus récemment</li>
+              <li><strong>Expertise professionnelle :</strong> Agent immobilier local (gratuit)</li>
+              <li><strong>Notaire :</strong> Bases de données officielles (payant 300-500€)</li>
+              <li><strong>En ligne :</strong> Estimation automatique (indicatif seulement)</li>
+            </ul>
+
+            <h3>Erreurs fréquentes primo-vendeur :</h3>
+            <ul>
+              <li><strong>Surestimation émotionnelle :</strong> "J'ai fait des travaux" → Pas forcément valorisés</li>
+              <li><strong>Comparaison approximative :</strong> Surface, étage, orientation différents</li>
+              <li><strong>Méconnaissance micro-marché :</strong> Différence énorme entre rues voisines</li>
+              <li><strong>Prix psychologique :</strong> 299 000€ vs 300 000€ (filtres recherche)</li>
+            </ul>
+
+            <h3>Spécificités prix Gironde :</h3>
+            <ul>
+              <li><strong>Bordeaux intramuros :</strong> Variation 2000-6000€/m² selon quartier</li>
+              <li><strong>Tramway :</strong> +10-15% si à moins de 500m d'un arrêt</li>
+              <li><strong>Écoles réputées :</strong> +5-10% (Bordeaux, Talence, Mérignac)</li>
+              <li><strong>Parking :</strong> +15 000-30 000€ selon secteur</li>
+            </ul>
+
+            <h2>3. Documents obligatoires</h2>
+            
+            <h3>Diagnostics immobiliers (validité) :</h3>
+            <ul>
+              <li><strong>DPE :</strong> 10 ans (obligatoire pour annonce)</li>
+              <li><strong>Amiante :</strong> Illimitée si négatif, bâti avant 1997</li>
+              <li><strong>Plomb :</strong> 1 an, bâti avant 1949</li>
+              <li><strong>Termites :</strong> 6 mois (zones à risque Gironde)</li>
+              <li><strong>Électricité :</strong> 3 ans si installation +15 ans</li>
+              <li><strong>Gaz :</strong> 3 ans si installation +15 ans</li>
+              <li><strong>Assainissement :</strong> 3 ans (communes non raccordées)</li>
+            </ul>
+
+            <h3>Autres documents essentiels :</h3>
+            <ul>
+              <li><strong>Titre de propriété</strong> (acte notarié)</li>
+              <li><strong>Règlement copropriété</strong> + derniers PV AG</li>
+              <li><strong>Attestation surface</strong> (loi Carrez si copropriété)</li>
+              <li><strong>Factures travaux</strong> récents (garanties)</li>
+              <li><strong>Taxe foncière</strong> dernière année</li>
+            </ul>
+
+            <h3>Coût diagnostics Gironde :</h3>
+            <ul>
+              <li><strong>Pack complet appartement :</strong> 350-500€</li>
+              <li><strong>Pack complet maison :</strong> 500-800€</li>
+              <li><strong>DPE seul :</strong> 120-180€</li>
+            </ul>
+
+            <h2>4. Choisir son mode de vente</h2>
+            
+            <h3>Vente avec agent immobilier :</h3>
+            <ul>
+              <li><strong>Avantages :</strong>
+                <ul>
+                  <li>Accompagnement complet</li>
+                  <li>Réseau acquéreurs</li>
+                  <li>Gestion administrative</li>
+                  <li>Négociation professionnelle</li>
+                </ul>
+              </li>
+              <li><strong>Inconvénients :</strong>
+                <ul>
+                  <li>Commission 3-8% (négociable)</li>
+                  <li>Mandat exclusif souvent demandé</li>
+                </ul>
+              </li>
+              <li><strong>Commission moyenne Gironde :</strong> 4-6% TTC</li>
+            </ul>
+
+            <h3>Vente entre particuliers :</h3>
+            <ul>
+              <li><strong>Avantages :</strong>
+                <ul>
+                  <li>Pas de commission</li>
+                  <li>Contact direct acquéreurs</li>
+                  <li>Contrôle total processus</li>
+                </ul>
+              </li>
+              <li><strong>Inconvénients :</strong>
+                <ul>
+                  <li>Time-consuming</li>
+                  <li>Responsabilité légale totale</li>
+                  <li>Difficulté évaluation acquéreurs</li>
+                </ul>
+              </li>
+            </ul>
+
+            <h2>5. Préparer son bien pour la vente</h2>
+            
+            <h3>Home staging primo-vendeur (budget 500-2000€) :</h3>
+            <ul>
+              <li><strong>Désencombrement :</strong> Cartons, meubles superflus, objets personnels</li>
+              <li><strong>Nettoyage profond :</strong> Sol, vitres, sanitaires, cuisine</li>
+              <li><strong>Réparations mineures :</strong> Trous murs, robinets, poignées</li>
+              <li><strong>Peinture :</strong> Murs principaux en blanc/beige neutre</li>
+              <li><strong>Éclairage :</strong> Ampoules puissantes, rideaux ouverts</li>
+            </ul>
+
+            <h3>Erreurs à éviter :</h3>
+            <ul>
+              <li><strong>Gros travaux :</strong> Cuisine/SDB complète rarement rentable</li>
+              <li><strong>Goûts personnels :</strong> Couleurs vives, déco trop marquée</li>
+              <li><strong>Désordre :</strong> Visiteur doit se projeter facilement</li>
+              <li><strong>Odeurs :</strong> Animaux, tabac, cuisine, humidité</li>
+            </ul>
+
+            <h2>6. Rédiger l'annonce parfaite</h2>
+            
+            <h3>Structure annonce efficace :</h3>
+            <ol>
+              <li><strong>Titre accrocheur :</strong> Type bien + quartier + atout principal</li>
+              <li><strong>Description technique :</strong> Surface, pièces, étage, exposition</li>
+              <li><strong>Environnement :</strong> Transports, commerces, écoles</li>
+              <li><strong>Points forts :</strong> Vue, calme, luminosité, parking</li>
+              <li><strong>Informations pratiques :</strong> Charges, taxe foncière, DPE</li>
+            </ol>
+
+            <h3>Mots-clés Gironde qui vendent :</h3>
+            <ul>
+              <li><strong>"Proche tramway"</strong> (recherche n°1)</li>
+              <li><strong>"Bordeaux Centre/Hyper-centre"</strong></li>
+              <li><strong>"Calme"</strong> (recherche fréquente)</li>
+              <li><strong>"Parking/Garage"</strong> (crucial Bordeaux)</li>
+              <li><strong>"Terrasse/Balcon"</strong> (climat favorable)</li>
+            </ul>
+
+            <h2>7. Organiser les visites</h2>
+            
+            <h3>Préparation visite :</h3>
+            <ul>
+              <li><strong>Planning :</strong> Créneaux 1h30, éviter accumulation</li>
+              <li><strong>Éclairage :</strong> Toutes lumières allumées, volets ouverts</li>
+              <li><strong>Température :</strong> 20-22°C selon saison</li>
+              <li><strong>Présence :</strong> Discret mais disponible pour questions</li>
+            </ul>
+
+            <h3>Sécurité primo-vendeur :</h3>
+            <ul>
+              <li><strong>Pré-qualification :</strong> Nom, téléphone, situation</li>
+              <li><strong>Éviter :</strong> Visites seul(e), le soir</li>
+              <li><strong>Documents :</strong> Pas d'originaux, copies seulement</li>
+              <li><strong>Objets de valeur :</strong> Retirer bijoux, électronique</li>
+            </ul>
+
+            <h2>8. Négociation et compromis</h2>
+            
+            <h3>Évaluer une offre :</h3>
+            <ul>
+              <li><strong>Prix net vendeur :</strong> Offre - frais notaire acquéreur</li>
+              <li><strong>Conditions :</strong> Délai, financement, clauses</li>
+              <li><strong>Profil acquéreur :</strong> Capacité financière réelle</li>
+              <li><strong>Timing :</strong> Adéquation avec vos contraintes</li>
+            </ul>
+
+            <h3>Négociation primo-vendeur :</h3>
+            <ul>
+              <li><strong>Marge définie :</strong> Prix minimum accepté au préalable</li>
+              <li><strong>Argumentaire :</strong> Justifier le prix (travaux, marché, etc.)</li>
+              <li><strong>Contrepartie :</strong> Si prix baissé → délai/conditions améliorés</li>
+              <li><strong>Émotionnel :</strong> Éviter décisions impulsives</li>
+            </ul>
+
+            <h2>9. Pièges à éviter absolument</h2>
+            
+            <h3>Pièges financiers :</h3>
+            <ul>
+              <li><strong>Sous-estimation frais :</strong> Diagnostics, commission, plus-value</li>
+              <li><strong>Acquéreur non solvable :</strong> Vérifier capacité financement</li>
+              <li><strong>Conditions suspensives floues :</strong> Délais non définis</li>
+            </ul>
+
+            <h3>Pièges juridiques :</h3>
+            <ul>
+              <li><strong>Vice caché :</strong> Déclarer tous problèmes connus</li>
+              <li><strong>Surface erronée :</strong> Faire mesurer par professionnel si doute</li>
+              <li><strong>Servitudes oubliées :</strong> Passage, vue, mitoyenneté</li>
+            </ul>
+
+            <h3>Pièges administratifs :</h3>
+            <ul>
+              <li><strong>Diagnostics périmés :</strong> Refaire si nécessaire</li>
+              <li><strong>Copropriété :</strong> Charges, travaux votés non déclarés</li>
+              <li><strong>Urbanisme :</strong> Extensions non déclarées</li>
+            </ul>
+
+            <h2>10. Checklist complète primo-vendeur</h2>
+
+            <h3>Phase préparation (1-2 mois) :</h3>
+            <ul>
+              <li>☐ Estimation par 3 professionnels</li>
+              <li>☐ Prix de vente défini (objectif + minimum)</li>
+              <li>☐ Diagnostics immobiliers commandés</li>
+              <li>☐ Documents rassemblés et classés</li>
+              <li>☐ Home staging réalisé</li>
+              <li>☐ Photos professionnelles prises</li>
+            </ul>
+
+            <h3>Phase commercialisation :</h3>
+            <ul>
+              <li>☐ Mode vente choisi (agent/particulier)</li>
+              <li>☐ Annonce rédigée et diffusée</li>
+              <li>☐ Planning visites organisé</li>
+              <li>☐ Suivi prospects/visites</li>
+            </ul>
+
+            <h3>Phase négociation :</h3>
+            <ul>
+              <li>☐ Offres analysées objectivement</li>
+              <li>☐ Acquéreur solvable sélectionné</li>
+              <li>☐ Négociation menée sereinement</li>
+              <li>☐ Compromis vérifié par professionnel</li>
+            </ul>
+
+            <h3>Phase finalisation :</h3>
+            <ul>
+              <li>☐ Suivi conditions suspensives</li>
+              <li>☐ Préparation acte notarié</li>
+              <li>☐ Remise clés organisée</li>
+              <li>☐ Changement adresse effectué</li>
+            </ul>
+
+            <div class="cta-section">
+              <h3>Accompagnement primo-vendeur Gironde</h3>
+              <p>Nos experts primo-vendeur vous rassurent et vous guident à chaque étape. Formation, conseils, suivi personnalisé.</p>
+            </div>
+          </div>`,
+          summary: "Processus vente détaillé, Estimation juste prix, Documents obligatoires, Mode de vente, Préparation du bien, Annonce efficace, Organisation visites, Négociation, Pièges à éviter, Checklist complète",
+          pdfContent: `Guide PDF primo-vendeur : Checklist étapes complète, Modèles documents, Scripts visites, Simulateur frais vente, Contacts professionnels Gironde, Kit négociation débutant`,
+          metaDescription: "Guide complet pour réussir sa première vente immobilière en Gironde. Étapes, documents, négociation, pièges à éviter.",
+          seoTitle: "Guide Primo-Vendeur Gironde - Première Vente Immobilier | Expert Débutant",
           sortOrder: 6
         }
       ];

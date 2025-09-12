@@ -39,6 +39,11 @@ export const leads = pgTable("leads", {
   source: text("source").notNull(), // domain name
   leadType: text("lead_type").notNull().default("estimation_quick"), // "estimation_quick" | "estimation_detailed" | "financing" | "guide_download"
   status: text("status").notNull().default("new"), // "new" | "contacted" | "converted" | "archived"
+  // RGPD compliance fields
+  consentAt: timestamp("consent_at"), // When consent was given
+  consentSource: text("consent_source"), // "guide_download", "estimation", "contact", etc.
+  ipAddress: text("ip_address"), // IP address when consent was given
+  guideSlug: text("guide_slug"), // For guide download leads, which guide was downloaded
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
 });
