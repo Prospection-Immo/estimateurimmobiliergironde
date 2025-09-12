@@ -24,11 +24,8 @@ export default function Hero({ domain = "estimation-immobilier-gironde.fr" }: He
         {/* Centered Title */}
         <div className="text-center mb-6">
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight">
-            Estimation immobilière Gironde
+            Estimation immobilière gratuite en Gironde – Vendez votre bien au vrai prix du marché
           </h1>
-          <p className="text-lg sm:text-xl text-white/90 mt-3">
-            Expertise immobilière locale
-          </p>
         </div>
         
         <div className="text-center">

@@ -1,0 +1,104 @@
+✅ Instruction à donner à ton agent Replit (copie-colle)
+
+Objectif : supprimer le doublon du titre/intro.
+Étapes :
+
+Grep du H1 pour repérer tous les endroits où il est rendu :
+
+Rechercher le texte exact Estimation immobilière gratuite en Gironde – Vendez votre bien au vrai prix du marché.
+
+Si trouvé dans 2 fichiers, supprimer la version en dessous du Hero et ne garder qu’une seule occurrence (dans le composant Hero).
+
+Vérifier le layout :
+
+Si le layout (ex. app/(department)/gironde/layout.tsx ou components/department-templates/...) rend déjà un Hero, ne pas re-rendre un Hero dans la page (page.tsx).
+
+Sinon, rendre le Hero uniquement dans la page.
+
+Uniformiser les titres :
+
+Garder le H1 dans le Hero uniquement.
+
+Transformer le H1 qui est plus bas en H2 (ex. “Pourquoi choisir notre solution d’estimation en Gironde ?”).
+
+Imports en double :
+
+Vérifier qu’on n’importe pas le même composant via 2 chemins différents. Conserver un seul alias (@/components/...).
+
+StrictMode (si besoin) :
+
+Si un composant manipule le DOM (ex. document.createElement), déplacer cette logique dans useEffect sans ajouter de nœud doublon.
+
+🧩 Exemple de structure correcte (Next.js)
+// app/gironde/page.tsx  (ou pages/gironde/index.tsx)
+import Hero from "@/components/sections/HeroGironde";
+import CeQueVousRessentez from "@/components/sections/CeQueVousRessentez";
+import Solution from "@/components/sections/Solution";
+import Process from "@/components/sections/Process";
+import PourquoiChoisir from "@/components/sections/PourquoiChoisir";
+import Footer from "@/components/shared/FooterSection";
+
+export default function GirondeHome() {
+  return (
+    <main>
+      <Hero /> {/* Contient le SEUL H1 de la page */}
+      <CeQueVousRessentez />   {/* H2 à l’intérieur */}
+      <Solution />             {/* H2 à l’intérieur */}
+      <Process />              {/* H2 à l’intérieur */}
+      <PourquoiChoisir />      {/* H2 à l’intérieur */}
+      <Footer />
+    </main>
+  );
+}
+
+Hero (conserver le H1 ici uniquement)
+// components/sections/HeroGironde.tsx
+export default function HeroGironde() {
+  return (
+    <section className="py-14">
+      <h1 className="text-3xl md:text-4xl font-bold">
+        Estimation immobilière gratuite en Gironde – Vendez votre bien au vrai prix du marché
+      </h1>
+      <p className="mt-4 max-w-3xl">
+        Chaque année en Gironde, des centaines de propriétaires perdent des milliers d’euros en vendant leur bien
+        <strong> 15 à 30% en dessous de sa valeur réelle</strong>. Notre solution d’estimation immobilière vous
+        permet d’éviter cette erreur coûteuse et de vendre en toute confiance.
+      </p>
+      <div className="mt-6">
+        <a className="btn btn-primary">Obtenez votre estimation gratuite dès maintenant</a>
+      </div>
+    </section>
+  );
+}
+
+Section suivante (H2, pas H1)
+// components/sections/PourquoiChoisir.tsx
+export default function PourquoiChoisir() {
+  return (
+    <section className="py-12">
+      <h2 className="text-2xl md:text-3xl font-semibold">
+        Pourquoi choisir notre solution d’estimation en Gironde ?
+      </h2>
+      {/* ...contenu... */}
+    </section>
+  );
+}
+
+🧹 Diff minimal si tu gardes tout dans un seul fichier
+
+Supprime la ligne dupliquée :
+# Estimation immobilière gratuite en Gironde – Vendez votre bien au vrai prix du marché en dessous du Hero.
+
+Remplace ce H1 du bas par un H2 ou supprime-le s’il ne sert qu’à répéter le Hero.
+
+🔎 Check-list rapide
+
+ Le H1 n’apparaît qu’une seule fois (dans le Hero).
+
+ Le layout ne rend pas déjà un Hero si la page le rend (ou inversement).
+
+ Aucune importation en double du même composant via 2 chemins.
+
+ Les sections sous le Hero utilisent H2/H3.
+
+Si tu veux, colle-moi les chemins de tes fichiers (layout + page Gironde) et les imports du Hero : je te renvoie le diff exact à appliquer.

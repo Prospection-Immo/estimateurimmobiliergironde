@@ -177,18 +177,11 @@ function HomePage() {
           <div className="max-w-6xl mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-                Estimation immobilière gratuite en Gironde – Vendez votre bien au vrai prix du marché
+                De l'incertitude à la certitude
               </h2>
-              <p className="text-lg text-muted-foreground max-w-3xl mx-auto mb-6">
-                Chaque année en Gironde, des centaines de propriétaires perdent des milliers d'euros en vendant leur bien 15 à 30% en dessous de sa valeur réelle.
+              <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+                Découvrez comment nous transformons vos doutes en confiance grâce à notre approche transparente et nos données fiables
               </p>
-              <p className="text-lg text-foreground max-w-3xl mx-auto mb-6">
-                Notre solution d'estimation immobilière vous permet d'éviter cette erreur coûteuse et de vendre en toute confiance.
-              </p>
-              <div className="inline-flex items-center gap-2 text-primary font-semibold">
-                <span>👉</span>
-                <span>Obtenez votre estimation gratuite dès maintenant</span>
-              </div>
             </div>
             <div className="grid md:grid-cols-3 gap-8">
               {/* Ce que vous ressentez */}
