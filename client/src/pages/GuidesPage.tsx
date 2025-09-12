@@ -10,12 +10,12 @@ import { type Guide, GUIDE_PERSONAS } from "@shared/schema";
 import SEOHead from "@/components/SEOHead";
 
 export default function GuidesPage() {
-  const [selectedPersona, setSelectedPersona] = useState<string>("");
+  const [selectedPersona, setSelectedPersona] = useState<string>("all");
 
   const { data: guides = [], isLoading } = useQuery<Guide[]>({
     queryKey: ['/api/guides', selectedPersona],
     queryFn: async () => {
-      const url = selectedPersona 
+      const url = selectedPersona && selectedPersona !== 'all'
         ? `/api/guides?persona=${encodeURIComponent(selectedPersona)}`
         : '/api/guides';
       const response = await fetch(url);
@@ -157,7 +157,7 @@ export default function GuidesPage() {
                     <SelectValue placeholder="Tous les profils" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Tous les profils</SelectItem>
+                    <SelectItem value="all">Tous les profils</SelectItem>
                     {Object.entries(GUIDE_PERSONAS).map(([key, label]) => (
                       <SelectItem key={key} value={key}>
                         {label}
