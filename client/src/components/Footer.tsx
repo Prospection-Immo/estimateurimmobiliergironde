@@ -16,7 +16,7 @@ export default function Footer({ domain = "estimation-immobilier-gironde.fr" }: 
           {/* Company Info */}
           <div className="space-y-4">
             <h3 className="font-semibold text-lg text-primary-foreground">
-              {isGironde ? "Estimation Gironde" : "Estimation Immobilière"}
+              {isGironde ? "Estimation immobilière Gironde" : "Estimation Immobilière"}
             </h3>
             <p className="text-sm text-primary-foreground/80">
               Expert en estimation immobilière dans la région {isGironde ? "Gironde" : "de Bordeaux"}. 

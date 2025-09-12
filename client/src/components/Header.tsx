@@ -34,7 +34,7 @@ export default function Header({ domain = "estimation-immobilier-gironde.fr" }: 
             </div>
             <div className="hidden sm:block">
               <h1 className="font-semibold text-lg">
-                {isGironde ? "Estimation Gironde" : "Estimation Immobilière"}
+                {isGironde ? "Estimation immobilière Gironde" : "Estimation Immobilière"}
               </h1>
               <p className="text-xs text-muted-foreground">Expert local</p>
             </div>
