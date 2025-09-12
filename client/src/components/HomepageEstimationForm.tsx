@@ -3,13 +3,16 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 import SmsVerificationHome from "@/components/SmsVerificationHome";
 import { useToast } from "@/hooks/use-toast";
 
 export default function HomepageEstimationForm() {
   const [propertyType, setPropertyType] = useState("");
   const [surface, setSurface] = useState("");
+  const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
+  const [postalCode, setPostalCode] = useState("");
   const [step, setStep] = useState<'form' | 'verification' | 'results'>('form');
   const [error, setError] = useState("");
   const { toast } = useToast();
@@ -19,8 +22,13 @@ export default function HomepageEstimationForm() {
     setError("");
 
     // Validation
-    if (!propertyType || !surface || !city) {
+    if (!propertyType || !surface || !address) {
       setError("Tous les champs sont requis");
+      return;
+    }
+
+    if (!city || !postalCode) {
+      setError("Adresse incomplète - veuillez sélectionner une adresse valide dans la liste");
       return;
     }
 
@@ -45,8 +53,8 @@ export default function HomepageEstimationForm() {
           propertyType: propertyType === "Maison" ? "house" : "apartment",
           surface: parseInt(surface),
           city,
-          address: city, // Using city as address for quick estimation
-          postalCode: "33000", // Default for Gironde
+          address,
+          postalCode,
           wantsExpertContact: true,
           smsVerified: true,
           sessionId
@@ -81,7 +89,9 @@ export default function HomepageEstimationForm() {
     const propertyData = {
       propertyType,
       surface,
-      city
+      address,
+      city,
+      postalCode
     };
     
     return (
@@ -130,14 +140,16 @@ export default function HomepageEstimationForm() {
             </div>
           </div>
           <div>
-            <label className="text-sm font-medium text-card-foreground block mb-2">Ville</label>
-            <Input
-              type="text"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              placeholder="Ex: Bordeaux"
+            <label className="text-sm font-medium text-card-foreground block mb-2">Adresse du bien</label>
+            <AddressAutocomplete
+              onAddressSelect={(addressDetails) => {
+                setAddress(addressDetails.formattedAddress);
+                setCity(addressDetails.locality || '');
+                setPostalCode(addressDetails.postalCode || '');
+              }}
+              placeholder="Commencez à taper l'adresse de votre bien..."
               required
-              data-testid="input-city"
+              data-testid="input-address"
             />
           </div>
 
