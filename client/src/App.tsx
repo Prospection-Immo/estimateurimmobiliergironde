@@ -175,6 +175,14 @@ function HomePage() {
         {/* 3 Blocs Section */}
         <section className="py-16 bg-background">
           <div className="max-w-6xl mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
+                De l'incertitude à la certitude
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+                Découvrez comment nous transformons vos doutes en confiance grâce à notre approche transparente et nos données fiables
+              </p>
+            </div>
             <div className="grid md:grid-cols-3 gap-8">
               {/* Ce que vous ressentez */}
               <div className="space-y-4">
