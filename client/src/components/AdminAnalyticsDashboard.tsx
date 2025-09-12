@@ -795,7 +795,7 @@ export default function AdminAnalyticsDashboard() {
               <SelectValue placeholder="Tous les personas" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tous les personas</SelectItem>
+              <SelectItem value="all">Tous les personas</SelectItem>
               {Object.entries(PERSONA_LABELS).map(([key, label]) => (
                 <SelectItem key={key} value={key}>{label}</SelectItem>
               ))}
@@ -807,7 +807,7 @@ export default function AdminAnalyticsDashboard() {
               <SelectValue placeholder="Toutes les sources" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Toutes les sources</SelectItem>
+              <SelectItem value="all">Toutes les sources</SelectItem>
               <SelectItem value="estimation-immobilier-gironde.fr">Site principal</SelectItem>
               <SelectItem value="direct">Accès direct</SelectItem>
               <SelectItem value="google">Google</SelectItem>
