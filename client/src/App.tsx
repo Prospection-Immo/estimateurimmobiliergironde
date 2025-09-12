@@ -177,11 +177,18 @@ function HomePage() {
           <div className="max-w-6xl mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-                De l'incertitude à la certitude
+                Estimation immobilière gratuite en Gironde – Vendez votre bien au vrai prix du marché
               </h2>
-              <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-                Découvrez comment nous transformons vos doutes en confiance grâce à notre approche transparente et nos données fiables
+              <p className="text-lg text-muted-foreground max-w-3xl mx-auto mb-6">
+                Chaque année en Gironde, des centaines de propriétaires perdent des milliers d'euros en vendant leur bien 15 à 30% en dessous de sa valeur réelle.
               </p>
+              <p className="text-lg text-foreground max-w-3xl mx-auto mb-6">
+                Notre solution d'estimation immobilière vous permet d'éviter cette erreur coûteuse et de vendre en toute confiance.
+              </p>
+              <div className="inline-flex items-center gap-2 text-primary font-semibold">
+                <span>👉</span>
+                <span>Obtenez votre estimation gratuite dès maintenant</span>
+              </div>
             </div>
             <div className="grid md:grid-cols-3 gap-8">
               {/* Ce que vous ressentez */}
@@ -192,10 +199,10 @@ function HomePage() {
                   </div>
                   <h3 className="text-base font-semibold text-foreground">Ce que vous ressentez aujourd'hui</h3>
                 </div>
-                <ul className="space-y-2">
-                  <li className="text-sm text-muted-foreground">• Vous ne savez pas si votre agent vous dit la vérité sur le prix</li>
-                  <li className="text-sm text-muted-foreground">• Vous avez peur de vendre trop bas et de perdre de l'argent</li>
-                  <li className="text-sm text-muted-foreground">• Vous voulez une solution gratuite, objective, sans arrière-pensée</li>
+                <ul className="space-y-3">
+                  <li className="text-sm text-muted-foreground">Vous doutez du prix annoncé par votre agent.</li>
+                  <li className="text-sm text-muted-foreground">Vous craignez de vendre trop bas et de perdre de l'argent.</li>
+                  <li className="text-sm text-muted-foreground">Vous cherchez une solution gratuite, fiable et sans arrière-pensée commerciale.</li>
                 </ul>
               </div>
 
@@ -207,22 +214,22 @@ function HomePage() {
                   </div>
                   <h3 className="text-base font-semibold text-foreground">La solution que vous méritez</h3>
                 </div>
-                <ul className="space-y-2">
+                <ul className="space-y-3">
                   <li className="flex items-start gap-2 text-sm text-muted-foreground">
                     <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
-                    <span>Des résultats garantis basés sur les vraies ventes DVF de votre quartier</span>
+                    <span>Des résultats fiables basés sur les ventes réelles (DVF) de votre quartier.</span>
                   </li>
                   <li className="flex items-start gap-2 text-sm text-muted-foreground">
                     <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
-                    <span>Notre nouvelle analyse IA exclusive de 50+ critères prix</span>
+                    <span>Une analyse complète de plus de 50 critères qui influencent la valeur d'un bien.</span>
                   </li>
                   <li className="flex items-start gap-2 text-sm text-muted-foreground">
                     <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
-                    <span>Un rapport détaillé gratuit pour vous faire économiser et gagner en négociation</span>
+                    <span>Un rapport détaillé gratuit pour négocier en position de force.</span>
                   </li>
                   <li className="flex items-start gap-2 text-sm text-muted-foreground">
                     <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
-                    <span>Solution 100% gratuite, sans engagement, résultats garantis en 3 minutes</span>
+                    <span>Une solution 100% gratuite, sans engagement, résultats rapides.</span>
                   </li>
                 </ul>
               </div>
@@ -233,28 +240,28 @@ function HomePage() {
                   <div className="bg-green-500/10 p-2 rounded-lg">
                     <Rocket className="h-5 w-5 text-green-500" />
                   </div>
-                  <h3 className="text-base font-semibold text-foreground">Comment ça fonctionne (plan en 3 étapes)</h3>
+                  <h3 className="text-base font-semibold text-foreground">Comment ça fonctionne (3 étapes simples)</h3>
                 </div>
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
                     <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-semibold">1</div>
                     <div>
                       <p className="text-sm font-medium text-foreground">Décrivez votre bien</p>
-                      <p className="text-xs text-muted-foreground">Type, surface, ville, état général (2 minutes)</p>
+                      <p className="text-xs text-muted-foreground">Type, surface, ville, état général (2 minutes).</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
                     <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-semibold">2</div>
                     <div>
-                      <p className="text-sm font-medium text-foreground">Notre IA analyse</p>
-                      <p className="text-xs text-muted-foreground">Croisement des données DVF + critères marché local</p>
+                      <p className="text-sm font-medium text-foreground">Analyse locale</p>
+                      <p className="text-xs text-muted-foreground">Croisement avec les ventes DVF + tendances marché.</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
                     <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-semibold">3</div>
                     <div>
                       <p className="text-sm font-medium text-foreground">Recevez votre estimation</p>
-                      <p className="text-xs text-muted-foreground">Fourchette précise + rapport détaillé par email</p>
+                      <p className="text-xs text-muted-foreground">Fourchette précise + rapport complet envoyé par email.</p>
                     </div>
                   </div>
                 </div>
@@ -267,10 +274,7 @@ function HomePage() {
         <section className="py-16 bg-muted/30">
           <div className="max-w-6xl mx-auto px-4">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold mb-4">Votre nouvelle solution d'estimation gratuite et fiable</h2>
-              <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-                Découvrez notre estimateur révolutionnaire qui combine l'IA et les prix réels DVF pour vous offrir des résultats précis garantis. Cette solution exclusive vous permet d'économiser du temps et de gagner en confiance pour vos décisions immobilières stratégiques en Gironde.
-              </p>
+              <h2 className="text-3xl font-bold mb-4">Pourquoi choisir notre solution d'estimation en Gironde ?</h2>
             </div>
             
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -278,9 +282,9 @@ function HomePage() {
                 <div className="bg-primary/10 p-4 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
                   <Zap className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-lg font-semibold" data-testid="text-benefit-instantanee">Résultats instantanés gratuits</h3>
+                <h3 className="text-lg font-semibold" data-testid="text-benefit-instantanee">Résultats instantanés et gratuits</h3>
                 <p className="text-muted-foreground text-sm">
-                  Vous obtenez une estimation fiable basée sur les ventes réelles - garantie 100% gratuite
+                  Obtenez votre estimation rapidement et sans frais
                 </p>
               </div>
               
@@ -288,9 +292,9 @@ function HomePage() {
                 <div className="bg-primary/10 p-4 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
                   <MapPin className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-lg font-semibold" data-testid="text-benefit-quartiers">Analyse exclusive des secteurs</h3>
+                <h3 className="text-lg font-semibold" data-testid="text-benefit-quartiers">Analyse sectorielle détaillée</h3>
                 <p className="text-muted-foreground text-sm">
-                  Découvrez où vous pouvez gagner le plus avec notre nouvelle expertise 2025
+                  Découvrez où votre bien vaut le plus grâce à notre expertise locale
                 </p>
               </div>
               
@@ -298,9 +302,9 @@ function HomePage() {
                 <div className="bg-primary/10 p-4 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
                   <Search className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-lg font-semibold" data-testid="text-benefit-comparaison">Solution de comparaison avancée</h3>
+                <h3 className="text-lg font-semibold" data-testid="text-benefit-comparaison">Comparaison avec les ventes récentes</h3>
                 <p className="text-muted-foreground text-sm">
-                  Votre bien analysé face aux ventes récentes pour des résultats optimaux garantis
+                  Analyse des transactions similaires pour une estimation optimale
                 </p>
               </div>
               
@@ -308,11 +312,17 @@ function HomePage() {
                 <div className="bg-primary/10 p-4 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
                   <Mail className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-lg font-semibold" data-testid="text-benefit-rapport">Rapport détaillé gratuit</h3>
+                <h3 className="text-lg font-semibold" data-testid="text-benefit-rapport">Rapport complet envoyé par email</h3>
                 <p className="text-muted-foreground text-sm">
-                  Vous recevez tous les résultats par email - solution complète pour gagner du temps
+                  Recevez directement votre étude détaillée dans votre boite mail
                 </p>
               </div>
+            </div>
+            
+            <div className="text-center mt-8">
+              <p className="text-lg font-semibold text-primary">
+                📍 Estimation immobilière Gironde – votre solution locale à Bordeaux et dans tout le département
+              </p>
             </div>
           </div>
         </section>
