@@ -8,8 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { type Guide, GUIDE_PERSONAS } from "@shared/schema";
 import SEOHead from "@/components/SEOHead";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 
 // Images réalistes pour chaque persona
 const PERSONA_IMAGES: Record<string, string> = {
@@ -98,8 +96,7 @@ export default function GuidesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header domain={domain} />
+    <>
       <SEOHead
         title="Guides Vendeurs Immobilier Gironde | Conseils Experts Vente 2025"
         description="📚 Guides spécialisés pour vendre votre bien en Gironde selon votre profil. Conseils experts, stratégies personnalisées, PDF gratuits. 6 situations couvertes."
@@ -361,8 +358,6 @@ export default function GuidesPage() {
           </div>
         </div>
       </section>
-      
-      <Footer domain={domain} />
-    </div>
+    </>
   );
 }

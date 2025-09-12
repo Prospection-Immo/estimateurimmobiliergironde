@@ -3,8 +3,6 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, BookOpen, Search } from "lucide-react";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 
 interface LexiquePageProps {
   domain?: string;
@@ -189,8 +187,7 @@ export default function LexiquePage({ domain = "estimation-immobilier-gironde.fr
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header domain={domain} />
+    <>
       
       <main className="py-12">
         <div className="max-w-4xl mx-auto px-4">
@@ -298,8 +295,6 @@ export default function LexiquePage({ domain = "estimation-immobilier-gironde.fr
           </Card>
         </div>
       </main>
-      
-      <Footer domain={domain} />
-    </div>
+    </>
   );
 }

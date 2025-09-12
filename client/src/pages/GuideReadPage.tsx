@@ -26,8 +26,6 @@ import { useToast } from "@/hooks/use-toast";
 import { type Guide, GUIDE_PERSONAS } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useLeadContext } from "@/lib/leadContext";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 
 // Utility function to detect domain from Host header
 function getDomainFromHeaders(): string {
@@ -346,8 +344,7 @@ export default function GuideReadPage() {
 
   if (isLoading || leadContextLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header domain={domain} />
+      <>
         <main className="py-16">
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto">
@@ -359,16 +356,14 @@ export default function GuideReadPage() {
             </div>
           </div>
         </main>
-        <Footer domain={domain} />
-      </div>
+      </>
     );
   }
 
   // Show error if no lead context
   if (!leadContextLoading && !leadContext) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header domain={domain} />
+      <>
         <main className="py-16">
           <div className="container mx-auto px-4">
             <div className="max-w-2xl mx-auto text-center">
@@ -382,15 +377,13 @@ export default function GuideReadPage() {
             </div>
           </div>
         </main>
-        <Footer domain={domain} />
-      </div>
+      </>
     );
   }
 
   if (!guide || !slug) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header domain={domain} />
+      <>
         <main className="py-16">
           <div className="container mx-auto px-4">
             <div className="max-w-2xl mx-auto text-center">
@@ -404,16 +397,14 @@ export default function GuideReadPage() {
             </div>
           </div>
         </main>
-        <Footer domain={domain} />
-      </div>
+      </>
     );
   }
 
   const personaLabel = GUIDE_PERSONAS[guide.persona as keyof typeof GUIDE_PERSONAS];
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header domain={domain} />
+    <>
       
       <main>
         {/* Header Section */}
@@ -581,8 +572,6 @@ export default function GuideReadPage() {
           </div>
         </section>
       </main>
-      
-      <Footer domain={domain} />
-    </div>
+          </>
   );
 }

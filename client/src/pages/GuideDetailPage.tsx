@@ -28,8 +28,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { type Guide, GUIDE_PERSONAS } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 
 // Form validation schema
 const guideLeadSchema = z.object({
@@ -334,8 +332,7 @@ export default function GuideDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header domain={domain} />
+      <>
         <main className="py-8">
           <div className="container mx-auto px-4">
             <div className="animate-pulse">
@@ -355,15 +352,13 @@ export default function GuideDetailPage() {
             </div>
           </div>
         </main>
-        <Footer domain={domain} />
-      </div>
+      </>
     );
   }
 
   if (error || !guide) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header domain={domain} />
+      <>
         <main className="py-16">
           <div className="container mx-auto px-4">
             <div className="max-w-2xl mx-auto text-center">
@@ -380,16 +375,14 @@ export default function GuideDetailPage() {
             </div>
           </div>
         </main>
-        <Footer domain={domain} />
-      </div>
+      </>
     );
   }
 
   const processedContent = processContentWithIds(guide.content);
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header domain={domain} />
+    <>
       
       {/* Hero Section */}
       <section className="bg-primary text-primary-foreground py-16">
@@ -519,8 +512,6 @@ export default function GuideDetailPage() {
           </div>
         </div>
       </main>
-
-      <Footer domain={domain} />
-    </div>
+    </>
   );
 }
