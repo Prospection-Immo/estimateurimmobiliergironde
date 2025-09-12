@@ -12,7 +12,7 @@ import bcrypt from "bcrypt";
 
 // Initialize Twilio client
 const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-const TWILIO_VERIFY_SERVICE_SID = 'VA0562b4c0e460ba0c03268eb0e413b313';
+const TWILIO_VERIFY_SERVICE_SID = process.env.TWILIO_VERIFY_SERVICE_SID || 'VA0562b4c0e460ba0c03268eb0e413b313';
 
 // Specific validation schemas for different lead types
 const insertEstimationLeadSchema = insertLeadSchema.extend({
@@ -175,6 +175,30 @@ function rateLimit(maxRequests: number, windowMs: number) {
   };
 }
 
+// Middleware to check SMS verification for guide access
+function requireSmsVerification(req: any, res: any, next: any) {
+  const session = req.session as any;
+  
+  // Check if user has completed homepage SMS verification
+  if (session.homepageVerified && session.verifiedLeadId && session.verifiedAt) {
+    // Check if verification is not too old (24 hours)
+    const verifiedAt = new Date(session.verifiedAt);
+    const now = new Date();
+    const timeDiff = now.getTime() - verifiedAt.getTime();
+    const hoursDiff = timeDiff / (1000 * 3600);
+    
+    if (hoursDiff <= 24) {
+      return next();
+    }
+  }
+  
+  return res.status(403).json({ 
+    error: "Vérification SMS requise", 
+    message: "Vous devez d'abord vérifier votre numéro de téléphone pour accéder aux guides",
+    requiresVerification: true
+  });
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Middleware to detect domain
   app.use((req, res, next) => {
@@ -187,12 +211,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/estimations-quick', async (req, res) => {
     try {
       const domain = req.headers['x-domain'] as string;
+      const { sessionId, ...propertyData } = req.body;
       
-      // Validate the request body for quick estimation leads
-      const validatedData = insertEstimationLeadSchema.parse({
-        ...req.body,
+      // Validate sessionId is provided
+      if (!sessionId) {
+        return res.status(400).json({ error: 'SessionId requis' });
+      }
+
+      // Retrieve contact data from SMS verification session
+      const authSession = await storage.getAuthSession(sessionId);
+      if (!authSession || authSession.expiresAt < new Date()) {
+        return res.status(400).json({ error: 'Session expirée ou invalide' });
+      }
+
+      // Check that SMS verification was completed
+      if (!authSession.isSmsVerified) {
+        return res.status(400).json({ error: 'Vérification SMS non complétée' });
+      }
+
+      // Get additional data from HTTP session if available
+      const httpSessionData = (req.session as any).homepageVerificationData;
+      const firstName = httpSessionData?.firstName || 'Utilisateur';
+
+      // Combine contact data from authSession with property data from request
+      const leadData = {
+        email: authSession.email,
+        phone: authSession.phoneNumber,
+        firstName: firstName,
+        lastName: '', // We don't collect lastName in homepage flow
+        propertyType: propertyData.propertyType,
+        address: propertyData.address || propertyData.city,
+        city: propertyData.city,
+        postalCode: propertyData.postalCode || "33000",
+        surface: propertyData.surface,
+        rooms: propertyData.rooms,
+        bedrooms: propertyData.bedrooms,
+        bathrooms: propertyData.bathrooms,
+        hasGarden: propertyData.hasGarden || false,
+        hasParking: propertyData.hasParking || false,
+        hasBalcony: propertyData.hasBalcony || false,
+        constructionYear: propertyData.constructionYear,
+        saleTimeline: propertyData.saleTimeline || "6m",
+        wantsExpertContact: propertyData.wantsExpertContact || true,
         source: domain
-      });
+      };
+
+      // Validate the combined data
+      const validatedData = insertEstimationLeadSchema.parse(leadData);
 
       // Calculate estimation
       const estimation = calculateEstimation({
@@ -230,6 +295,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         methodology: "Estimation rapide basée sur les données du marché"
       });
 
+      // Mark session as having completed verification for guide access
+      (req.session as any).homepageVerified = true;
+      (req.session as any).verifiedLeadId = lead.id;
+      (req.session as any).verifiedAt = new Date().toISOString();
+
       res.json({
         lead,
         estimation: savedEstimation,
@@ -237,7 +307,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('Error creating quick estimation:', error);
-      res.status(400).json({ error: 'Invalid data provided' });
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          error: 'Données invalides', 
+          details: error.errors.map(e => e.message).join(', ')
+        });
+      }
+      res.status(400).json({ error: 'Erreur lors du traitement de votre estimation' });
     }
   });
 
@@ -370,8 +446,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create guide download lead - SECURED with RGPD compliance and rate limiting
-  app.post('/api/guide-leads', rateLimit(5, 60000), async (req, res) => {
+  // Create guide download lead - SECURED with RGPD compliance and rate limiting and SMS verification
+  app.post('/api/guide-leads', rateLimit(5, 60000), requireSmsVerification, async (req, res) => {
     try {
       const domain = req.headers['x-domain'] as string;
       const clientIp = getClientIp(req);
@@ -388,7 +464,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create lead with RGPD compliance data
       const leadData = {
         firstName: validatedData.firstName,
-        lastName: '', // Guide leads don't collect last name for better UX
+        lastName: 'Non renseigné', // Guide leads don't collect last name for better UX
         email: validatedData.email,
         city: validatedData.city,
         source: domain,
@@ -765,6 +841,207 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Homepage SMS Verification endpoints
+  // Step 1: Start homepage verification session
+  app.post("/api/homepage-verification/start", rateLimit(3, 5 * 60 * 1000), async (req, res) => {
+    try {
+      const { email, firstName, phoneNumber, propertyData } = req.body;
+      
+      // Basic validation
+      if (!email || !firstName || !phoneNumber || !propertyData) {
+        return res.status(400).json({ error: "Tous les champs sont requis" });
+      }
+
+      // Validate email format
+      if (!email.includes('@')) {
+        return res.status(400).json({ error: "Format d'email invalide" });
+      }
+
+      // Validate phone number
+      const phoneValidation = validatePhoneNumber(phoneNumber);
+      if (!phoneValidation.isValid) {
+        return res.status(400).json({ error: phoneValidation.error });
+      }
+
+      // Create auth session for homepage verification
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+      const authSession = await storage.createAuthSession({
+        email: email.toLowerCase(),
+        phoneNumber: phoneValidation.formatted,
+        isEmailVerified: false, // We'll mark this as true since we have the email
+        isSmsVerified: false,
+        expiresAt
+      });
+
+      // Store temporary lead data in session for later use
+      (req.session as any).homepageVerificationData = {
+        authSessionId: authSession.id,
+        firstName,
+        email: email.toLowerCase(),
+        phoneNumber: phoneValidation.formatted,
+        propertyData
+      };
+
+      res.json({ 
+        success: true, 
+        sessionId: authSession.id,
+        message: "Session créée avec succès"
+      });
+    } catch (error) {
+      console.error('Homepage verification start error:', error);
+      res.status(500).json({ error: "Erreur serveur" });
+    }
+  });
+
+  // Step 2: Send SMS for homepage verification
+  app.post("/api/homepage-verification/send-sms", rateLimit(3, 5 * 60 * 1000), async (req, res) => {
+    try {
+      const { sessionId } = req.body;
+      
+      if (!sessionId) {
+        return res.status(400).json({ error: "Session ID requis" });
+      }
+      
+      const authSession = await storage.getAuthSession(sessionId);
+      if (!authSession || authSession.expiresAt < new Date()) {
+        return res.status(400).json({ error: "Session expirée ou invalide" });
+      }
+
+      if (!authSession.phoneNumber) {
+        return res.status(400).json({ error: "Numéro de téléphone manquant" });
+      }
+      
+      try {
+        // Send SMS using Twilio SDK
+        const verification = await twilioClient.verify.v2
+          .services(TWILIO_VERIFY_SERVICE_SID)
+          .verifications
+          .create({
+            to: authSession.phoneNumber,
+            channel: 'sms'
+          });
+        
+        // Update auth session with verification SID
+        await storage.updateAuthSession(sessionId, {
+          verificationSid: verification.sid
+        });
+        
+        res.json({ 
+          success: true, 
+          message: "Code de vérification envoyé par SMS",
+          phoneDisplay: authSession.phoneNumber.replace(/\d(?=\d{4})/g, '*')
+        });
+      } catch (twilioError: any) {
+        console.error('Twilio verification error:', twilioError);
+        const errorMessage = twilioError.message?.includes('not a valid phone number') 
+          ? "Numéro de téléphone invalide"
+          : "Erreur lors de l'envoi du SMS";
+        res.status(400).json({ error: errorMessage });
+      }
+    } catch (error) {
+      console.error('Homepage send SMS error:', error);
+      res.status(500).json({ error: "Erreur serveur" });
+    }
+  });
+
+  // Step 3: Verify SMS code for homepage
+  app.post("/api/homepage-verification/verify-sms", rateLimit(10, 5 * 60 * 1000), async (req, res) => {
+    try {
+      const { sessionId, code } = req.body;
+      
+      if (!sessionId || !code) {
+        return res.status(400).json({ error: "Session ID et code requis" });
+      }
+
+      // Input validation for code
+      if (!/^\d{6}$/.test(code)) {
+        return res.status(400).json({ error: "Code de vérification invalide (6 chiffres requis)" });
+      }
+      
+      const authSession = await storage.getAuthSession(sessionId);
+      if (!authSession || authSession.expiresAt < new Date()) {
+        return res.status(400).json({ error: "Session expirée ou invalide" });
+      }
+
+      if (!authSession.verificationSid || !authSession.phoneNumber) {
+        return res.status(400).json({ error: "Vérification SMS non initiée" });
+      }
+
+      // Get homepage verification data from session
+      const verificationData = (req.session as any).homepageVerificationData;
+      if (!verificationData || verificationData.authSessionId !== sessionId) {
+        return res.status(400).json({ error: "Données de vérification manquantes" });
+      }
+      
+      try {
+        // Verify code using Twilio SDK
+        const verificationCheck = await twilioClient.verify.v2
+          .services(TWILIO_VERIFY_SERVICE_SID)
+          .verificationChecks
+          .create({
+            to: authSession.phoneNumber,
+            code: code
+          });
+        
+        if (verificationCheck.status === 'approved') {
+          // Mark SMS as verified
+          await storage.updateAuthSession(sessionId, {
+            isSmsVerified: true
+          });
+          
+          // Create qualified lead now that SMS is verified
+          const domain = req.headers['x-domain'] as string;
+          const clientIp = getClientIp(req);
+          
+          const leadData = {
+            firstName: verificationData.firstName,
+            lastName: 'Non renseigné', // SMS verified leads don't require last name
+            email: verificationData.email,
+            phone: authSession.phoneNumber,
+            ...verificationData.propertyData, // propertyType, surface, city, etc.
+            source: domain,
+            leadType: 'estimation_sms_verified' as const,
+            status: 'new' as const,
+            // RGPD compliance fields
+            consentAt: new Date(),
+            consentSource: 'homepage_sms_verification',
+            ipAddress: clientIp,
+            // Additional address fields - will be set properly in the next step
+            address: verificationData.propertyData.city || '',
+            postalCode: '33000' // Default for Gironde, will be refined later
+          };
+
+          const lead = await storage.createLead(leadData);
+          
+          // Set homepage verification in session with security flags
+          (req.session as any).homepageVerified = true;
+          (req.session as any).verifiedLeadId = lead.id;
+          (req.session as any).verifiedAt = new Date().toISOString();
+          
+          // Clean up temporary verification data
+          delete (req.session as any).homepageVerificationData;
+          
+          res.json({ 
+            success: true, 
+            message: "Vérification réussie",
+            leadId: lead.id
+          });
+        } else {
+          res.status(400).json({ error: "Code de vérification incorrect" });
+        }
+      } catch (twilioError: any) {
+        console.error('Twilio verification check error:', twilioError);
+        const errorMessage = twilioError.message?.includes('max check attempts reached')
+          ? "Trop de tentatives. Demandez un nouveau code."
+          : "Code de vérification incorrect";
+        res.status(400).json({ error: errorMessage });
+      }
+    } catch (error) {
+      console.error('Homepage verify SMS error:', error);
+      res.status(500).json({ error: "Erreur serveur" });
+    }
+  });
+
   app.get("/api/auth/check", (req, res) => {
     res.json({ authenticated: !!(req.session as any).isAuthenticated });
   });
@@ -776,6 +1053,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     next();
   };
+
 
   // Get leads (admin)
   app.get('/api/leads', requireAuth, async (req, res) => {
@@ -1932,8 +2210,8 @@ Actions à effectuer:
     }
   });
 
-  // Guides routes - SECURED with HTML sanitization
-  app.get('/api/guides', async (req, res) => {
+  // Guides routes - SECURED with HTML sanitization and SMS verification
+  app.get('/api/guides', requireSmsVerification, async (req, res) => {
     try {
       const { persona } = req.query;
       const guides = await storage.getGuides(persona as string);
@@ -1952,7 +2230,7 @@ Actions à effectuer:
     }
   });
 
-  app.get('/api/guides/:slug', async (req, res) => {
+  app.get('/api/guides/:slug', requireSmsVerification, async (req, res) => {
     try {
       const { slug } = req.params;
       const guide = await storage.getGuideBySlug(slug);
@@ -1975,7 +2253,7 @@ Actions à effectuer:
     }
   });
 
-  app.post('/api/guides/download', async (req, res) => {
+  app.post('/api/guides/download', requireSmsVerification, async (req, res) => {
     try {
       const validatedData = insertGuideDownloadSchema.parse(req.body);
       

@@ -8,7 +8,9 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { Zap, MapPin, Search, Mail, Eye, EyeOff, Brain, Target, Rocket, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
+import SmsVerificationHome from "@/components/SmsVerificationHome";
 
 // Components
 import Header from "@/components/Header";
@@ -18,6 +20,7 @@ import PropertyEstimationForm from "@/components/PropertyEstimationForm";
 import EstimationResults from "@/components/EstimationResults";
 import ContactForm from "@/components/ContactForm";
 import AdminDashboard from "@/components/AdminDashboard";
+import HomepageEstimationForm from "@/components/HomepageEstimationForm";
 import FinancementPage from "@/pages/FinancementPage";
 import MentionsLegalesPage from "@/pages/MentionsLegalesPage";
 import ConfidentialitePage from "@/pages/ConfidentialitePage";
@@ -56,47 +59,7 @@ function HomePage() {
                 Remplissez ces informations simples pour obtenir une estimation précise de votre propriété
               </p>
             </div>
-            <div className="max-w-2xl mx-auto">
-              <Card className="p-6 bg-card border-card-border">
-                <h3 className="text-xl font-semibold mb-6 text-card-foreground text-center">
-                  Découvrez la valeur réelle de votre bien sur le prix du marché
-                </h3>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-card-foreground block mb-2">Type de bien</label>
-                      <select className="w-full p-3 border border-border rounded-md bg-background" data-testid="select-property-type">
-                        <option>Maison</option>
-                        <option>Appartement</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-card-foreground block mb-2">Surface (m²)</label>
-                      <input
-                        type="number"
-                        placeholder="Ex: 120"
-                        className="w-full p-3 border border-border rounded-md bg-background"
-                        data-testid="input-surface"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-card-foreground block mb-2">Ville</label>
-                    <input
-                      type="text"
-                      placeholder="Ex: Bordeaux"
-                      className="w-full p-3 border border-border rounded-md bg-background"
-                      data-testid="input-city"
-                    />
-                  </div>
-                  <Link href="/estimation" className="block mt-6">
-                    <Button className="w-full py-3 text-lg" data-testid="button-quick-estimate">
-                      Découvrir mes résultats maintenant
-                    </Button>
-                  </Link>
-                </div>
-              </Card>
-            </div>
+            <HomepageEstimationForm />
           </div>
         </section>
         
