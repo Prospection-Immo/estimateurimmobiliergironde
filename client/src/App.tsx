@@ -124,16 +124,51 @@ function HomePage() {
       <main>
         <Hero domain={domain} />
         
-        {/* Section Estimateur */}
-        <section className="py-16 bg-muted/20">
-          <div className="max-w-4xl mx-auto px-4">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl sm:text-3xl font-bold mb-4">Estimez votre bien gratuitement</h2>
-              <p className="text-muted-foreground">
-                Remplissez ces informations simples pour obtenir une estimation précise de votre propriété
-              </p>
+        {/* Filtres de recherche rapide */}
+        <section className="py-8 bg-background border-b">
+          <div className="max-w-6xl mx-auto px-4">
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-foreground">Recherche rapide :</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <select className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="filter-city">
+                  <option value="">Ville</option>
+                  <option value="bordeaux">Bordeaux</option>
+                  <option value="merignac">Mérignac</option>
+                  <option value="pessac">Pessac</option>
+                  <option value="talence">Talence</option>
+                  <option value="villenave">Villenave-d'Ornon</option>
+                  <option value="begles">Bègles</option>
+                  <option value="gradignan">Gradignan</option>
+                  <option value="le-bouscat">Le Bouscat</option>
+                </select>
+                <select className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="filter-property-type">
+                  <option value="">Type de bien</option>
+                  <option value="maison">Maison</option>
+                  <option value="appartement">Appartement</option>
+                  <option value="terrain">Terrain</option>
+                </select>
+                <select className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="filter-price">
+                  <option value="">Budget</option>
+                  <option value="0-200000">- 200k €</option>
+                  <option value="200000-350000">200k - 350k €</option>
+                  <option value="350000-500000">350k - 500k €</option>
+                  <option value="500000-750000">500k - 750k €</option>
+                  <option value="750000+">750k € +</option>
+                </select>
+                <select className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="filter-rooms">
+                  <option value="">Pièces</option>
+                  <option value="1-2">1-2 pièces</option>
+                  <option value="3">3 pièces</option>
+                  <option value="4">4 pièces</option>
+                  <option value="5+">5+ pièces</option>
+                </select>
+                <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover-elevate transition-colors" data-testid="button-search">
+                  Rechercher
+                </button>
+              </div>
             </div>
-            <HomepageEstimationForm />
           </div>
         </section>
         
