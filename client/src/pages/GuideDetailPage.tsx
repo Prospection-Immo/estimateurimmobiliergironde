@@ -392,12 +392,12 @@ export default function GuideDetailPage() {
       <Header domain={domain} />
       
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-primary/10 via-background to-primary/5 py-12">
+      <section className="bg-primary text-primary-foreground py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <Link 
               href="/guides" 
-              className="inline-flex items-center text-primary hover:underline mb-6"
+              className="inline-flex items-center text-primary-foreground/80 hover:text-primary-foreground hover:underline mb-6"
               data-testid="link-back-guides"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -406,19 +406,19 @@ export default function GuideDetailPage() {
             
             <div className="grid lg:grid-cols-3 gap-8 items-start">
               <div className="lg:col-span-2">
-                <Badge className="mb-4" data-testid="badge-persona">
+                <Badge className="mb-4 bg-primary-foreground text-primary" data-testid="badge-persona">
                   {GUIDE_PERSONAS[guide.persona as keyof typeof GUIDE_PERSONAS]}
                 </Badge>
                 
-                <h1 className="text-3xl md:text-4xl font-bold mb-4" data-testid="title-guide">
+                <h1 className="text-3xl md:text-4xl font-bold mb-4 text-primary-foreground" data-testid="title-guide">
                   {guide.title}
                 </h1>
                 
-                <p className="text-lg text-muted-foreground mb-6" data-testid="text-benefit">
+                <p className="text-lg text-primary-foreground/90 mb-6" data-testid="text-benefit">
                   {guide.shortBenefit}
                 </p>
                 
-                <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-6 text-sm text-primary-foreground/80">
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
                     <span>{guide.readingTime} min de lecture</span>
@@ -436,10 +436,10 @@ export default function GuideDetailPage() {
               
               {/* Quick CTA for mobile */}
               <div className="lg:hidden">
-                <Card>
+                <Card className="bg-primary-foreground text-primary">
                   <CardContent className="p-4 text-center">
                     <p className="text-sm font-medium mb-3">Téléchargement gratuit</p>
-                    <Button asChild className="w-full">
+                    <Button asChild className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
                       <a href="#lead-form">
                         <Download className="w-4 h-4 mr-2" />
                         Obtenir le guide

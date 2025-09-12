@@ -76,17 +76,6 @@ export default function ContactForm() {
           <div className="space-y-6">
             <div className="flex items-center space-x-4">
               <div className="bg-primary/10 p-3 rounded-lg">
-                <Phone className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Votre ligne directe gratuite</h3>
-                <p className="text-muted-foreground">05 56 XX XX XX</p>
-                <p className="text-sm text-muted-foreground">Solution rapide : réponse garantie du lundi au vendredi, 9h-18h</p>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-4">
-              <div className="bg-primary/10 p-3 rounded-lg">
                 <Mail className="h-6 w-6 text-primary" />
               </div>
               <div>
