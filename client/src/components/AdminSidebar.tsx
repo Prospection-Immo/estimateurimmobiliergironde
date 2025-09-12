@@ -33,7 +33,20 @@ import {
   Edit,
   Globe,
   UserCheck,
-  Shield
+  Shield,
+  Database,
+  Filter,
+  Clock,
+  DollarSign,
+  Target,
+  Eye,
+  BookOpen,
+  Tag,
+  Zap,
+  Bell,
+  Key,
+  Palette,
+  Server
 } from "lucide-react";
 
 interface AdminSidebarProps {
@@ -67,7 +80,9 @@ export function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarPro
       icon: BarChart3,
       items: [
         { id: "overview", label: "Vue d'ensemble", icon: BarChart3 },
-        { id: "stats", label: "Statistiques", icon: TrendingUp },
+        { id: "stats", label: "Statistiques générales", icon: TrendingUp },
+        { id: "recent-activity", label: "Activité récente", icon: Clock },
+        { id: "kpi-metrics", label: "Indicateurs clés", icon: Target },
       ]
     },
     {
@@ -75,10 +90,13 @@ export function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarPro
       label: 'Leads & Contacts',
       icon: Users,
       items: [
-        { id: "leads", label: "Leads", icon: User },
+        { id: "leads", label: "Tous les leads", icon: User },
         { id: "contacts", label: "Contacts", icon: Phone },
         { id: "qualified-leads", label: "Leads qualifiés", icon: UserCheck },
+        { id: "lead-scoring", label: "Scoring leads", icon: Target },
+        { id: "follow-up", label: "Suivi relances", icon: Clock },
         { id: "email-sequences", label: "Email Marketing", icon: Mail },
+        { id: "sms-campaigns", label: "Campagnes SMS", icon: MessageSquare },
       ]
     },
     {
@@ -87,7 +105,11 @@ export function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarPro
       icon: Calculator,
       items: [
         { id: "estimations", label: "Toutes les estimations", icon: Calculator },
+        { id: "pending-estimations", label: "En attente", icon: Clock },
+        { id: "completed-estimations", label: "Terminées", icon: UserCheck },
         { id: "estimation-stats", label: "Statistiques", icon: BarChart3 },
+        { id: "price-accuracy", label: "Précision prix", icon: DollarSign },
+        { id: "estimation-export", label: "Export données", icon: Database },
       ]
     },
     {
@@ -95,9 +117,13 @@ export function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarPro
       label: 'Guides & Articles',
       icon: FileText,
       items: [
-        { id: "articles", label: "Articles", icon: FileText },
-        { id: "guides", label: "Guides vendeurs", icon: Globe },
+        { id: "articles", label: "Tous les articles", icon: FileText },
+        { id: "article-categories", label: "Catégories articles", icon: Tag },
+        { id: "guides", label: "Guides vendeurs", icon: BookOpen },
+        { id: "guide-personas", label: "Personas guides", icon: User },
         { id: "content-stats", label: "Performance contenu", icon: TrendingUp },
+        { id: "content-seo", label: "SEO & visibilité", icon: Eye },
+        { id: "pdf-downloads", label: "Téléchargements PDF", icon: Database },
       ]
     },
     {
@@ -105,8 +131,13 @@ export function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarPro
       label: 'Analytics',
       icon: PieChart,
       items: [
-        { id: "analytics", label: "Analytics avancés", icon: PieChart },
+        { id: "analytics", label: "Dashboard analytics", icon: PieChart },
         { id: "conversion-funnel", label: "Entonnoir conversion", icon: TrendingUp },
+        { id: "traffic-analysis", label: "Analyse trafic", icon: Eye },
+        { id: "lead-sources", label: "Sources de leads", icon: Target },
+        { id: "user-behavior", label: "Comportement utilisateur", icon: Users },
+        { id: "roi-analysis", label: "Analyse ROI", icon: DollarSign },
+        { id: "geographic-data", label: "Données géographiques", icon: Globe },
       ]
     },
     {
@@ -114,9 +145,14 @@ export function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarPro
       label: 'Paramètres',
       icon: Settings,
       items: [
-        { id: "admin-settings", label: "Configuration", icon: Settings },
+        { id: "admin-settings", label: "Configuration générale", icon: Settings },
         { id: "email-templates", label: "Templates Email", icon: Mail },
+        { id: "sms-templates", label: "Templates SMS", icon: MessageSquare },
         { id: "user-management", label: "Utilisateurs", icon: Shield },
+        { id: "api-settings", label: "Clés API", icon: Key },
+        { id: "notifications", label: "Notifications", icon: Bell },
+        { id: "system-logs", label: "Logs système", icon: Server },
+        { id: "backup-data", label: "Sauvegarde", icon: Database },
       ]
     }
   ];
