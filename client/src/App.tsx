@@ -30,6 +30,8 @@ import ArticleDetailPageComponent from "@/pages/ArticleDetailPage";
 import LexiquePageComponent from "@/pages/LexiquePage";
 import GuidesPageComponent from "@/pages/GuidesPage";
 import GuideDetailPageComponent from "@/pages/GuideDetailPage";
+import GuideThanksPage from "@/pages/GuideThanksPage";
+import GuideReadPage from "@/pages/GuideReadPage";
 import Admin2FALogin from "@/components/Admin2FALogin";
 import bordeaux_house from "@assets/generated_images/Bordeaux_house_property_photo_41cf0370.png";
 
@@ -646,6 +648,8 @@ function Router() {
       <Route path="/financement" component={FinancementPageComponent} />
       <Route path="/prix-m2" component={PrixM2Page} />
       <Route path="/guides" component={GuidesPage} />
+      <Route path="/guides/:slug/merci" component={GuideThanksPage} />
+      <Route path="/guides/:slug/lire" component={GuideReadPage} />
       <Route path="/guides/:slug" component={GuideDetailPage} />
       <Route path="/actualites" component={ActualitesPage} />
       <Route path="/actualites/:slug" component={ArticleDetailPage} />

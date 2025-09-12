@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useRoute, Link } from "wouter";
+import { useRoute, Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -105,7 +105,7 @@ function TableOfContents({ content }: { content: string }) {
 // Lead capture form component
 function LeadCaptureForm({ guide }: { guide: Guide }) {
   const { toast } = useToast();
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [, setLocation] = useLocation();
 
   const form = useForm<GuideLeadForm>({
     resolver: zodResolver(guideLeadSchema),
@@ -128,12 +128,26 @@ function LeadCaptureForm({ guide }: { guide: Guide }) {
         guideSlug: data.guideSlug
       });
     },
-    onSuccess: () => {
-      setIsSubmitted(true);
+    onSuccess: (response, variables) => {
+      // Store lead context in localStorage with secure token (RGPD-compliant)
+      const leadContext = {
+        firstName: variables.firstName,
+        email: variables.email,
+        city: variables.city,
+        guideSlug: variables.guideSlug,
+        token: response.leadToken // Secure token from backend
+      };
+      
+      localStorage.setItem('guide-lead-context', JSON.stringify(leadContext));
+      
+      // Redirect to thank you page WITHOUT query parameters (secure)
+      setLocation(`/guides/${guide.slug}/merci`);
+      
       toast({
         title: "Guide envoyé !",
-        description: "Consultez votre boîte email pour recevoir votre guide PDF gratuit.",
+        description: "Redirection vers votre guide...",
       });
+      
       queryClient.invalidateQueries({ queryKey: ['/api/guides'] });
     },
     onError: () => {
@@ -148,28 +162,6 @@ function LeadCaptureForm({ guide }: { guide: Guide }) {
   const onSubmit = (data: GuideLeadForm) => {
     createLeadMutation.mutate(data);
   };
-
-  if (isSubmitted) {
-    return (
-      <Card className="sticky top-4">
-        <CardContent className="p-6 text-center">
-          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold mb-2">Guide envoyé !</h3>
-          <p className="text-muted-foreground mb-4">
-            Consultez votre boîte email pour recevoir votre guide PDF gratuit.
-          </p>
-          <div className="space-y-3">
-            <Button asChild variant="outline" className="w-full">
-              <Link href="/guides">Voir d'autres guides</Link>
-            </Button>
-            <Button asChild className="w-full">
-              <Link href="/estimation">Estimation gratuite</Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <Card className="sticky top-4">

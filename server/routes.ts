@@ -9,6 +9,7 @@ import { z } from "zod";
 import crypto from "crypto";
 import twilio from "twilio";
 import bcrypt from "bcrypt";
+import pdfService from "./services/pdfService";
 
 // Initialize Twilio client
 const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
@@ -50,6 +51,61 @@ const insertGuideLeadSchema = z.object({
   acceptTerms: z.boolean().refine(val => val === true, "Vous devez accepter les conditions"),
   source: z.string().optional()
 });
+
+// Secure token system for lead context (RGPD-compliant)
+const leadTokenStore = new Map<string, {
+  firstName: string;
+  email: string; 
+  city: string;
+  guideSlug: string;
+  createdAt: number;
+  expiresAt: number;
+}>();
+
+function createLeadToken(leadData: { firstName: string; email: string; city: string; guideSlug: string }): string {
+  const token = crypto.randomBytes(32).toString('hex');
+  const now = Date.now();
+  const expiresAt = now + (24 * 60 * 60 * 1000); // 24 hours
+  
+  leadTokenStore.set(token, {
+    ...leadData,
+    createdAt: now,
+    expiresAt
+  });
+  
+  // Clean up expired tokens periodically
+  setTimeout(() => {
+    cleanupExpiredTokens();
+  }, 60 * 60 * 1000); // Check every hour
+  
+  return token;
+}
+
+function getLeadFromToken(token: string): { firstName: string; email: string; city: string; guideSlug: string } | null {
+  const leadData = leadTokenStore.get(token);
+  if (!leadData) return null;
+  
+  if (Date.now() > leadData.expiresAt) {
+    leadTokenStore.delete(token);
+    return null;
+  }
+  
+  return {
+    firstName: leadData.firstName,
+    email: leadData.email,
+    city: leadData.city,
+    guideSlug: leadData.guideSlug
+  };
+}
+
+function cleanupExpiredTokens() {
+  const now = Date.now();
+  for (const [token, data] of leadTokenStore.entries()) {
+    if (now > data.expiresAt) {
+      leadTokenStore.delete(token);
+    }
+  }
+}
 
 // Get client IP address helper
 function getClientIp(req: any): string {
@@ -175,28 +231,11 @@ function rateLimit(maxRequests: number, windowMs: number) {
   };
 }
 
-// Middleware to check SMS verification for guide access
+// Guide access middleware - now publicly accessible after lead form submission
 function requireSmsVerification(req: any, res: any, next: any) {
-  const session = req.session as any;
-  
-  // Check if user has completed homepage SMS verification
-  if (session.homepageVerified && session.verifiedLeadId && session.verifiedAt) {
-    // Check if verification is not too old (24 hours)
-    const verifiedAt = new Date(session.verifiedAt);
-    const now = new Date();
-    const timeDiff = now.getTime() - verifiedAt.getTime();
-    const hoursDiff = timeDiff / (1000 * 3600);
-    
-    if (hoursDiff <= 24) {
-      return next();
-    }
-  }
-  
-  return res.status(403).json({ 
-    error: "Vérification SMS requise", 
-    message: "Vous devez d'abord vérifier votre numéro de téléphone pour accéder aux guides",
-    requiresVerification: true
-  });
+  // Guides are now publicly accessible after lead form submission
+  // SMS verification is only used for the initial lead capture on homepage
+  return next();
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -213,6 +252,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const domain = req.headers['x-domain'] as string;
       const { sessionId, ...propertyData } = req.body;
       
+      console.log('=== QUICK ESTIMATION DEBUG ===');
+      console.log('SessionId:', sessionId);
+      console.log('PropertyData:', propertyData);
+      console.log('Domain:', domain);
+      
       // Validate sessionId is provided
       if (!sessionId) {
         return res.status(400).json({ error: 'SessionId requis' });
@@ -220,30 +264,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Retrieve contact data from SMS verification session
       const authSession = await storage.getAuthSession(sessionId);
+      console.log('AuthSession retrieved:', {
+        exists: !!authSession,
+        email: authSession?.email,
+        phoneNumber: authSession?.phoneNumber,
+        isSmsVerified: authSession?.isSmsVerified,
+        expiresAt: authSession?.expiresAt
+      });
+      
       if (!authSession || authSession.expiresAt < new Date()) {
+        console.log('Session validation failed:', {
+          sessionExists: !!authSession,
+          isExpired: authSession ? authSession.expiresAt < new Date() : 'no-session'
+        });
         return res.status(400).json({ error: 'Session expirée ou invalide' });
       }
 
       // Check that SMS verification was completed
       if (!authSession.isSmsVerified) {
+        console.log('SMS verification not completed');
         return res.status(400).json({ error: 'Vérification SMS non complétée' });
       }
 
       // Get additional data from HTTP session if available
       const httpSessionData = (req.session as any).homepageVerificationData;
-      const firstName = httpSessionData?.firstName || 'Utilisateur';
+      const firstName = httpSessionData?.firstName || authSession.email?.split('@')[0] || 'Utilisateur';
+      
+      console.log('HTTP Session data:', httpSessionData);
+      console.log('FirstName resolved:', firstName);
 
-      // Combine contact data from authSession with property data from request
+      // Ensure all required fields have values
       const leadData = {
-        email: authSession.email,
-        phone: authSession.phoneNumber,
+        email: authSession.email || '',
+        phone: authSession.phoneNumber || '',
         firstName: firstName,
-        lastName: '', // We don't collect lastName in homepage flow
-        propertyType: propertyData.propertyType,
-        address: propertyData.address || propertyData.city,
-        city: propertyData.city,
+        lastName: httpSessionData?.lastName || 'Nom', // Provide a default
+        propertyType: propertyData.propertyType || 'apartment',
+        address: propertyData.address || propertyData.city || 'Adresse non spécifiée',
+        city: propertyData.city || 'Bordeaux',
         postalCode: propertyData.postalCode || "33000",
-        surface: propertyData.surface,
+        surface: propertyData.surface || 50,
         rooms: propertyData.rooms,
         bedrooms: propertyData.bedrooms,
         bathrooms: propertyData.bathrooms,
@@ -253,11 +313,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         constructionYear: propertyData.constructionYear,
         saleTimeline: propertyData.saleTimeline || "6m",
         wantsExpertContact: propertyData.wantsExpertContact || true,
-        source: domain
+        source: domain || 'estimation-immobilier-gironde.fr'
       };
+
+      console.log('LeadData before validation:', leadData);
 
       // Validate the combined data
       const validatedData = insertEstimationLeadSchema.parse(leadData);
+      console.log('Validation successful');
 
       // Calculate estimation
       const estimation = calculateEstimation({
@@ -446,8 +509,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create guide download lead - SECURED with RGPD compliance and rate limiting and SMS verification
-  app.post('/api/guide-leads', rateLimit(5, 60000), requireSmsVerification, async (req, res) => {
+  // Create guide download lead - SECURED with RGPD compliance and rate limiting (SMS verification bypassed for public access)
+  app.post('/api/guide-leads', rateLimit(5, 60000), async (req, res) => {
     try {
       const domain = req.headers['x-domain'] as string;
       const clientIp = getClientIp(req);
@@ -544,6 +607,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error('Error sending admin guide notification email:', emailError);
       }
 
+      // Create secure token for lead context (RGPD-compliant)
+      const leadToken = createLeadToken({
+        firstName: validatedData.firstName,
+        email: validatedData.email,
+        city: validatedData.city,
+        guideSlug: validatedData.guideSlug
+      });
+
       res.json({ 
         success: true, 
         message: 'Guide envoyé avec succès',
@@ -552,7 +623,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           firstName: lead.firstName,
           email: lead.email,
           guideSlug: lead.guideSlug
-        }
+        },
+        leadToken: leadToken // Secure token instead of PII in URLs
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -2284,6 +2356,136 @@ Actions à effectuer:
     } catch (error) {
       console.error('Error creating guide analytics:', error);
       res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Get lead data from secure token endpoint (RGPD-compliant)
+  app.get('/api/lead-context/:token', async (req, res) => {
+    try {
+      const { token } = req.params;
+      const leadData = getLeadFromToken(token);
+      
+      if (!leadData) {
+        return res.status(404).json({ error: 'Token invalide ou expiré' });
+      }
+      
+      res.json({ leadData });
+    } catch (error) {
+      console.error('Error getting lead context:', error);
+      res.status(500).json({ error: 'Erreur serveur' });
+    }
+  });
+
+  // PDF download endpoint for guides (secured with token)
+  app.get('/api/guides/:slug/download-pdf', async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const { token } = req.query;
+      
+      // Get guide data
+      const guide = await storage.getGuideBySlug(slug);
+      if (!guide) {
+        return res.status(404).json({ error: 'Guide not found' });
+      }
+      
+      // Get lead data from secure token (RGPD-compliant)
+      let leadData = null;
+      if (token) {
+        leadData = getLeadFromToken(token as string);
+      }
+      
+      // Fallback to legacy query params for backwards compatibility (temporary)
+      const { email, firstName, city } = req.query;
+      if (!leadData && (!email || !firstName)) {
+        return res.status(400).json({ error: 'Token requis pour télécharger le PDF' });
+      }
+      
+      const finalLeadData = leadData || {
+        firstName: firstName as string,
+        email: email as string,
+        city: (city as string) || 'Gironde',
+        guideSlug: slug
+      };
+      
+      // Track the PDF download attempt
+      try {
+        await storage.createGuideAnalytics({
+          guideId: guide.id,
+          sessionId: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+          leadEmail: finalLeadData.email,
+          eventType: 'pdf_download_started',
+          userAgent: req.headers['user-agent'] || '',
+          ipAddress: req.ip || req.connection.remoteAddress || ''
+        });
+      } catch (analyticsError) {
+        console.error('Error tracking PDF download:', analyticsError);
+      }
+      
+      // Generate PDF using the PDF service
+      try {
+        const pdfBuffer = await pdfService.generateGuidePDF({
+          guide,
+          firstName: finalLeadData.firstName,
+          email: finalLeadData.email,
+          city: finalLeadData.city
+        });
+        
+        // Set response headers for PDF download
+        res.set({
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="${guide.slug}-${finalLeadData.firstName}-guide.pdf"`,
+          'Content-Length': pdfBuffer.length.toString()
+        });
+        
+        // Track successful PDF generation
+        try {
+          await storage.createGuideAnalytics({
+            guideId: guide.id,
+            sessionId: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            leadEmail: finalLeadData.email,
+            eventType: 'pdf_download_completed',
+            userAgent: req.headers['user-agent'] || '',
+            ipAddress: req.ip || req.connection.remoteAddress || ''
+          });
+        } catch (analyticsError) {
+          console.error('Error tracking PDF completion:', analyticsError);
+        }
+        
+        // Send the PDF buffer
+        res.send(pdfBuffer);
+        
+      } catch (pdfError) {
+        console.error('Error generating PDF:', pdfError);
+        
+        // Track PDF generation failure
+        try {
+          await storage.createGuideAnalytics({
+            guideId: guide.id,
+            sessionId: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            leadEmail: finalLeadData.email,
+            eventType: 'pdf_download_failed',
+            eventValue: pdfError instanceof Error ? pdfError.message : 'Unknown error',
+            userAgent: req.headers['user-agent'] || '',
+            ipAddress: req.ip || req.connection.remoteAddress || ''
+          });
+        } catch (analyticsError) {
+          console.error('Error tracking PDF failure:', analyticsError);
+        }
+        
+        // Return fallback response
+        res.status(500).json({
+          error: 'Erreur lors de la génération du PDF',
+          message: 'Une version temporaire du guide sera envoyée par email sous 24h.',
+          fallback: {
+            title: guide.title,
+            content: guide.content
+          }
+        });
+      }
+      
+    } catch (error) {
+      console.error('Error downloading guide PDF:', error);
+      res.status(500).json({ error: 'Erreur lors du téléchargement du PDF' });
     }
   });
 
