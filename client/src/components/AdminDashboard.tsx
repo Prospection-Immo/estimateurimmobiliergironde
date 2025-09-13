@@ -126,6 +126,946 @@ interface AdminDashboardProps {
   domain?: string;
 }
 
+// Guide Personas Section - Interface complète de gestion des personas
+interface PersonaConfig {
+  id: string;
+  label: string;
+  description: string;
+  psychProfile: string;
+  painPoints: string[];
+  motivations: string[];
+  communicationStyle: string;
+  preferredChannels: string[];
+  colors: {
+    primary: string;
+    secondary: string;
+  };
+  icon: string;
+  keywords: string[];
+}
+
+interface PersonaStats {
+  persona: string;
+  guidesCount: number;
+  downloadsCount: number;
+  leadsCount: number;
+  conversionRate: number;
+  avgReadTime: number;
+  topGuide: string;
+}
+
+interface PersonaAnalytics {
+  persona: string;
+  weeklyGrowth: number;
+  monthlyGrowth: number;
+  revenue: number;
+  ltv: number;
+  leadQuality: number;
+}
+
+function GuidePersonasSection() {
+  const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
+  const [personaConfigOpen, setPersonaConfigOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [editingPersona, setEditingPersona] = useState<PersonaConfig | null>(null);
+
+  // Configuration complète des personas
+  const personaConfigs: Record<string, PersonaConfig> = {
+    presse: {
+      id: 'presse',
+      label: 'Vendeur Pressé',
+      description: 'Vendeur ayant une contrainte de temps forte, cherche des solutions rapides et efficaces',
+      psychProfile: 'Pragmatique, orienté résultat, stress du temps, besoin de réassurance sur la rapidité',
+      painPoints: [
+        'Contrainte de temps serrée (mutation, divorce, urgence financière)',
+        'Peur de ne pas vendre assez vite',
+        'Stress lié aux démarches administratives',
+        'Besoin de cash rapidement'
+      ],
+      motivations: [
+        'Vendre dans les 3 mois maximum',
+        'Éviter les complications',
+        'Solution clé en main',
+        'Transparence sur les délais'
+      ],
+      communicationStyle: 'Direct, concis, orienté action avec deadlines claires',
+      preferredChannels: ['SMS', 'Email', 'Appel téléphonique'],
+      colors: {
+        primary: '#ef4444', // Rouge urgence
+        secondary: '#fca5a5'
+      },
+      icon: 'Clock',
+      keywords: ['rapide', 'urgent', 'délai', 'express', 'immédiat', '30 jours']
+    },
+    maximisateur: {
+      id: 'maximisateur',
+      label: 'Vendeur Maximisateur',
+      description: 'Vendeur cherchant à optimiser au maximum le prix de vente de son bien',
+      psychProfile: 'Analytique, négociateur, patient, orienté ROI, aime les détails',
+      painPoints: [
+        'Peur de vendre en dessous du potentiel',
+        'Doutes sur la justesse du prix',
+        'Comparaisons constantes avec le marché',
+        'Négociations complexes'
+      ],
+      motivations: [
+        'Maximiser le prix de vente',
+        'Comprendre précisément la valeur',
+        'Optimiser la négociation',
+        'Timing optimal du marché'
+      ],
+      communicationStyle: 'Détaillé, chiffré, avec justifications et comparatifs',
+      preferredChannels: ['Email détaillé', 'Rapports', 'Vidéoconférence'],
+      colors: {
+        primary: '#10b981', // Vert money
+        secondary: '#86efac'
+      },
+      icon: 'TrendingUp',
+      keywords: ['maximum', 'optimiser', 'prix', 'valeur', 'rentabilité', 'ROI']
+    },
+    succession: {
+      id: 'succession',
+      label: 'Vendeur Succession',
+      description: 'Vendeur gérant un bien hérité ou en situation de succession familiale',
+      psychProfile: 'Émotionnel, responsable familial, parfois débordé, besoin d\'accompagnement',
+      painPoints: [
+        'Charge émotionnelle de la succession',
+        'Méconnaissance du marché immobilier',
+        'Gestion familiale complexe',
+        'Aspects fiscaux et juridiques'
+      ],
+      motivations: [
+        'Faire honneur à la mémoire',
+        'Équité entre héritiers',
+        'Simplifier les démarches',
+        'Optimisation fiscale'
+      ],
+      communicationStyle: 'Empathique, rassurant, avec accompagnement personnalisé',
+      preferredChannels: ['Rendez-vous physique', 'Email', 'Appel téléphonique'],
+      colors: {
+        primary: '#8b5cf6', // Violet dignité
+        secondary: '#c4b5fd'
+      },
+      icon: 'Users',
+      keywords: ['succession', 'héritage', 'famille', 'fiscalité', 'accompagnement']
+    },
+    nouvelle_vie: {
+      id: 'nouvelle_vie',
+      label: 'Nouvelle Vie',
+      description: 'Vendeur en transition de vie : retraite, déménagement, changement familial',
+      psychProfile: 'En transition, optimiste mais anxieux du changement, projets d\'avenir',
+      painPoints: [
+        'Incertitude sur l\'avenir',
+        'Timing de vente vs achat',
+        'Adaptation aux nouveaux besoins',
+        'Optimisation du budget futur'
+      ],
+      motivations: [
+        'Financer le nouveau projet de vie',
+        'Adapter le logement aux nouveaux besoins',
+        'Sécuriser la transition',
+        'Réaliser ses rêves'
+      ],
+      communicationStyle: 'Inspirant, orienté futur, avec vision long terme',
+      preferredChannels: ['Email', 'Vidéoconférence', 'Newsletter'],
+      colors: {
+        primary: '#3b82f6', // Bleu horizon
+        secondary: '#93c5fd'
+      },
+      icon: 'Home',
+      keywords: ['retraite', 'déménagement', 'nouveau', 'transition', 'projet']
+    },
+    investisseur: {
+      id: 'investisseur',
+      label: 'Vendeur Investisseur',
+      description: 'Investisseur immobilier vendant dans une logique de rentabilité et portfolio',
+      psychProfile: 'Rationnel, calculateur, connaisseur du marché, réseau développé',
+      painPoints: [
+        'Optimisation fiscale complexe',
+        'Timing de marché',
+        'Réinvestissement optimal',
+        'Gestion de portefeuille'
+      ],
+      motivations: [
+        'Optimiser la plus-value',
+        'Réinvestir intelligemment',
+        'Défiscalisation',
+        'Développer le patrimoine'
+      ],
+      communicationStyle: 'Technique, avec données de marché et analyses financières',
+      preferredChannels: ['Email', 'Rapports', 'Webinaires'],
+      colors: {
+        primary: '#f59e0b', // Orange gold
+        secondary: '#fcd34d'
+      },
+      icon: 'PieChart',
+      keywords: ['investissement', 'rendement', 'fiscalité', 'plus-value', 'patrimoine']
+    },
+    primo: {
+      id: 'primo',
+      label: 'Primo-vendeur',
+      description: 'Primo-accédant vendant son premier bien, souvent pour un plus grand',
+      psychProfile: 'Novice, anxieux, besoin de pédagogie et réassurance, confiant mais prudent',
+      painPoints: [
+        'Méconnaissance du processus',
+        'Peur de faire des erreurs',
+        'Stress du timing achat/vente',
+        'Budget serré'
+      ],
+      motivations: [
+        'Réussir sa première vente',
+        'Financer le prochain achat',
+        'Apprendre et comprendre',
+        'Éviter les pièges'
+      ],
+      communicationStyle: 'Pédagogique, rassurant, étape par étape',
+      preferredChannels: ['Email explicatif', 'Appel téléphonique', 'Guide PDF'],
+      colors: {
+        primary: '#06b6d4', // Cyan frais
+        secondary: '#67e8f9'
+      },
+      icon: 'Star',
+      keywords: ['premier', 'débutant', 'apprentissage', 'étape', 'guide']
+    }
+  };
+
+  // Requêtes API pour les statistiques
+  const { data: guidesStats = [] } = useQuery<PersonaStats[]>({
+    queryKey: ['/api/analytics/personas/stats']
+  });
+
+  const { data: guidesData = [] } = useQuery<Guide[]>({
+    queryKey: ['/api/admin/guides']
+  });
+
+  // Vue d'ensemble des personas
+  const renderPersonasOverview = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-3xl font-bold">Personas des Guides</h2>
+          <p className="text-muted-foreground mt-2">
+            Gestion complète des 6 profils de vendeurs et personnalisation des contenus
+          </p>
+        </div>
+        <Button 
+          onClick={() => setPersonaConfigOpen(true)}
+          className="flex items-center gap-2"
+          data-testid="button-configure-personas"
+        >
+          <Settings className="w-4 h-4" />
+          Configurer
+        </Button>
+      </div>
+
+      {/* Métriques globales */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+              <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Total Leads</p>
+              <p className="text-2xl font-bold" data-testid="text-total-leads">
+                {guidesStats.reduce((sum, stat) => sum + stat.leadsCount, 0)}
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+              <Download className="w-5 h-5 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Téléchargements</p>
+              <p className="text-2xl font-bold" data-testid="text-total-downloads">
+                {guidesStats.reduce((sum, stat) => sum + stat.downloadsCount, 0)}
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
+              <BookOpen className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Guides Actifs</p>
+              <p className="text-2xl font-bold" data-testid="text-active-guides">
+                {guidesData.filter(g => g.isActive).length}
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
+              <TrendingUp className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Conversion Moy.</p>
+              <p className="text-2xl font-bold" data-testid="text-avg-conversion">
+                {Math.round((guidesStats.reduce((sum, stat) => sum + stat.conversionRate, 0) / guidesStats.length) * 100)}%
+              </p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Grille des personas */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {Object.entries(GUIDE_PERSONAS).map(([key, label]) => {
+          const config = personaConfigs[key];
+          const stats = guidesStats.find(s => s.persona === key) || {
+            persona: key,
+            guidesCount: 0,
+            downloadsCount: 0,
+            leadsCount: 0,
+            conversionRate: 0,
+            avgReadTime: 0,
+            topGuide: ''
+          };
+
+          return (
+            <Card 
+              key={key} 
+              className="p-6 hover-elevate cursor-pointer transition-all"
+              onClick={() => setSelectedPersona(key)}
+              style={{ borderLeft: `4px solid ${config.colors.primary}` }}
+              data-testid={`card-persona-${key}`}
+            >
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="p-3 rounded-lg"
+                      style={{ backgroundColor: `${config.colors.primary}20` }}
+                    >
+                      <User 
+                        className="w-6 h-6" 
+                        style={{ color: config.colors.primary }}
+                      />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg">{label}</h3>
+                      <p className="text-sm text-muted-foreground">{config.id}</p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" data-testid={`badge-guides-count-${key}`}>
+                    {stats.guidesCount} guides
+                  </Badge>
+                </div>
+
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {config.description}
+                </p>
+
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Leads</p>
+                    <p className="font-semibold" data-testid={`text-leads-${key}`}>
+                      {stats.leadsCount}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Conversion</p>
+                    <p className="font-semibold" data-testid={`text-conversion-${key}`}>
+                      {Math.round(stats.conversionRate * 100)}%
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Téléchargements</p>
+                    <p className="font-semibold" data-testid={`text-downloads-${key}`}>
+                      {stats.downloadsCount}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Temps lecture</p>
+                    <p className="font-semibold" data-testid={`text-readtime-${key}`}>
+                      {stats.avgReadTime}min
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center pt-2 border-t">
+                  <span className="text-xs text-muted-foreground">
+                    Guide top: {stats.topGuide}
+                  </span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingPersona(config);
+                      setPersonaConfigOpen(true);
+                    }}
+                    data-testid={`button-edit-${key}`}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  // Détail d'une persona
+  const renderPersonaDetail = () => {
+    if (!selectedPersona) return null;
+
+    const config = personaConfigs[selectedPersona];
+    const stats = guidesStats.find(s => s.persona === selectedPersona);
+    const personaGuides = guidesData.filter(g => g.persona === selectedPersona);
+
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="ghost" 
+            onClick={() => setSelectedPersona(null)}
+            data-testid="button-back-personas"
+          >
+            ← Retour aux personas
+          </Button>
+          <div className="flex items-center gap-3">
+            <div 
+              className="p-3 rounded-lg"
+              style={{ backgroundColor: `${config.colors.primary}20` }}
+            >
+              <User 
+                className="w-8 h-8" 
+                style={{ color: config.colors.primary }}
+              />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold">{GUIDE_PERSONAS[selectedPersona as keyof typeof GUIDE_PERSONAS]}</h2>
+              <p className="text-muted-foreground">{config.description}</p>
+            </div>
+          </div>
+        </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid grid-cols-5 w-full">
+            <TabsTrigger value="profile" data-testid="tab-profile">Profil</TabsTrigger>
+            <TabsTrigger value="guides" data-testid="tab-guides">Guides</TabsTrigger>
+            <TabsTrigger value="analytics" data-testid="tab-analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="marketing" data-testid="tab-marketing">Marketing</TabsTrigger>
+            <TabsTrigger value="config" data-testid="tab-config">Configuration</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="profile" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="p-6">
+                <h3 className="font-semibold mb-4 flex items-center gap-2">
+                  <User className="w-5 h-5" />
+                  Profil Psychologique
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">{config.psychProfile}</p>
+                
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-medium mb-2">Points de douleur</h4>
+                    <ul className="space-y-1">
+                      {config.painPoints.map((point, idx) => (
+                        <li key={idx} className="text-sm flex items-start gap-2">
+                          <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                          {point}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium mb-2">Motivations</h4>
+                    <ul className="space-y-1">
+                      {config.motivations.map((motivation, idx) => (
+                        <li key={idx} className="text-sm flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                          {motivation}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-6">
+                <h3 className="font-semibold mb-4 flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5" />
+                  Communication
+                </h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-medium mb-2">Style de communication</h4>
+                    <p className="text-sm text-muted-foreground">{config.communicationStyle}</p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium mb-2">Canaux préférés</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {config.preferredChannels.map((channel, idx) => (
+                        <Badge key={idx} variant="secondary">{channel}</Badge>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium mb-2">Mots-clés</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {config.keywords.map((keyword, idx) => (
+                        <Badge key={idx} variant="outline">{keyword}</Badge>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium mb-2">Couleurs de marque</h4>
+                    <div className="flex gap-3">
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-6 h-6 rounded border"
+                          style={{ backgroundColor: config.colors.primary }}
+                        ></div>
+                        <span className="text-sm">Primaire</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-6 h-6 rounded border"
+                          style={{ backgroundColor: config.colors.secondary }}
+                        ></div>
+                        <span className="text-sm">Secondaire</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            {/* Statistiques du persona */}
+            {stats && (
+              <Card className="p-6">
+                <h3 className="font-semibold mb-4 flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5" />
+                  Performances
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold" style={{ color: config.colors.primary }}>
+                      {stats.leadsCount}
+                    </p>
+                    <p className="text-sm text-muted-foreground">Leads générés</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold" style={{ color: config.colors.primary }}>
+                      {stats.downloadsCount}
+                    </p>
+                    <p className="text-sm text-muted-foreground">Téléchargements</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold" style={{ color: config.colors.primary }}>
+                      {Math.round(stats.conversionRate * 100)}%
+                    </p>
+                    <p className="text-sm text-muted-foreground">Taux conversion</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold" style={{ color: config.colors.primary }}>
+                      {stats.avgReadTime}min
+                    </p>
+                    <p className="text-sm text-muted-foreground">Temps lecture moy.</p>
+                  </div>
+                </div>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="guides" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xl font-semibold">
+                Guides associés à ce persona ({personaGuides.length})
+              </h3>
+              <Button 
+                onClick={() => {}} 
+                className="flex items-center gap-2"
+                data-testid="button-create-guide-persona"
+              >
+                <Plus className="w-4 h-4" />
+                Nouveau guide
+              </Button>
+            </div>
+
+            <div className="grid gap-4">
+              {personaGuides.map((guide) => (
+                <Card key={guide.id} className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <h4 className="font-medium">{guide.title}</h4>
+                        <Badge variant={guide.isActive ? "default" : "secondary"}>
+                          {guide.isActive ? "Actif" : "Inactif"}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {guide.shortBenefit}
+                      </p>
+                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {guide.readingTime}min
+                        </span>
+                        <span>Slug: {guide.slug}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="sm" data-testid={`button-edit-guide-${guide.id}`}>
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" data-testid={`button-analytics-guide-${guide.id}`}>
+                        <BarChart3 className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" data-testid={`button-download-guide-${guide.id}`}>
+                        <Download className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+
+              {personaGuides.length === 0 && (
+                <div className="text-center py-12">
+                  <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <h4 className="text-lg font-medium mb-2">Aucun guide pour ce persona</h4>
+                  <p className="text-muted-foreground mb-4">
+                    Créez le premier guide spécialement conçu pour {GUIDE_PERSONAS[selectedPersona as keyof typeof GUIDE_PERSONAS]}
+                  </p>
+                  <Button data-testid="button-create-first-guide">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Créer le premier guide
+                  </Button>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="analytics" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="p-6">
+                <h3 className="font-semibold mb-4">Évolution des leads</h3>
+                <div className="h-64 flex items-center justify-center text-muted-foreground">
+                  [Graphique évolution leads - à implémenter]
+                </div>
+              </Card>
+
+              <Card className="p-6">
+                <h3 className="font-semibold mb-4">Entonnoir de conversion</h3>
+                <div className="h-64 flex items-center justify-center text-muted-foreground">
+                  [Graphique entonnoir - à implémenter]
+                </div>
+              </Card>
+
+              <Card className="p-6">
+                <h3 className="font-semibold mb-4">Sources de trafic</h3>
+                <div className="h-64 flex items-center justify-center text-muted-foreground">
+                  [Graphique sources - à implémenter]
+                </div>
+              </Card>
+
+              <Card className="p-6">
+                <h3 className="font-semibold mb-4">Performance guides</h3>
+                <div className="h-64 flex items-center justify-center text-muted-foreground">
+                  [Comparatif performance guides - à implémenter]
+                </div>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="marketing" className="space-y-6">
+            <div className="grid gap-6">
+              <Card className="p-6">
+                <h3 className="font-semibold mb-4 flex items-center gap-2">
+                  <Mail className="w-5 h-5" />
+                  Séquences email automatisées
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  Configuration des messages automatiques envoyés aux leads de ce persona
+                </p>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <h4 className="font-medium">Email de livraison du guide</h4>
+                      <p className="text-sm text-muted-foreground">Envoyé immédiatement après téléchargement</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="default">Actif</Badge>
+                      <Button variant="ghost" size="sm" data-testid="button-edit-email-delivery">
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <h4 className="font-medium">Conseil personnalisé J+2</h4>
+                      <p className="text-sm text-muted-foreground">Tip spécialisé pour ce type de vendeur</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="default">Actif</Badge>
+                      <Button variant="ghost" size="sm" data-testid="button-edit-email-tip">
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <h4 className="font-medium">Étude de cas J+5</h4>
+                      <p className="text-sm text-muted-foreground">Exemple concret de succès similaire</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="default">Actif</Badge>
+                      <Button variant="ghost" size="sm" data-testid="button-edit-email-case">
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <h4 className="font-medium">Offre soft J+10</h4>
+                      <p className="text-sm text-muted-foreground">Proposition de service personnalisée</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="default">Actif</Badge>
+                      <Button variant="ghost" size="sm" data-testid="button-edit-email-offer">
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-6">
+                <h3 className="font-semibold mb-4 flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5" />
+                  Messages d'accroche personnalisés
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="hero-message">Message hero (page guide)</Label>
+                    <Textarea 
+                      id="hero-message"
+                      placeholder={`Message d'accroche principal pour ${GUIDE_PERSONAS[selectedPersona as keyof typeof GUIDE_PERSONAS]}`}
+                      rows={3}
+                      data-testid="textarea-hero-message"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="cta-message">Call-to-action principal</Label>
+                    <Input 
+                      id="cta-message"
+                      placeholder="Télécharger votre guide gratuit"
+                      data-testid="input-cta-message"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="social-proof">Preuve sociale</Label>
+                    <Input 
+                      id="social-proof"
+                      placeholder="Déjà 1,250+ vendeurs satisfaits"
+                      data-testid="input-social-proof"
+                    />
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="config" className="space-y-6">
+            <PersonaConfigForm 
+              persona={config}
+              onSave={(updatedConfig) => {
+                // Sauvegarder la configuration
+                console.log('Saving persona config:', updatedConfig);
+              }}
+            />
+          </TabsContent>
+        </Tabs>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      {selectedPersona ? renderPersonaDetail() : renderPersonasOverview()}
+
+      {/* Modal de configuration globale */}
+      <Dialog open={personaConfigOpen} onOpenChange={setPersonaConfigOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Configuration des Personas</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Les modifications de configuration impactent tous les guides et messages existants.
+                Testez en mode prévisualisation avant d'appliquer.
+              </AlertDescription>
+            </Alert>
+            
+            <Tabs defaultValue="general">
+              <TabsList>
+                <TabsTrigger value="general">Général</TabsTrigger>
+                <TabsTrigger value="messaging">Messages</TabsTrigger>
+                <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="general" className="space-y-4">
+                <div className="grid gap-4">
+                  {Object.entries(personaConfigs).map(([key, config]) => (
+                    <Card key={key} className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div 
+                            className="w-4 h-4 rounded"
+                            style={{ backgroundColor: config.colors.primary }}
+                          ></div>
+                          <span className="font-medium">{config.label}</span>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setEditingPersona(config);
+                          }}
+                          data-testid={`button-config-${key}`}
+                        >
+                          <Settings className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="messaging" className="space-y-4">
+                <p className="text-muted-foreground">
+                  Configuration globale des templates de messages par défaut
+                </p>
+                {/* Configuration messaging */}
+              </TabsContent>
+              
+              <TabsContent value="analytics" className="space-y-4">
+                <p className="text-muted-foreground">
+                  Configuration du tracking et des métriques par persona
+                </p>
+                {/* Configuration analytics */}
+              </TabsContent>
+            </Tabs>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// Composant de formulaire de configuration persona
+interface PersonaConfigFormProps {
+  persona: PersonaConfig;
+  onSave: (config: PersonaConfig) => void;
+}
+
+function PersonaConfigForm({ persona, onSave }: PersonaConfigFormProps) {
+  const [config, setConfig] = useState<PersonaConfig>(persona);
+
+  return (
+    <Card className="p-6">
+      <h3 className="font-semibold mb-4">Configuration avancée</h3>
+      <div className="space-y-6">
+        <div>
+          <Label htmlFor="description">Description</Label>
+          <Textarea
+            id="description"
+            value={config.description}
+            onChange={(e) => setConfig({ ...config, description: e.target.value })}
+            rows={3}
+            data-testid="textarea-persona-description"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="psychProfile">Profil psychologique</Label>
+          <Textarea
+            id="psychProfile"
+            value={config.psychProfile}
+            onChange={(e) => setConfig({ ...config, psychProfile: e.target.value })}
+            rows={3}
+            data-testid="textarea-psych-profile"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="communicationStyle">Style de communication</Label>
+          <Textarea
+            id="communicationStyle"
+            value={config.communicationStyle}
+            onChange={(e) => setConfig({ ...config, communicationStyle: e.target.value })}
+            rows={2}
+            data-testid="textarea-communication-style"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="primaryColor">Couleur primaire</Label>
+            <Input
+              id="primaryColor"
+              type="color"
+              value={config.colors.primary}
+              onChange={(e) => setConfig({ 
+                ...config, 
+                colors: { ...config.colors, primary: e.target.value }
+              })}
+              data-testid="input-primary-color"
+            />
+          </div>
+          <div>
+            <Label htmlFor="secondaryColor">Couleur secondaire</Label>
+            <Input
+              id="secondaryColor"
+              type="color"
+              value={config.colors.secondary}
+              onChange={(e) => setConfig({ 
+                ...config, 
+                colors: { ...config.colors, secondary: e.target.value }
+              })}
+              data-testid="input-secondary-color"
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end">
+          <Button 
+            onClick={() => onSave(config)}
+            data-testid="button-save-persona-config"
+          >
+            <Save className="w-4 h-4 mr-2" />
+            Sauvegarder
+          </Button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 // Guide Form Component
 interface GuideFormProps {
   guide?: Guide;
@@ -133,172 +1073,280 @@ interface GuideFormProps {
 }
 
 function GuideForm({ guide, onSubmit }: GuideFormProps) {
-  const [formData, setFormData] = useState<InsertGuide>({
-    title: guide?.title || "",
-    slug: guide?.slug || "",
-    persona: guide?.persona || "presse",
-    shortBenefit: guide?.shortBenefit || "",
-    readingTime: guide?.readingTime || 5,
-    content: guide?.content || "",
-    pdfContent: guide?.pdfContent || "",
-    imageUrl: guide?.imageUrl || "",
-    metaDescription: guide?.metaDescription || "",
-    seoTitle: guide?.seoTitle || "",
-    isActive: guide?.isActive ?? true,
-    sortOrder: guide?.sortOrder || 0
+  const form = useForm<InsertGuide>({
+    resolver: zodResolver(insertGuideSchema),
+    defaultValues: {
+      title: guide?.title || "",
+      slug: guide?.slug || "",
+      persona: guide?.persona || "presse",
+      shortBenefit: guide?.shortBenefit || "",
+      readingTime: guide?.readingTime || 5,
+      content: guide?.content || "",
+      pdfContent: guide?.pdfContent || "",
+      imageUrl: guide?.imageUrl || "",
+      metaDescription: guide?.metaDescription || "",
+      seoTitle: guide?.seoTitle || "",
+      isActive: guide?.isActive ?? true,
+      sortOrder: guide?.sortOrder || 0
+    }
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(formData);
+  const handleSubmit = (data: InsertGuide) => {
+    onSubmit(data);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="title">Titre du guide</Label>
-          <Input
-            id="title"
-            value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-            placeholder="Guide pour vendeur pressé..."
-            required
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Titre du guide</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Guide pour vendeur pressé..."
+                    {...field}
+                    data-testid="input-guide-title"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="slug"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Slug</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="guide-vendeur-presse"
+                    {...field}
+                    data-testid="input-guide-slug"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
         </div>
-        <div>
-          <Label htmlFor="slug">Slug</Label>
-          <Input
-            id="slug"
-            value={formData.slug}
-            onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-            placeholder="guide-vendeur-presse"
-            required
-          />
-        </div>
-      </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="persona">Persona</Label>
-          <Select value={formData.persona} onValueChange={(value) => setFormData({ ...formData, persona: value as any })}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(GUIDE_PERSONAS).map(([key, label]) => (
-                <SelectItem key={key} value={key}>{label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label htmlFor="readingTime">Temps de lecture (min)</Label>
-          <Input
-            id="readingTime"
-            type="number"
-            value={formData.readingTime || ""}
-            onChange={(e) => setFormData({ ...formData, readingTime: parseInt(e.target.value) || 5 })}
-            min="1"
-            max="60"
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="persona"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Persona</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger data-testid="select-guide-persona">
+                      <SelectValue placeholder="Choisir un persona" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {Object.entries(GUIDE_PERSONAS).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="readingTime"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Temps de lecture (min)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="60"
+                    {...field}
+                    onChange={(e) => field.onChange(parseInt(e.target.value) || 5)}
+                    data-testid="input-guide-reading-time"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
         </div>
-      </div>
 
-      <div>
-        <Label htmlFor="shortBenefit">Bénéfice court (1 phrase)</Label>
-        <Input
-          id="shortBenefit"
-          value={formData.shortBenefit}
-          onChange={(e) => setFormData({ ...formData, shortBenefit: e.target.value })}
-          placeholder="Vendez rapidement votre bien en 30 jours maximum"
-          required
+        <FormField
+          control={form.control}
+          name="shortBenefit"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Bénéfice court (1 phrase)</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="Vendez rapidement votre bien en 30 jours maximum"
+                  {...field}
+                  data-testid="input-guide-benefit"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
 
-      <div>
-        <Label htmlFor="content">Contenu principal</Label>
-        <Textarea
-          id="content"
-          value={formData.content}
-          onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-          placeholder="Contenu HTML du guide..."
-          rows={6}
-          required
+        <FormField
+          control={form.control}
+          name="content"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Contenu principal</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Contenu HTML du guide..."
+                  rows={6}
+                  {...field}
+                  data-testid="textarea-guide-content"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
 
-      <div>
-        <Label htmlFor="pdfContent">Contenu PDF spécifique</Label>
-        <Textarea
-          id="pdfContent"
-          value={formData.pdfContent || ""}
-          onChange={(e) => setFormData({ ...formData, pdfContent: e.target.value })}
-          placeholder="Contenu spécifique pour la génération PDF avec bonus..."
-          rows={4}
+        <FormField
+          control={form.control}
+          name="pdfContent"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Contenu PDF spécifique</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Contenu spécifique pour la génération PDF avec bonus..."
+                  rows={4}
+                  {...field}
+                  data-testid="textarea-guide-pdf-content"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="imageUrl">URL de l'image</Label>
-          <Input
-            id="imageUrl"
-            value={formData.imageUrl || ""}
-            onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-            placeholder="https://example.com/image.jpg"
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="imageUrl"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>URL de l'image</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="https://example.com/image.jpg"
+                    {...field}
+                    data-testid="input-guide-image-url"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="sortOrder"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Ordre de tri</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    {...field}
+                    onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                    data-testid="input-guide-sort-order"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
         </div>
-        <div>
-          <Label htmlFor="sortOrder">Ordre de tri</Label>
-          <Input
-            id="sortOrder"
-            type="number"
-            value={formData.sortOrder}
-            onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) })}
-          />
-        </div>
-      </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="seoTitle">Titre SEO</Label>
-          <Input
-            id="seoTitle"
-            value={formData.seoTitle || ""}
-            onChange={(e) => setFormData({ ...formData, seoTitle: e.target.value })}
-            placeholder="Guide vendeur pressé - Gironde"
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="seoTitle"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Titre SEO</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Guide vendeur pressé - Gironde"
+                    {...field}
+                    data-testid="input-guide-seo-title"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="isActive"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    data-testid="checkbox-guide-active"
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>
+                    Guide actif
+                  </FormLabel>
+                </div>
+              </FormItem>
+            )}
           />
         </div>
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            id="isActive"
-            checked={formData.isActive || false}
-            onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-            className="h-4 w-4"
-          />
-          <Label htmlFor="isActive">Guide actif</Label>
-        </div>
-      </div>
 
-      <div>
-        <Label htmlFor="metaDescription">Meta description</Label>
-        <Textarea
-          id="metaDescription"
-          value={formData.metaDescription || ""}
-          onChange={(e) => setFormData({ ...formData, metaDescription: e.target.value })}
-          placeholder="Description pour les moteurs de recherche..."
-          rows={2}
+        <FormField
+          control={form.control}
+          name="metaDescription"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Meta description</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Description pour les moteurs de recherche..."
+                  rows={2}
+                  {...field}
+                  data-testid="textarea-guide-meta-description"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
 
-      <div className="flex justify-end space-x-2">
-        <Button type="submit">
-          {guide ? "Mettre à jour" : "Créer"} le guide
-        </Button>
-      </div>
-    </form>
+        <div className="flex justify-end space-x-2">
+          <Button 
+            type="submit" 
+            disabled={form.formState.isSubmitting}
+            data-testid="button-submit-guide"
+          >
+            {form.formState.isSubmitting ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : null}
+            {guide ? "Mettre à jour" : "Créer"} le guide
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 }
 
@@ -2165,21 +3213,6 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
           </div>
         );
 
-      case "conversion-funnel":
-        return (
-          <div className="space-y-6">
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Entonnoir de conversion</h3>
-              <div className="space-y-4">
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">
-                    Visualisation de l'entonnoir de conversion en cours de développement...
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </div>
-        );
 
       case "guides":
         return (
@@ -2495,37 +3528,7 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
           </div>
         );
 
-      case "admin-settings":
-        return (
-          <div className="space-y-6">
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Configuration Admin</h3>
-              <div className="space-y-4">
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">
-                    Paramètres administrateur en cours de développement...
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </div>
-        );
 
-      case "user-management":
-        return (
-          <div className="space-y-6">
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Gestion des utilisateurs</h3>
-              <div className="space-y-4">
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">
-                    Gestion des utilisateurs en cours de développement...
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </div>
-        );
 
       // Dashboard sections
       case "recent-activity":
@@ -2633,14 +3636,7 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
 
 
       case "guide-personas":
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Personas des guides</h2>
-            <Card className="p-6">
-              <p className="text-muted-foreground">Configuration des personas cibles pour les guides...</p>
-            </Card>
-          </div>
-        );
+        return <GuidePersonasSection />;
 
       case "content-seo":
         return (

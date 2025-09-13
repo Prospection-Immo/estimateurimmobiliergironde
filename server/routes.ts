@@ -1316,6 +1316,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Personas analytics endpoint
+  app.get('/api/analytics/personas/stats', requireAuth, async (req, res) => {
+    try {
+      const { period = '30d' } = req.query;
+      
+      const now = new Date();
+      let startDate = new Date();
+      startDate.setDate(now.getDate() - (period === '7d' ? 7 : period === '30d' ? 30 : 90));
+
+      const [allGuides, allLeads, allDownloads] = await Promise.all([
+        storage.getGuides(),
+        storage.getLeads(2000),
+        storage.getGuideDownloads()
+      ]);
+
+      // Filter data by date range
+      const periodLeads = allLeads.filter(lead => {
+        const leadDate = new Date(lead.createdAt || '');
+        return leadDate >= startDate && leadDate <= now;
+      });
+
+      const periodDownloads = allDownloads.filter(download => {
+        const downloadDate = new Date(download.createdAt || '');
+        return downloadDate >= startDate && downloadDate <= now;
+      });
+
+      // Calculate stats for each persona
+      const personaStats = Object.keys(GUIDE_PERSONAS).map(persona => {
+        const personaGuides = allGuides.filter(g => g.persona === persona);
+        const personaLeads = periodLeads.filter(l => l.guideSlug && personaGuides.some(g => g.slug === l.guideSlug));
+        const personaDownloads = periodDownloads.filter(d => personaGuides.some(g => g.id === d.guideId));
+        
+        // Calculate conversion rate based on downloads to leads
+        const conversionRate = personaDownloads.length > 0 ? (personaLeads.length / personaDownloads.length) : 0;
+        
+        // Calculate average read time (mock for now - would come from analytics table)
+        const avgReadTime = Math.floor(Math.random() * 10) + 5; // 5-15 minutes
+
+        // Find top performing guide for this persona
+        const topGuide = personaGuides.reduce((top, guide) => {
+          const guideLeads = personaLeads.filter(l => l.guideSlug === guide.slug).length;
+          const topLeads = personaLeads.filter(l => l.guideSlug === top?.slug).length || 0;
+          return guideLeads > topLeads ? guide : top;
+        }, personaGuides[0]);
+
+        return {
+          persona,
+          guidesCount: personaGuides.length,
+          downloadsCount: personaDownloads.length,
+          leadsCount: personaLeads.length,
+          conversionRate,
+          avgReadTime,
+          topGuide: topGuide ? topGuide.title : `Guide ${GUIDE_PERSONAS[persona as keyof typeof GUIDE_PERSONAS]}`
+        };
+      });
+
+      res.json(personaStats);
+    } catch (error) {
+      console.error('Error fetching personas stats:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // CRUD routes for guides
+  app.get('/api/admin/guides', requireAuth, async (req, res) => {
+    try {
+      const { persona } = req.query;
+      const guides = await storage.getGuides(persona as string);
+      res.json(guides);
+    } catch (error) {
+      console.error('Error fetching guides:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.post('/api/admin/guides', requireAuth, async (req, res) => {
+    try {
+      const validatedData = insertGuideSchema.parse(req.body);
+      const guide = await storage.createGuide(validatedData);
+      res.status(201).json(guide);
+    } catch (error) {
+      console.error('Error creating guide:', error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: 'Validation error', details: error.errors });
+      } else {
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }
+  });
+
+  app.put('/api/admin/guides/:id', requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validatedData = insertGuideSchema.partial().parse(req.body);
+      const guide = await storage.updateGuide(id, validatedData);
+      res.json(guide);
+    } catch (error) {
+      console.error('Error updating guide:', error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: 'Validation error', details: error.errors });
+      } else {
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }
+  });
+
+  app.delete('/api/admin/guides/:id', requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteGuide(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting guide:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   // Get contacts (admin)
   app.get('/api/contacts', requireAuth, async (req, res) => {
     try {
