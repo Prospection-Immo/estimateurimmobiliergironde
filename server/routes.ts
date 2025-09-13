@@ -2552,6 +2552,58 @@ Réponds en JSON avec cette structure exacte :
     }
   });
 
+  // Development Email Test Routes (NO AUTH REQUIRED)
+  if (process.env.NODE_ENV === 'development') {
+    app.post('/api/dev/emails/test', async (req, res) => {
+      try {
+        const { email, name } = req.body;
+        
+        if (!email) {
+          return res.status(400).json({ error: 'Email address is required' });
+        }
+
+        const result = await emailService.sendTestEmail(email, name);
+        
+        if (result.success) {
+          res.json({ 
+            success: true, 
+            message: 'Test email sent successfully',
+            messageId: result.messageId
+          });
+        } else {
+          res.status(500).json({ 
+            error: 'Failed to send test email',
+            details: result.error
+          });
+        }
+      } catch (error) {
+        console.error('Error sending test email:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    });
+
+    app.post('/api/dev/emails/test-connection', async (req, res) => {
+      try {
+        const result = await emailService.testConnection();
+        
+        if (result.success) {
+          res.json({ 
+            success: true, 
+            message: 'SMTP connection successful' 
+          });
+        } else {
+          res.status(500).json({ 
+            error: 'SMTP connection failed',
+            details: result.error
+          });
+        }
+      } catch (error) {
+        console.error('Error testing email connection:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    });
+  }
+
   // Send Individual Email Route
   app.post('/api/admin/emails/send', requireAuth, async (req, res) => {
     try {
