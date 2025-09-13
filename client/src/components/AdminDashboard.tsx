@@ -50,18 +50,17 @@ import {
   TestTube,
   BarChart3,
   Filter,
-  PieChart
+  PieChart,
+  Home,
+  CreditCard,
+  BookOpen,
+  Star,
+  UserCheck
 } from "lucide-react";
 
 import type { Lead, Estimation, Contact, Article, EmailTemplate, EmailHistory } from "@shared/schema";
 
 interface EstimationDisplay extends Estimation {
-  estimatedValue: string;
-  pricePerM2: string;
-  confidence: number;
-  methodology?: string;
-  comparableProperties?: string;
-  createdAt: string;
   lead?: {
     firstName: string;
     lastName: string;
@@ -71,70 +70,12 @@ interface EstimationDisplay extends Estimation {
   };
 }
 
-interface Contact {
-  id: string;
-  email: string;
-  phone?: string;
-  firstName: string;
-  lastName: string;
-  subject: string;
-  message: string;
-  source: string;
-  status: string;
-  createdAt: string;
-}
-
 interface Stats {
   totalLeads: number;
   newLeads: number;
   estimationsToday: number;
   conversionRate: string;
   totalContacts: number;
-}
-
-interface Article {
-  id: string;
-  title: string;
-  slug: string;
-  metaDescription?: string;
-  content: string;
-  summary?: string;
-  keywords?: string;
-  seoTitle?: string;
-  authorName?: string;
-  status: 'draft' | 'published' | 'archived';
-  category?: string;
-  publishedAt?: string;
-  updatedAt?: string;
-  createdAt?: string;
-}
-
-interface EmailTemplate {
-  id: string;
-  name: string;
-  subject: string;
-  htmlContent: string;
-  textContent: string;
-  category: string;
-  isActive: boolean;
-  variables?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-interface EmailHistory {
-  id: string;
-  templateId?: string;
-  recipientEmail: string;
-  recipientName?: string;
-  senderEmail: string;
-  subject: string;
-  htmlContent?: string;
-  textContent?: string;
-  status: 'pending' | 'sent' | 'failed' | 'bounced';
-  errorMessage?: string;
-  sentAt?: string;
-  createdAt?: string;
 }
 
 interface EmailStats {
@@ -289,7 +230,7 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
 
   useEffect(() => {
     if (emailStatsQuery.data) {
-      setEmailStats(emailStatsQuery.data);
+      setEmailStats(emailStatsQuery.data as EmailStats);
     } else {
       setEmailStats(null);
     }
@@ -505,12 +446,37 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
 
   const getLeadTypeBadge = (leadType: string) => {
     const variants = {
-      estimation_quick: { variant: "secondary" as const, label: "Estimation Rapide", color: "bg-blue-100 text-blue-800" },
-      estimation_detailed: { variant: "default" as const, label: "Estimation Détaillée", color: "bg-green-100 text-green-800" },
-      financing: { variant: "secondary" as const, label: "Financement", color: "bg-purple-100 text-purple-800" },
-      guide_download: { variant: "outline" as const, label: "Guide Téléchargé", color: "bg-orange-100 text-orange-800" }
+      estimation_quick: { 
+        variant: "secondary" as const, 
+        label: "Estimation Rapide", 
+        color: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800",
+        icon: Home
+      },
+      estimation_detailed: { 
+        variant: "default" as const, 
+        label: "Estimation Détaillée", 
+        color: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800",
+        icon: Calculator
+      },
+      financing: { 
+        variant: "secondary" as const, 
+        label: "Financement", 
+        color: "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800",
+        icon: CreditCard
+      },
+      guide_download: { 
+        variant: "outline" as const, 
+        label: "Guide Téléchargé", 
+        color: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-800",
+        icon: BookOpen
+      }
     };
-    return variants[leadType as keyof typeof variants] || { variant: "outline" as const, label: leadType, color: "bg-gray-100 text-gray-800" };
+    return variants[leadType as keyof typeof variants] || { 
+      variant: "outline" as const, 
+      label: leadType, 
+      color: "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-950 dark:text-gray-300 dark:border-gray-800",
+      icon: User
+    };
   };
 
   const updateLeadStatus = async (leadId: string, newStatus: string) => {
@@ -564,18 +530,29 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
     }
   };
 
-  const filteredLeads = leads.filter(lead => {
-    const matchesSearch = 
-      lead.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.city.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = selectedStatus === "all" || lead.status === selectedStatus;
-    const matchesLeadType = selectedLeadType === "all" || lead.leadType === selectedLeadType;
-    
-    return matchesSearch && matchesStatus && matchesLeadType;
-  });
+  const filteredLeads = leads
+    .filter(lead => {
+      const matchesSearch = 
+        lead.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        lead.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (lead.city || '').toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesStatus = selectedStatus === "all" || lead.status === selectedStatus;
+      const matchesLeadType = selectedLeadType === "all" || lead.leadType === selectedLeadType;
+      
+      return matchesSearch && matchesStatus && matchesLeadType;
+    })
+    .sort((a, b) => {
+      // Priority 1: Leads with expert contact request (appointments) first
+      if (a.wantsExpertContact && !b.wantsExpertContact) return -1;
+      if (!a.wantsExpertContact && b.wantsExpertContact) return 1;
+      
+      // Priority 2: Sort by creation date (newest first)
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return dateB - dateA;
+    });
 
   if (isAuthenticated === null || loading) {
     return (
@@ -826,30 +803,49 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                 <h3 className="text-lg font-semibold">
                   {activeSection === "qualified-leads" ? "Leads qualifiés" : "Leads récents"}
                 </h3>
-                <div className="space-y-4">
+                <div className="space-y-2">
                   {filteredLeads
                     .filter(lead => activeSection === "qualified-leads" 
                       ? lead.status === "contacted" || lead.status === "converted" 
                       : true
                     )
-                    .map((lead) => (
+                    .map((lead, index) => {
+                      const leadTypeBadge = getLeadTypeBadge(lead.leadType);
+                      const LeadIcon = leadTypeBadge.icon;
+                      return (
                     <div
                       key={lead.id}
-                      className="flex items-center justify-between p-4 border border-border rounded-lg hover-elevate"
+                      className={`flex items-center justify-between p-4 border border-border rounded-lg hover-elevate ${
+                        index % 2 === 1 ? 'bg-muted/20' : 'bg-background'
+                      } ${
+                        lead.wantsExpertContact ? 'ring-2 ring-primary/20 bg-primary/5' : ''
+                      }`}
                       data-testid={`card-lead-${lead.id}`}
                     >
                       <div className="flex-1 space-y-1">
                         <div className="flex items-center space-x-3">
+                          {lead.wantsExpertContact && (
+                            <div className="flex items-center justify-center w-6 h-6 bg-primary/10 rounded-full border border-primary/20">
+                              <UserCheck className="h-3 w-3 text-primary" />
+                            </div>
+                          )}
                           <h4 className="font-medium">
                             {lead.firstName} {lead.lastName}
                           </h4>
+                          {lead.wantsExpertContact && (
+                            <Badge variant="default" className="text-xs bg-primary/10 text-primary border-primary/20">
+                              <CalendarIcon className="h-3 w-3 mr-1" />
+                              RDV demandé
+                            </Badge>
+                          )}
                           <div className="flex items-center space-x-2">
                             <Badge 
-                              variant={getLeadTypeBadge(lead.leadType).variant}
-                              className={`text-xs ${getLeadTypeBadge(lead.leadType).color}`}
+                              variant="outline"
+                              className={`text-xs border ${leadTypeBadge.color}`}
                               data-testid={`badge-leadtype-${lead.id}`}
                             >
-                              {getLeadTypeBadge(lead.leadType).label}
+                              <LeadIcon className="h-3 w-3 mr-1" />
+                              {leadTypeBadge.label}
                             </Badge>
                             <Badge 
                               variant={getStatusBadge(lead.status).variant}
@@ -874,9 +870,17 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                             <MapPin className="h-3 w-3" />
                             <span>{lead.city}</span>
                           </span>
+                          {lead.source && (
+                            <span className="flex items-center space-x-1">
+                              <Globe className="h-3 w-3" />
+                              <span className="text-xs text-muted-foreground truncate max-w-32" title={lead.source}>
+                                {lead.source.replace('https://', '').replace('http://', '').split('/')[0]}
+                              </span>
+                            </span>
+                          )}
                           <span className="flex items-center space-x-1">
                             <Clock className="h-3 w-3" />
-                            <span>{new Date(lead.createdAt).toLocaleDateString('fr-FR')}</span>
+                            <span>{lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('fr-FR') : 'N/A'}</span>
                           </span>
                         </div>
                       </div>
@@ -907,7 +911,8 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                         </Button>
                       </div>
                     </div>
-                  ))}
+                      );
+                    })}
                 </div>
               </div>
             </Card>
@@ -949,7 +954,7 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                           )}
                           <span className="flex items-center space-x-1">
                             <Clock className="h-3 w-3" />
-                            <span>{new Date(contact.createdAt).toLocaleDateString('fr-FR')}</span>
+                            <span>{contact.createdAt ? new Date(contact.createdAt).toLocaleDateString('fr-FR') : 'N/A'}</span>
                           </span>
                         </div>
                         <div className="space-y-2">
@@ -995,7 +1000,7 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                     <div>
                       <p className="text-2xl font-bold">
                         {estimations.filter(est => 
-                          new Date(est.createdAt).toDateString() === new Date().toDateString()
+                          est.createdAt && new Date(est.createdAt).toDateString() === new Date().toDateString()
                         ).length}
                       </p>
                       <p className="text-sm text-muted-foreground">Aujourd'hui</p>
@@ -1050,14 +1055,10 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                             <span>{estimation.city}</span>
                             <span className="flex items-center space-x-1">
                               <Clock className="h-3 w-3" />
-                              <span>{new Date(estimation.createdAt).toLocaleDateString('fr-FR')}</span>
+                              <span>{estimation.createdAt ? new Date(estimation.createdAt).toLocaleDateString('fr-FR') : 'N/A'}</span>
                             </span>
                           </div>
-                          {estimation.lead && (
-                            <div className="text-sm text-muted-foreground">
-                              Contact: {estimation.lead.firstName} {estimation.lead.lastName} • {estimation.lead.email}
-                            </div>
-                          )}
+                          {/* Lead information would need to be joined from the leads table */}
                         </div>
                         <div className="text-right">
                           <p className="text-lg font-bold text-primary">
@@ -1260,7 +1261,7 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
                                 onClick={() => updateArticleMutation.mutate({ 
                                   id: article.id, 
                                   status: article.status === 'published' ? 'draft' : 'published',
-                                  publishedAt: article.status === 'published' ? undefined : new Date().toISOString()
+                                  publishedAt: article.status === 'published' ? null : new Date()
                                 })}
                                 disabled={updateArticleMutation.isPending}
                                 data-testid={`button-toggle-${article.id}`}
