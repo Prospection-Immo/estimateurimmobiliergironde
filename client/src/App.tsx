@@ -21,6 +21,7 @@ import EstimationResults from "@/components/EstimationResults";
 import ContactForm from "@/components/ContactForm";
 import AdminDashboard from "@/components/AdminDashboard";
 import HomepageEstimationForm from "@/components/HomepageEstimationForm";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 import FinancementPage from "@/pages/FinancementPage";
 import MentionsLegalesPage from "@/pages/MentionsLegalesPage";
 import ConfidentialitePage from "@/pages/ConfidentialitePage";
@@ -47,6 +48,7 @@ function getDomainFromHeaders(): string {
 function HomePage() {
   const domain = getDomainFromHeaders();
   const websiteUrl = `https://${domain}`;
+  const [selectedAddress, setSelectedAddress] = useState<any>(null);
   
   // Structured data for local business
   const localBusinessSchema = createLocalBusinessSchema(
@@ -130,17 +132,12 @@ function HomePage() {
                 <span className="text-sm font-medium text-foreground">Estimation rapide :</span>
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                <select className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="filter-city">
-                  <option value="">Ville</option>
-                  <option value="bordeaux">Bordeaux</option>
-                  <option value="merignac">Mérignac</option>
-                  <option value="pessac">Pessac</option>
-                  <option value="talence">Talence</option>
-                  <option value="villenave">Villenave-d'Ornon</option>
-                  <option value="begles">Bègles</option>
-                  <option value="gradignan">Gradignan</option>
-                  <option value="le-bouscat">Le Bouscat</option>
-                </select>
+                <AddressAutocomplete
+                  onAddressSelect={(address) => setSelectedAddress(address)}
+                  placeholder="Rechercher une adresse..."
+                  className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 min-w-[200px]"
+                  data-testid="filter-city"
+                />
                 <select className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="filter-property-type">
                   <option value="">Type de bien</option>
                   <option value="maison">Maison</option>

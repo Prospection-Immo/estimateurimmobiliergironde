@@ -32,7 +32,7 @@ interface AddressAutocompleteProps {
 
 export default function AddressAutocomplete({
   onAddressSelect,
-  placeholder = "Entrez l'adresse de votre bien",
+  placeholder = "Rechercher une adresse...",
   className,
   value = '',
   required = false,
@@ -58,7 +58,12 @@ export default function AddressAutocomplete({
         autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
           types: ['address'],
           componentRestrictions: { country: 'fr' }, // Restrict to France
-          fields: ['geometry', 'formatted_address', 'address_components']
+          fields: ['geometry', 'formatted_address', 'address_components'],
+          // Bias results towards Gironde region (Bordeaux coordinates)
+          locationBias: {
+            radius: 50000, // 50km radius
+            center: { lat: 44.8378, lng: -0.5792 } // Bordeaux coordinates
+          }
         });
 
         // Listen for place selection
@@ -87,7 +92,15 @@ export default function AddressAutocomplete({
     if (!window.google) {
       setIsLoading(true);
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places&callback=initGoogleMaps`;
+      // Only load Google Maps if we have a valid API key
+      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+      if (!apiKey) {
+        setIsLoading(false);
+        setError('');
+        return;
+      }
+      
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGoogleMaps&loading=async`;
       script.async = true;
       script.defer = true;
       
@@ -143,8 +156,27 @@ export default function AddressAutocomplete({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value);
+    const newValue = e.target.value;
+    setInputValue(newValue);
     setError('');
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && inputValue.trim() && !window.google) {
+      // If Google Maps is not available, treat manual input as selected address
+      onAddressSelect({
+        formattedAddress: inputValue.trim()
+      });
+    }
+  };
+
+  const handleBlur = () => {
+    if (inputValue.trim() && !window.google) {
+      // If Google Maps is not available, treat manual input as selected address
+      onAddressSelect({
+        formattedAddress: inputValue.trim()
+      });
+    }
   };
 
   return (
@@ -155,6 +187,8 @@ export default function AddressAutocomplete({
           type="text"
           value={inputValue}
           onChange={handleInputChange}
+          onKeyPress={handleKeyPress}
+          onBlur={handleBlur}
           placeholder={placeholder}
           className={className}
           required={required}
