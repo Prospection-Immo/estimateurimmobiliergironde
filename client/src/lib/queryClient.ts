@@ -8,6 +8,28 @@ async function throwIfResNotOk(res: Response) {
 }
 
 export async function apiRequest(
+  url: string,
+  options?: {
+    method?: string;
+    body?: unknown;
+  }
+): Promise<any> {
+  const method = options?.method || 'GET';
+  const data = options?.body;
+  
+  const res = await fetch(url, {
+    method,
+    headers: data ? { "Content-Type": "application/json" } : {},
+    body: data ? JSON.stringify(data) : undefined,
+    credentials: "include",
+  });
+
+  await throwIfResNotOk(res);
+  return await res.json();
+}
+
+// Legacy function for backward compatibility
+export async function apiRequestLegacy(
   method: string,
   url: string,
   data?: unknown | undefined,
