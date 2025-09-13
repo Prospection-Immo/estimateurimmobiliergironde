@@ -479,19 +479,18 @@ export default function Admin2FALogin({ domain }: Admin2FALoginProps) {
             © {new Date().getFullYear()} Estimation Immobilier Gironde. Tous droits réservés.
           </p>
           
-          {/* DEV ONLY: Quick access button */}
+          {/* DEV ONLY: Quick access link */}
           {import.meta.env.MODE === 'development' && (
             <div className="mt-4 pt-4 border-t border-border">
-              <button
-                onClick={handleDevLogin}
-                disabled={isLoading}
-                className="px-4 py-2 text-xs bg-yellow-500/20 text-yellow-700 rounded-md hover:bg-yellow-500/30 disabled:opacity-50 transition-colors"
-                data-testid="button-dev-login"
+              <a
+                href="/admin-dev"
+                className="inline-block px-4 py-2 text-xs bg-yellow-500/20 text-yellow-700 rounded-md hover:bg-yellow-500/30 transition-colors"
+                data-testid="link-admin-dev"
               >
-                🚀 Login Dev (Contourne 2FA)
-              </button>
+                🚀 Admin Dev (Sans Auth)
+              </a>
               <p className="text-xs text-yellow-600 mt-1">
-                Mode développement uniquement
+                Mode développement uniquement - Accès direct
               </p>
             </div>
           )}

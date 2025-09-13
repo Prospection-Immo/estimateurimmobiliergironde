@@ -2552,8 +2552,9 @@ Réponds en JSON avec cette structure exacte :
     }
   });
 
-  // Development Email Test Routes (NO AUTH REQUIRED)
+  // Development Routes (NO AUTH REQUIRED)
   if (process.env.NODE_ENV === 'development') {
+    // Email test routes
     app.post('/api/dev/emails/test', async (req, res) => {
       try {
         const { email, name } = req.body;
@@ -2599,6 +2600,60 @@ Réponds en JSON avec cette structure exacte :
         }
       } catch (error) {
         console.error('Error testing email connection:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    });
+
+    // Authentication bypass for development
+    app.get('/api/dev/auth/check', (req, res) => {
+      res.json({ authenticated: true });
+    });
+
+    // Development login bypass route
+    app.post('/api/auth/dev-login', (req, res) => {
+      console.log('🚀 DEV: Direct login request received');
+      // Set authenticated session
+      (req.session as any).isAuthenticated = true;
+      res.json({ 
+        success: true, 
+        message: 'Development login successful' 
+      });
+    });
+
+    // Admin dashboard data routes (no auth required)
+    app.get('/api/dev/leads', async (req, res) => {
+      try {
+        const { limit, status } = req.query;
+        const leads = await storage.getLeads(
+          limit ? parseInt(limit as string) : 50,
+          status as string
+        );
+        res.json(leads);
+      } catch (error) {
+        console.error('Error fetching leads:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    });
+
+    app.get('/api/dev/estimations', async (req, res) => {
+      try {
+        const { limit } = req.query;
+        const estimations = await storage.getEstimations(
+          limit ? parseInt(limit as string) : 50
+        );
+        res.json(estimations);
+      } catch (error) {
+        console.error('Error fetching estimations:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    });
+
+    app.get('/api/dev/analytics/summary', async (req, res) => {
+      try {
+        const summary = await storage.getAnalyticsSummary();
+        res.json(summary);
+      } catch (error) {
+        console.error('Error fetching analytics:', error);
         res.status(500).json({ error: 'Internal server error' });
       }
     });

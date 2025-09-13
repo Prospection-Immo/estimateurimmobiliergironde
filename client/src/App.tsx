@@ -562,6 +562,14 @@ function AdminDashboardPage() {
   return <AdminDashboard domain={domain} />;
 }
 
+// Admin Dashboard Page for Development (no auth)
+function AdminDashboardPageDev() {
+  const domain = getDomainFromHeaders();
+  
+  // Development version - bypass authentication
+  return <AdminDashboard domain={domain} />;
+}
+
 // Guides Page (using the new component)
 function GuidesPage() {
   return <GuidesPageComponent />;
@@ -717,6 +725,7 @@ function Router() {
       <Route path="/articles/:slug" component={ArticleRedirect} />
       <Route path="/guide/:slug" component={GuideRedirect} />
       <Route path="/email-test" component={EmailTestPage} />
+      <Route path="/admin-dev" component={AdminDashboardPageDev} />
       <Route path="/login" component={AdminLoginPage} />
       <Route path="/admin/login" component={AdminLoginPage} />
       <Route path="/admin" component={AdminDashboardPage} />
@@ -738,7 +747,7 @@ export default function App() {
   const [location] = useLocation();
   
   // Check if this is an admin route that should not use PublicLayout
-  const isAdminRoute = location.startsWith('/admin') || location === '/login' || location === '/gironde-login' || location === '/gironde-admin-dashboard';
+  const isAdminRoute = location.startsWith('/admin') || location === '/admin-dev' || location === '/login' || location === '/gironde-login' || location === '/gironde-admin-dashboard';
   
   return (
     <QueryClientProvider client={queryClient}>
