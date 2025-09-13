@@ -34,6 +34,7 @@ import GuideDetailPageComponent from "@/pages/GuideDetailPage";
 import GuideThanksPage from "@/pages/GuideThanksPage";
 import GuideReadPage from "@/pages/GuideReadPage";
 import Admin2FALogin from "@/components/Admin2FALogin";
+import EmailTestPage from "@/pages/EmailTestPage";
 import bordeaux_house from "@assets/generated_images/Bordeaux_house_property_photo_41cf0370.png";
 import SEOHead, { createLocalBusinessSchema, createFAQSchema } from "@/components/SEOHead";
 
@@ -715,6 +716,7 @@ function Router() {
       {/* Redirect old URLs to new format */}
       <Route path="/articles/:slug" component={ArticleRedirect} />
       <Route path="/guide/:slug" component={GuideRedirect} />
+      <Route path="/email-test" component={EmailTestPage} />
       <Route path="/login" component={AdminLoginPage} />
       <Route path="/admin/login" component={AdminLoginPage} />
       <Route path="/admin" component={AdminDashboardPage} />
