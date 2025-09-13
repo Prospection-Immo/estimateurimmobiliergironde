@@ -206,11 +206,6 @@ export default function AddressAutocomplete({
           {error}
         </p>
       )}
-      {!window.google && !isLoading && !error && (
-        <p className="text-xs text-muted-foreground">
-          Chargement de l'autocomplétion d'adresse...
-        </p>
-      )}
     </div>
   );
 }
