@@ -20,6 +20,7 @@ import PropertyEstimationForm from "@/components/PropertyEstimationForm";
 import EstimationResults from "@/components/EstimationResults";
 import ContactForm from "@/components/ContactForm";
 import AdminDashboard from "@/components/AdminDashboard";
+import AdminDashboardDev from "@/components/AdminDashboardDev";
 import HomepageEstimationForm from "@/components/HomepageEstimationForm";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import FinancementPage from "@/pages/FinancementPage";
@@ -567,7 +568,7 @@ function AdminDashboardPageDev() {
   const domain = getDomainFromHeaders();
   
   // Development version - bypass authentication
-  return <AdminDashboard domain={domain} />;
+  return <AdminDashboardDev domain={domain} />;
 }
 
 // Guides Page (using the new component)
