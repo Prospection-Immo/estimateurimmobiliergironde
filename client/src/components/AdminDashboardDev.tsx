@@ -25,10 +25,17 @@ interface Props {
 export default function AdminDashboardDev({ domain }: Props) {
   const [activeTab, setActiveTab] = useState("overview");
 
+  const handleSectionChange = (section: string) => {
+    setActiveTab(section);
+  };
+
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full bg-background">
-        <AdminSidebar />
+        <AdminSidebar 
+          activeSection={activeTab}
+          onSectionChange={handleSectionChange}
+        />
         <div className="flex-1 flex flex-col">
           {/* Header */}
           <header className="border-b bg-card px-4 py-2">
