@@ -134,7 +134,7 @@ function HomePage() {
               <div className="flex flex-wrap items-center gap-3">
                 <AddressAutocomplete
                   onAddressSelect={(address) => setSelectedAddress(address)}
-                  placeholder="Rechercher une adresse..."
+                  placeholder="Adresse du bien"
                   className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 min-w-[200px]"
                   data-testid="filter-city"
                 />
