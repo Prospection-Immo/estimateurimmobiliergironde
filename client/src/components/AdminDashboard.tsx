@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -31,6 +32,7 @@ import {
   LogOut,
   AlertCircle,
   Eye,
+  EyeOff,
   MessageSquare,
   Clock,
   FileText,
@@ -55,10 +57,25 @@ import {
   CreditCard,
   BookOpen,
   Star,
-  UserCheck
+  UserCheck,
+  Copy,
+  Grid3X3,
+  Download
 } from "lucide-react";
 
-import type { Lead, Estimation, Contact, Article, EmailTemplate, EmailHistory } from "@shared/schema";
+import type { 
+  Lead, 
+  Estimation, 
+  Contact, 
+  Article, 
+  EmailTemplate, 
+  EmailHistory, 
+  Guide, 
+  GuideDownload, 
+  GuideAnalytics,
+  InsertGuide
+} from "@shared/schema";
+import { GUIDE_PERSONAS } from "@shared/schema";
 
 interface EstimationDisplay extends Estimation {
   lead?: {
@@ -107,6 +124,321 @@ interface GeneratedArticle {
 
 interface AdminDashboardProps {
   domain?: string;
+}
+
+// Guide Form Component
+interface GuideFormProps {
+  guide?: Guide;
+  onSubmit: (data: InsertGuide) => void;
+}
+
+function GuideForm({ guide, onSubmit }: GuideFormProps) {
+  const [formData, setFormData] = useState<InsertGuide>({
+    title: guide?.title || "",
+    slug: guide?.slug || "",
+    persona: guide?.persona || "presse",
+    shortBenefit: guide?.shortBenefit || "",
+    readingTime: guide?.readingTime || 5,
+    content: guide?.content || "",
+    pdfContent: guide?.pdfContent || "",
+    imageUrl: guide?.imageUrl || "",
+    metaDescription: guide?.metaDescription || "",
+    seoTitle: guide?.seoTitle || "",
+    isActive: guide?.isActive ?? true,
+    sortOrder: guide?.sortOrder || 0
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="title">Titre du guide</Label>
+          <Input
+            id="title"
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            placeholder="Guide pour vendeur pressé..."
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="slug">Slug</Label>
+          <Input
+            id="slug"
+            value={formData.slug}
+            onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+            placeholder="guide-vendeur-presse"
+            required
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="persona">Persona</Label>
+          <Select value={formData.persona} onValueChange={(value) => setFormData({ ...formData, persona: value as any })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(GUIDE_PERSONAS).map(([key, label]) => (
+                <SelectItem key={key} value={key}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="readingTime">Temps de lecture (min)</Label>
+          <Input
+            id="readingTime"
+            type="number"
+            value={formData.readingTime || ""}
+            onChange={(e) => setFormData({ ...formData, readingTime: parseInt(e.target.value) || 5 })}
+            min="1"
+            max="60"
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor="shortBenefit">Bénéfice court (1 phrase)</Label>
+        <Input
+          id="shortBenefit"
+          value={formData.shortBenefit}
+          onChange={(e) => setFormData({ ...formData, shortBenefit: e.target.value })}
+          placeholder="Vendez rapidement votre bien en 30 jours maximum"
+          required
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="content">Contenu principal</Label>
+        <Textarea
+          id="content"
+          value={formData.content}
+          onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+          placeholder="Contenu HTML du guide..."
+          rows={6}
+          required
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="pdfContent">Contenu PDF spécifique</Label>
+        <Textarea
+          id="pdfContent"
+          value={formData.pdfContent || ""}
+          onChange={(e) => setFormData({ ...formData, pdfContent: e.target.value })}
+          placeholder="Contenu spécifique pour la génération PDF avec bonus..."
+          rows={4}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="imageUrl">URL de l'image</Label>
+          <Input
+            id="imageUrl"
+            value={formData.imageUrl || ""}
+            onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+            placeholder="https://example.com/image.jpg"
+          />
+        </div>
+        <div>
+          <Label htmlFor="sortOrder">Ordre de tri</Label>
+          <Input
+            id="sortOrder"
+            type="number"
+            value={formData.sortOrder}
+            onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) })}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="seoTitle">Titre SEO</Label>
+          <Input
+            id="seoTitle"
+            value={formData.seoTitle || ""}
+            onChange={(e) => setFormData({ ...formData, seoTitle: e.target.value })}
+            placeholder="Guide vendeur pressé - Gironde"
+          />
+        </div>
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="isActive"
+            checked={formData.isActive || false}
+            onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+            className="h-4 w-4"
+          />
+          <Label htmlFor="isActive">Guide actif</Label>
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor="metaDescription">Meta description</Label>
+        <Textarea
+          id="metaDescription"
+          value={formData.metaDescription || ""}
+          onChange={(e) => setFormData({ ...formData, metaDescription: e.target.value })}
+          placeholder="Description pour les moteurs de recherche..."
+          rows={2}
+        />
+      </div>
+
+      <div className="flex justify-end space-x-2">
+        <Button type="submit">
+          {guide ? "Mettre à jour" : "Créer"} le guide
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+// Guide Card Component
+interface GuideCardProps {
+  guide: Guide;
+  metrics?: {
+    downloads: number;
+    leads: number;
+    conversionRate: number;
+  };
+  onEdit: (guide: Guide) => void;
+  onPreview: (guide: Guide) => void;
+  onDuplicate: (guide: Guide) => void;
+  onToggleStatus: (id: string, status: boolean) => void;
+  onDelete: (id: string) => void;
+}
+
+function GuideCard({ guide, metrics, onEdit, onPreview, onDuplicate, onToggleStatus, onDelete }: GuideCardProps) {
+  return (
+    <Card className="hover-elevate">
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <div className="space-y-1">
+            <CardTitle className="text-lg">{guide.title}</CardTitle>
+            <div className="flex items-center space-x-2">
+              <Badge variant="outline" className="text-xs">
+                {GUIDE_PERSONAS[guide.persona as keyof typeof GUIDE_PERSONAS]}
+              </Badge>
+              <Badge variant={guide.isActive ? "default" : "secondary"}>
+                {guide.isActive ? "Actif" : "Inactif"}
+              </Badge>
+            </div>
+          </div>
+        </div>
+        <CardDescription>{guide.shortBenefit}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="flex items-center space-x-2">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span>{guide.readingTime} min</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Download className="h-4 w-4 text-muted-foreground" />
+            <span>{metrics?.downloads || 0}</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Users className="h-4 w-4 text-muted-foreground" />
+            <span>{metrics?.leads || 0} leads</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Star className="h-4 w-4 text-muted-foreground" />
+            <span>{metrics?.conversionRate || 0}%</span>
+          </div>
+        </div>
+      </CardContent>
+      <div className="p-4 pt-0">
+        <div className="flex items-center justify-between">
+          <div className="flex space-x-1">
+            <Button variant="outline" size="sm" onClick={() => onPreview(guide)}>
+              <Eye className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => onEdit(guide)}>
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => onDuplicate(guide)}>
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="flex space-x-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onToggleStatus(guide.id, !guide.isActive)}
+            >
+              {guide.isActive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-destructive"
+              onClick={() => onDelete(guide.id)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+// Guide Preview Component
+interface GuidePreviewProps {
+  guide: Guide;
+}
+
+function GuidePreview({ guide }: GuidePreviewProps) {
+  return (
+    <div className="space-y-6">
+      <div className="border-b pb-4">
+        <h1 className="text-2xl font-bold">{guide.title}</h1>
+        <div className="flex items-center space-x-4 mt-2 text-sm text-muted-foreground">
+          <span className="flex items-center space-x-1">
+            <Users className="h-4 w-4" />
+            <span>{GUIDE_PERSONAS[guide.persona as keyof typeof GUIDE_PERSONAS]}</span>
+          </span>
+          <span className="flex items-center space-x-1">
+            <Clock className="h-4 w-4" />
+            <span>{guide.readingTime} min de lecture</span>
+          </span>
+        </div>
+        <p className="mt-2 text-muted-foreground">{guide.shortBenefit}</p>
+      </div>
+      
+      {guide.imageUrl && (
+        <div className="aspect-video rounded-lg overflow-hidden bg-muted">
+          <img 
+            src={guide.imageUrl} 
+            alt={guide.title}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      )}
+      
+      <div className="prose max-w-none">
+        <div dangerouslySetInnerHTML={{ __html: guide.content }} />
+      </div>
+      
+      {guide.pdfContent && (
+        <div className="bg-muted/50 p-4 rounded-lg">
+          <h3 className="font-semibold mb-2">Contenu PDF bonus :</h3>
+          <div className="prose prose-sm max-w-none">
+            <div dangerouslySetInnerHTML={{ __html: guide.pdfContent }} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function AdminDashboard({ domain = "estimation-immobilier-gironde.fr" }: AdminDashboardProps) {
@@ -180,6 +512,27 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
     recipients: "",
     delay: 1000
   });
+
+  // Guides management state
+  const [guideSearchTerm, setGuideSearchTerm] = useState("");
+  const [guidePersonaFilter, setGuidePersonaFilter] = useState("all");
+  const [guideStatusFilter, setGuideStatusFilter] = useState("all");
+  const [guideViewMode, setGuideViewMode] = useState<"table" | "grid">("table");
+  const [editingGuide, setEditingGuide] = useState<Guide | null>(null);
+  const [showGuidePreview, setShowGuidePreview] = useState(false);
+  const [previewingGuide, setPreviewingGuide] = useState<Guide | null>(null);
+  const [guideStats, setGuideStats] = useState<{
+    totalGuides: number;
+    activeGuides: number;
+    totalDownloads: number;
+    totalLeads: number;
+    conversionRate: number;
+  } | null>(null);
+  const [guideMetrics, setGuideMetrics] = useState<Record<string, {
+    downloads: number;
+    leads: number;
+    conversionRate: number;
+  }>>({});
 
   const queryClientInstance = useQueryClient();
 
@@ -262,6 +615,130 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
     queryKey: ['/api/admin/emails/history', emailStatusFilter],
     enabled: isAuthenticated === true,
     staleTime: 0
+  });
+
+  // Guides React Query hooks
+  const guidesQueryParams = new URLSearchParams();
+  if (guidePersonaFilter && guidePersonaFilter !== 'all') guidesQueryParams.append('persona', guidePersonaFilter);
+  if (guideStatusFilter && guideStatusFilter !== 'all') guidesQueryParams.append('status', guideStatusFilter);
+  if (guideSearchTerm) guidesQueryParams.append('q', guideSearchTerm);
+  
+  const guidesQueryString = guidesQueryParams.toString();
+  const guidesUrl = `/api/admin/guides${guidesQueryString ? `?${guidesQueryString}` : ''}`;
+  
+  const { data: guides = [], isLoading: guidesLoading, error: guidesError } = useQuery<Guide[]>({
+    queryKey: [guidesUrl],
+    enabled: isAuthenticated === true,
+    staleTime: 0
+  });
+
+  const { data: guideStatsData } = useQuery({
+    queryKey: ['/api/admin/guides/stats'],
+    enabled: isAuthenticated === true
+  });
+
+  const { data: guideMetricsData = {} } = useQuery({
+    queryKey: ['/api/admin/guides/metrics'],
+    enabled: isAuthenticated === true
+  });
+
+  // Guide data effects
+  useEffect(() => {
+    if (guideStatsData) {
+      setGuideStats(guideStatsData as any);
+    }
+  }, [guideStatsData]);
+
+  useEffect(() => {
+    if (guideMetricsData && typeof guideMetricsData === 'object') {
+      setGuideMetrics(guideMetricsData as any);
+    }
+  }, [guideMetricsData]);
+
+  // Guide mutations
+  const createGuideMutation = useMutation({
+    mutationFn: async (guideData: InsertGuide) => {
+      return apiRequest('POST', '/api/admin/guides', guideData);
+    },
+    onSuccess: () => {
+      queryClientInstance.invalidateQueries({ queryKey: ['/api/admin/guides'] });
+      queryClientInstance.invalidateQueries({ predicate: (query) => 
+        Boolean(query.queryKey[0] && typeof query.queryKey[0] === 'string' && 
+        query.queryKey[0].startsWith('/api/admin/guides'))
+      });
+    }
+  });
+
+  const updateGuideMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<InsertGuide> }) => {
+      return apiRequest('PUT', `/api/admin/guides/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClientInstance.invalidateQueries({ queryKey: ['/api/admin/guides'] });
+      queryClientInstance.invalidateQueries({ predicate: (query) => 
+        Boolean(query.queryKey[0] && typeof query.queryKey[0] === 'string' && 
+        query.queryKey[0].startsWith('/api/admin/guides'))
+      });
+    }
+  });
+
+  const deleteGuideMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest('DELETE', `/api/admin/guides/${id}`);
+    },
+    onSuccess: () => {
+      queryClientInstance.invalidateQueries({ queryKey: ['/api/admin/guides'] });
+      queryClientInstance.invalidateQueries({ predicate: (query) => 
+        Boolean(query.queryKey[0] && typeof query.queryKey[0] === 'string' && 
+        query.queryKey[0].startsWith('/api/admin/guides'))
+      });
+    }
+  });
+
+  const toggleGuideStatusMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      return apiRequest('PATCH', `/api/admin/guides/${id}/status`, { isActive });
+    },
+    onSuccess: () => {
+      queryClientInstance.invalidateQueries({ queryKey: ['/api/admin/guides'] });
+    }
+  });
+
+  // Guide handler functions
+  const handlePreviewGuide = (guide: Guide) => {
+    setPreviewingGuide(guide);
+    setShowGuidePreview(true);
+  };
+
+  const handleDuplicateGuide = (guide: Guide) => {
+    const duplicatedGuide = {
+      ...guide,
+      title: `${guide.title} (Copie)`,
+      slug: `${guide.slug}-copie-${Date.now()}`,
+      isActive: false
+    };
+    delete (duplicatedGuide as any).id;
+    createGuideMutation.mutate(duplicatedGuide);
+  };
+
+  const toggleGuideStatus = (id: string, isActive: boolean) => {
+    toggleGuideStatusMutation.mutate({ id, isActive });
+  };
+
+  // Filtered guides based on search and filters
+  const filteredGuides = guides.filter(guide => {
+    const matchesSearch = !guideSearchTerm || 
+      guide.title.toLowerCase().includes(guideSearchTerm.toLowerCase()) ||
+      guide.shortBenefit?.toLowerCase().includes(guideSearchTerm.toLowerCase());
+    
+    const matchesPersona = guidePersonaFilter === "all" || 
+      guide.persona === guidePersonaFilter;
+    
+    const matchesStatus = guideStatusFilter === "all" || 
+      (guideStatusFilter === "active" && guide.isActive) ||
+      (guideStatusFilter === "inactive" && !guide.isActive);
+    
+    return matchesSearch && matchesPersona && matchesStatus;
   });
 
   const createArticleMutation = useMutation({
@@ -1707,16 +2184,314 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
       case "guides":
         return (
           <div className="space-y-6">
+            {/* Header with actions */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h2 className="text-2xl font-bold">Guides vendeurs</h2>
+                <p className="text-muted-foreground">Gérez vos guides téléchargeables par persona</p>
+              </div>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button data-testid="button-create-guide">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Nouveau guide
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Créer un nouveau guide</DialogTitle>
+                  </DialogHeader>
+                  <GuideForm onSubmit={(guideData) => {
+                    createGuideMutation.mutate(guideData);
+                  }} />
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {/* Filters and search */}
             <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Guides vendeurs</h3>
-              <div className="space-y-4">
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">
-                    Gestion des guides vendeurs en cours de développement...
-                  </p>
+              <div className="flex flex-col lg:flex-row gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input
+                      placeholder="Rechercher un guide..."
+                      value={guideSearchTerm}
+                      onChange={(e) => setGuideSearchTerm(e.target.value)}
+                      className="pl-10"
+                      data-testid="input-search-guides"
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Select value={guidePersonaFilter} onValueChange={setGuidePersonaFilter}>
+                    <SelectTrigger className="w-48" data-testid="select-persona-filter">
+                      <SelectValue placeholder="Filtrer par persona" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous les personas</SelectItem>
+                      {Object.entries(GUIDE_PERSONAS).map(([key, label]) => (
+                        <SelectItem key={key} value={key}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={guideStatusFilter} onValueChange={setGuideStatusFilter}>
+                    <SelectTrigger className="w-32" data-testid="select-status-filter">
+                      <SelectValue placeholder="Statut" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous</SelectItem>
+                      <SelectItem value="active">Actif</SelectItem>
+                      <SelectItem value="inactive">Inactif</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </Card>
+
+            {/* Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="p-6">
+                <div className="flex items-center space-x-2">
+                  <BookOpen className="h-5 w-5 text-primary" />
+                  <h3 className="font-semibold">Total guides</h3>
+                </div>
+                <p className="text-2xl font-bold mt-2" data-testid="stat-total-guides">
+                  {guideStats?.totalGuides || 0}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {guideStats?.activeGuides || 0} actifs
+                </p>
+              </Card>
+              <Card className="p-6">
+                <div className="flex items-center space-x-2">
+                  <Download className="h-5 w-5 text-blue-500" />
+                  <h3 className="font-semibold">Téléchargements</h3>
+                </div>
+                <p className="text-2xl font-bold mt-2" data-testid="stat-total-downloads">
+                  {guideStats?.totalDownloads || 0}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Ce mois-ci
+                </p>
+              </Card>
+              <Card className="p-6">
+                <div className="flex items-center space-x-2">
+                  <Users className="h-5 w-5 text-green-500" />
+                  <h3 className="font-semibold">Leads générés</h3>
+                </div>
+                <p className="text-2xl font-bold mt-2" data-testid="stat-total-leads">
+                  {guideStats?.totalLeads || 0}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Taux conv.: {guideStats?.conversionRate || 0}%
+                </p>
+              </Card>
+            </div>
+
+            {/* Guides list */}
+            <Card className="p-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">Liste des guides</h3>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setGuideViewMode(guideViewMode === "table" ? "grid" : "table")}
+                      data-testid="button-toggle-view"
+                    >
+                      {guideViewMode === "table" ? (
+                        <><Grid3X3 className="h-4 w-4 mr-2" />Grille</>
+                      ) : (
+                        <><FileText className="h-4 w-4 mr-2" />Tableau</>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                {guidesLoading ? (
+                  <div className="space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="p-4 border border-border rounded-lg">
+                        <div className="animate-pulse space-y-2">
+                          <div className="h-4 bg-muted rounded w-3/4"></div>
+                          <div className="h-3 bg-muted rounded w-1/2"></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : guideViewMode === "table" ? (
+                  <div className="space-y-2">
+                    {filteredGuides.map((guide, index) => (
+                      <div
+                        key={guide.id}
+                        className={`flex items-center justify-between p-4 border border-border rounded-lg hover-elevate ${
+                          index % 2 === 1 ? 'bg-muted/20' : 'bg-background'
+                        }`}
+                        data-testid={`guide-row-${guide.id}`}
+                      >
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center space-x-3">
+                            <h4 className="font-medium">{guide.title}</h4>
+                            <Badge 
+                              variant="outline"
+                              className="text-xs"
+                              data-testid={`badge-persona-${guide.id}`}
+                            >
+                              {GUIDE_PERSONAS[guide.persona as keyof typeof GUIDE_PERSONAS]}
+                            </Badge>
+                            <Badge 
+                              variant={guide.isActive ? "default" : "secondary"}
+                              data-testid={`badge-status-${guide.id}`}
+                            >
+                              {guide.isActive ? "Actif" : "Inactif"}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                            <span className="flex items-center space-x-1">
+                              <Clock className="h-3 w-3" />
+                              <span>{guide.readingTime} min</span>
+                            </span>
+                            <span className="flex items-center space-x-1">
+                              <Download className="h-3 w-3" />
+                              <span>{guideMetrics[guide.id]?.downloads || 0} téléchargements</span>
+                            </span>
+                            <span className="flex items-center space-x-1">
+                              <Users className="h-3 w-3" />
+                              <span>{guideMetrics[guide.id]?.leads || 0} leads</span>
+                            </span>
+                            <span className="text-xs">
+                              Ordre: {guide.sortOrder}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePreviewGuide(guide)}
+                            data-testid={`button-preview-${guide.id}`}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                data-testid={`button-edit-${guide.id}`}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                              <DialogHeader>
+                                <DialogTitle>Modifier le guide</DialogTitle>
+                              </DialogHeader>
+                              <GuideForm
+                                guide={guide}
+                                onSubmit={(guideData) => {
+                                  updateGuideMutation.mutate({ id: guide.id, data: guideData });
+                                }}
+                              />
+                            </DialogContent>
+                          </Dialog>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDuplicateGuide(guide)}
+                            data-testid={`button-duplicate-${guide.id}`}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => toggleGuideStatus(guide.id, !guide.isActive)}
+                            data-testid={`button-toggle-status-${guide.id}`}
+                          >
+                            {guide.isActive ? (
+                              <Eye className="h-4 w-4" />
+                            ) : (
+                              <EyeOff className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-destructive hover:text-destructive"
+                                data-testid={`button-delete-${guide.id}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Êtes-vous sûr de vouloir supprimer le guide "{guide.title}" ? 
+                                  Cette action est irréversible et supprimera également toutes les statistiques associées.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteGuideMutation.mutate(guide.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Supprimer
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredGuides.map((guide) => (
+                      <GuideCard 
+                        key={guide.id} 
+                        guide={guide} 
+                        metrics={guideMetrics[guide.id]}
+                        onEdit={(guide) => setEditingGuide(guide)}
+                        onPreview={(guide) => handlePreviewGuide(guide)}
+                        onDuplicate={(guide) => handleDuplicateGuide(guide)}
+                        onToggleStatus={(id, status) => toggleGuideStatus(id, status)}
+                        onDelete={(id) => deleteGuideMutation.mutate(id)}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {filteredGuides.length === 0 && !guidesLoading && (
+                  <div className="text-center py-8">
+                    <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">
+                      {guideSearchTerm || guidePersonaFilter !== "all" || guideStatusFilter !== "all"
+                        ? "Aucun guide ne correspond aux filtres sélectionnés."
+                        : "Aucun guide disponible. Créez votre premier guide pour commencer."}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            {/* Guide preview modal */}
+            <Dialog open={showGuidePreview} onOpenChange={setShowGuidePreview}>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Aperçu du guide</DialogTitle>
+                </DialogHeader>
+                {previewingGuide && (
+                  <GuidePreview guide={previewingGuide} />
+                )}
+              </DialogContent>
+            </Dialog>
           </div>
         );
 
@@ -1856,15 +2631,6 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
           </div>
         );
 
-      case "guides":
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Guides vendeurs</h2>
-            <Card className="p-6">
-              <p className="text-muted-foreground">Gestion des guides téléchargeables pour vendeurs...</p>
-            </Card>
-          </div>
-        );
 
       case "guide-personas":
         return (
