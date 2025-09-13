@@ -1752,6 +1752,282 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
           </div>
         );
 
+      // Dashboard sections
+      case "recent-activity":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Activité récente</h2>
+            <Card className="p-6">
+              <p className="text-muted-foreground">Activité des utilisateurs et actions récentes sur la plateforme...</p>
+            </Card>
+          </div>
+        );
+
+      case "kpi-metrics":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Indicateurs clés (KPI)</h2>
+            <Card className="p-6">
+              <p className="text-muted-foreground">Tableau de bord des indicateurs de performance clés...</p>
+            </Card>
+          </div>
+        );
+
+      // Leads & Contacts sections
+      case "lead-scoring":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Scoring des leads</h2>
+            <Card className="p-6">
+              <p className="text-muted-foreground">Système de notation et qualification automatique des leads...</p>
+            </Card>
+          </div>
+        );
+
+      case "follow-up":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Suivi des relances</h2>
+            <Card className="p-6">
+              <p className="text-muted-foreground">Planification et suivi des relances clients...</p>
+            </Card>
+          </div>
+        );
+
+      case "sms-campaigns":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Campagnes SMS</h2>
+            <Card className="p-6">
+              <p className="text-muted-foreground">Gestion des campagnes SMS marketing...</p>
+            </Card>
+          </div>
+        );
+
+      // Estimations sections
+      case "pending-estimations":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Estimations en attente</h2>
+            <Card className="p-6">
+              <p className="text-muted-foreground">Estimations en cours de traitement...</p>
+            </Card>
+          </div>
+        );
+
+      case "completed-estimations":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Estimations terminées</h2>
+            <Card className="p-6">
+              <p className="text-muted-foreground">Historique des estimations finalisées...</p>
+            </Card>
+          </div>
+        );
+
+      case "price-accuracy":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Précision des prix</h2>
+            <Card className="p-6">
+              <p className="text-muted-foreground">Analyse de la précision de l'algorithme d'estimation...</p>
+            </Card>
+          </div>
+        );
+
+      case "estimation-export":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Export des données</h2>
+            <Card className="p-6">
+              <p className="text-muted-foreground">Export des données d'estimation vers Excel/CSV...</p>
+            </Card>
+          </div>
+        );
+
+      // Content sections
+      case "article-categories":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Catégories d'articles</h2>
+            <Card className="p-6">
+              <p className="text-muted-foreground">Gestion des catégories et tags d'articles...</p>
+            </Card>
+          </div>
+        );
+
+      case "guides":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Guides vendeurs</h2>
+            <Card className="p-6">
+              <p className="text-muted-foreground">Gestion des guides téléchargeables pour vendeurs...</p>
+            </Card>
+          </div>
+        );
+
+      case "guide-personas":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Personas des guides</h2>
+            <Card className="p-6">
+              <p className="text-muted-foreground">Configuration des personas cibles pour les guides...</p>
+            </Card>
+          </div>
+        );
+
+      case "content-seo":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">SEO & Visibilité</h2>
+            <Card className="p-6">
+              <p className="text-muted-foreground">Optimisation SEO du contenu et analyse de visibilité...</p>
+            </Card>
+          </div>
+        );
+
+      case "pdf-downloads":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Téléchargements PDF</h2>
+            <Card className="p-6">
+              <p className="text-muted-foreground">Statistiques des téléchargements de guides PDF...</p>
+            </Card>
+          </div>
+        );
+
+      // Analytics sections
+      case "conversion-funnel":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Entonnoir de conversion</h2>
+            <Card className="p-6">
+              <p className="text-muted-foreground">Analyse du parcours de conversion des visiteurs...</p>
+            </Card>
+          </div>
+        );
+
+      case "traffic-analysis":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Analyse du trafic</h2>
+            <Card className="p-6">
+              <p className="text-muted-foreground">Statistiques détaillées du trafic web...</p>
+            </Card>
+          </div>
+        );
+
+      case "lead-sources":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Sources de leads</h2>
+            <Card className="p-6">
+              <p className="text-muted-foreground">Analyse des canaux d'acquisition de leads...</p>
+            </Card>
+          </div>
+        );
+
+      case "user-behavior":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Comportement utilisateur</h2>
+            <Card className="p-6">
+              <p className="text-muted-foreground">Analyse du comportement des visiteurs sur le site...</p>
+            </Card>
+          </div>
+        );
+
+      case "roi-analysis":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Analyse ROI</h2>
+            <Card className="p-6">
+              <p className="text-muted-foreground">Calcul du retour sur investissement des campagnes...</p>
+            </Card>
+          </div>
+        );
+
+      case "geographic-data":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Données géographiques</h2>
+            <Card className="p-6">
+              <p className="text-muted-foreground">Répartition géographique des leads et estimations...</p>
+            </Card>
+          </div>
+        );
+
+      // Settings sections
+      case "admin-settings":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Configuration générale</h2>
+            <Card className="p-6">
+              <p className="text-muted-foreground">Paramètres généraux de l'application...</p>
+            </Card>
+          </div>
+        );
+
+      case "sms-templates":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Templates SMS</h2>
+            <Card className="p-6">
+              <p className="text-muted-foreground">Gestion des modèles de messages SMS...</p>
+            </Card>
+          </div>
+        );
+
+      case "user-management":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Gestion des utilisateurs</h2>
+            <Card className="p-6">
+              <p className="text-muted-foreground">Administration des comptes utilisateurs...</p>
+            </Card>
+          </div>
+        );
+
+      case "api-settings":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Clés API</h2>
+            <Card className="p-6">
+              <p className="text-muted-foreground">Configuration des clés API et intégrations...</p>
+            </Card>
+          </div>
+        );
+
+      case "notifications":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Notifications</h2>
+            <Card className="p-6">
+              <p className="text-muted-foreground">Configuration des notifications système...</p>
+            </Card>
+          </div>
+        );
+
+      case "system-logs":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Logs système</h2>
+            <Card className="p-6">
+              <p className="text-muted-foreground">Consultation des journaux système...</p>
+            </Card>
+          </div>
+        );
+
+      case "backup-data":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Sauvegarde</h2>
+            <Card className="p-6">
+              <p className="text-muted-foreground">Gestion des sauvegardes de données...</p>
+            </Card>
+          </div>
+        );
+
       default:
         return (
           <div className="text-center py-8">

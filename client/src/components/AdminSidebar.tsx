@@ -182,16 +182,16 @@ export function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarPro
               onOpenChange={() => toggleSection(section.key)}
             >
               <CollapsibleTrigger asChild>
-                <SidebarGroupLabel className="group/collapsible hover-elevate cursor-pointer">
+                <SidebarGroupLabel className="group/collapsible hover-elevate cursor-pointer bg-muted/60 dark:bg-muted/80 px-3 py-2.5 rounded-md font-semibold text-base border-l-4 border-primary/60">
                   <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center space-x-2">
-                      <section.icon className="h-4 w-4" />
-                      <span>{section.label}</span>
+                    <div className="flex items-center space-x-3">
+                      <section.icon className="h-5 w-5 text-primary" />
+                      <span className="text-foreground font-semibold">{section.label}</span>
                     </div>
                     {openSections[section.key] ? (
-                      <ChevronDown className="h-4 w-4 transition-transform" />
+                      <ChevronDown className="h-4 w-4 transition-transform text-primary" />
                     ) : (
-                      <ChevronRight className="h-4 w-4 transition-transform" />
+                      <ChevronRight className="h-4 w-4 transition-transform text-primary" />
                     )}
                   </div>
                 </SidebarGroupLabel>
