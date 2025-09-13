@@ -13,6 +13,7 @@ import {
   type GuideDownload,
   type GuideAnalytics,
   type GuideEmailSequence,
+  type PersonaConfigData,
   type InsertUser, 
   type InsertLead, 
   type InsertEstimation, 
@@ -25,6 +26,7 @@ import {
   type InsertGuideDownload,
   type InsertGuideAnalytics,
   type InsertGuideEmailSequence,
+  type InsertPersonaConfig,
   users,
   leads,
   estimations,
@@ -36,7 +38,8 @@ import {
   guides,
   guideDownloads,
   guideAnalytics,
-  guideEmailSequences
+  guideEmailSequences,
+  personaConfigs
 } from "@shared/schema";
 import { eq, desc, sql, and } from "drizzle-orm";
 
@@ -109,6 +112,12 @@ export interface IStorage {
   createGuideEmailSequence(sequence: InsertGuideEmailSequence): Promise<GuideEmailSequence>;
   getGuideEmailSequences(leadEmail?: string): Promise<GuideEmailSequence[]>;
   updateGuideEmailSequence(id: string, updates: Partial<InsertGuideEmailSequence>): Promise<void>;
+  
+  // Persona Configurations
+  getPersonaConfigs(): Promise<PersonaConfigData[]>;
+  getPersonaConfigByPersona(persona: string): Promise<PersonaConfigData | undefined>;
+  createPersonaConfig(config: InsertPersonaConfig): Promise<PersonaConfigData>;
+  updatePersonaConfig(persona: string, updates: Partial<InsertPersonaConfig>): Promise<PersonaConfigData>;
 }
 
 export class SupabaseStorage implements IStorage {
@@ -452,6 +461,40 @@ export class SupabaseStorage implements IStorage {
       .update(guideEmailSequences)
       .set(updates)
       .where(eq(guideEmailSequences.id, id));
+  }
+
+  // Persona Configurations
+  async getPersonaConfigs(): Promise<PersonaConfigData[]> {
+    return await db
+      .select()
+      .from(personaConfigs)
+      .orderBy(personaConfigs.createdAt);
+  }
+
+  async getPersonaConfigByPersona(persona: string): Promise<PersonaConfigData | undefined> {
+    const [config] = await db
+      .select()
+      .from(personaConfigs)
+      .where(eq(personaConfigs.persona, persona))
+      .limit(1);
+    return config;
+  }
+
+  async createPersonaConfig(config: InsertPersonaConfig): Promise<PersonaConfigData> {
+    const [newConfig] = await db
+      .insert(personaConfigs)
+      .values({ ...config, updatedAt: new Date() })
+      .returning();
+    return newConfig;
+  }
+
+  async updatePersonaConfig(persona: string, updates: Partial<InsertPersonaConfig>): Promise<PersonaConfigData> {
+    const [updatedConfig] = await db
+      .update(personaConfigs)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(personaConfigs.persona, persona))
+      .returning();
+    return updatedConfig;
   }
 }
 

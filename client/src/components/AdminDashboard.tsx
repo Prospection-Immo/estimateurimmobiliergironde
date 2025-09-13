@@ -63,6 +63,7 @@ import {
   Download
 } from "lucide-react";
 
+import GuideForm from "@/components/GuideForm";
 import type { 
   Lead, 
   Estimation, 
@@ -164,10 +165,15 @@ interface PersonaAnalytics {
 }
 
 function GuidePersonasSection() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
   const [personaConfigOpen, setPersonaConfigOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [editingPersona, setEditingPersona] = useState<PersonaConfig | null>(null);
+  const [newGuideOpen, setNewGuideOpen] = useState(false);
+  const [editGuideOpen, setEditGuideOpen] = useState(false);
+  const [selectedGuide, setSelectedGuide] = useState<Guide | null>(null);
 
   // Configuration complète des personas
   const personaConfigs: Record<string, PersonaConfig> = {
@@ -348,14 +354,25 @@ function GuidePersonasSection() {
             Gestion complète des 6 profils de vendeurs et personnalisation des contenus
           </p>
         </div>
-        <Button 
-          onClick={() => setPersonaConfigOpen(true)}
-          className="flex items-center gap-2"
-          data-testid="button-configure-personas"
-        >
-          <Settings className="w-4 h-4" />
-          Configurer
-        </Button>
+        <div className="flex gap-3">
+          <Button 
+            onClick={() => setNewGuideOpen(true)}
+            className="flex items-center gap-2"
+            data-testid="button-new-guide"
+          >
+            <Plus className="w-4 h-4" />
+            Nouveau guide
+          </Button>
+          <Button 
+            onClick={() => setPersonaConfigOpen(true)}
+            variant="outline"
+            className="flex items-center gap-2"
+            data-testid="button-configure-personas"
+          >
+            <Settings className="w-4 h-4" />
+            Configurer
+          </Button>
+        </div>
       </div>
 
       {/* Métriques globales */}
@@ -1063,290 +1080,6 @@ function PersonaConfigForm({ persona, onSave }: PersonaConfigFormProps) {
         </div>
       </div>
     </Card>
-  );
-}
-
-// Guide Form Component
-interface GuideFormProps {
-  guide?: Guide;
-  onSubmit: (data: InsertGuide) => void;
-}
-
-function GuideForm({ guide, onSubmit }: GuideFormProps) {
-  const form = useForm<InsertGuide>({
-    resolver: zodResolver(insertGuideSchema),
-    defaultValues: {
-      title: guide?.title || "",
-      slug: guide?.slug || "",
-      persona: guide?.persona || "presse",
-      shortBenefit: guide?.shortBenefit || "",
-      readingTime: guide?.readingTime || 5,
-      content: guide?.content || "",
-      pdfContent: guide?.pdfContent || "",
-      imageUrl: guide?.imageUrl || "",
-      metaDescription: guide?.metaDescription || "",
-      seoTitle: guide?.seoTitle || "",
-      isActive: guide?.isActive ?? true,
-      sortOrder: guide?.sortOrder || 0
-    }
-  });
-
-  const handleSubmit = (data: InsertGuide) => {
-    onSubmit(data);
-  };
-
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="title"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Titre du guide</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Guide pour vendeur pressé..."
-                    {...field}
-                    data-testid="input-guide-title"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="slug"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Slug</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="guide-vendeur-presse"
-                    {...field}
-                    data-testid="input-guide-slug"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="persona"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Persona</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger data-testid="select-guide-persona">
-                      <SelectValue placeholder="Choisir un persona" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {Object.entries(GUIDE_PERSONAS).map(([key, label]) => (
-                      <SelectItem key={key} value={key}>{label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="readingTime"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Temps de lecture (min)</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    min="1"
-                    max="60"
-                    {...field}
-                    onChange={(e) => field.onChange(parseInt(e.target.value) || 5)}
-                    data-testid="input-guide-reading-time"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <FormField
-          control={form.control}
-          name="shortBenefit"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Bénéfice court (1 phrase)</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="Vendez rapidement votre bien en 30 jours maximum"
-                  {...field}
-                  data-testid="input-guide-benefit"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="content"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Contenu principal</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Contenu HTML du guide..."
-                  rows={6}
-                  {...field}
-                  data-testid="textarea-guide-content"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="pdfContent"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Contenu PDF spécifique</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Contenu spécifique pour la génération PDF avec bonus..."
-                  rows={4}
-                  {...field}
-                  data-testid="textarea-guide-pdf-content"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="imageUrl"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>URL de l'image</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="https://example.com/image.jpg"
-                    {...field}
-                    data-testid="input-guide-image-url"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="sortOrder"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Ordre de tri</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    {...field}
-                    onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                    data-testid="input-guide-sort-order"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="seoTitle"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Titre SEO</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Guide vendeur pressé - Gironde"
-                    {...field}
-                    data-testid="input-guide-seo-title"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="isActive"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                    data-testid="checkbox-guide-active"
-                  />
-                </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>
-                    Guide actif
-                  </FormLabel>
-                </div>
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <FormField
-          control={form.control}
-          name="metaDescription"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Meta description</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Description pour les moteurs de recherche..."
-                  rows={2}
-                  {...field}
-                  data-testid="textarea-guide-meta-description"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="flex justify-end space-x-2">
-          <Button 
-            type="submit" 
-            disabled={form.formState.isSubmitting}
-            data-testid="button-submit-guide"
-          >
-            {form.formState.isSubmitting ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : null}
-            {guide ? "Mettre à jour" : "Créer"} le guide
-          </Button>
-        </div>
-      </form>
-    </Form>
   );
 }
 

@@ -423,6 +423,34 @@ export const emailAnalyticsSchema = z.object({
   })
 });
 
+// Persona configurations table
+export const personaConfigs = pgTable("persona_configs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  persona: text("persona").notNull().unique(), // "presse", "maximisateur", etc.
+  label: text("label").notNull(),
+  description: text("description").notNull(),
+  psychProfile: text("psych_profile").notNull(),
+  painPoints: text("pain_points").array().notNull(), // Array of strings
+  motivations: text("motivations").array().notNull(), // Array of strings
+  communicationStyle: text("communication_style").notNull(),
+  preferredChannels: text("preferred_channels").array().notNull(), // Array of strings
+  primaryColor: text("primary_color").notNull(),
+  secondaryColor: text("secondary_color").notNull(),
+  icon: text("icon").notNull(),
+  keywords: text("keywords").array().notNull(), // Array of strings
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertPersonaConfigSchema = createInsertSchema(personaConfigs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertPersonaConfig = z.infer<typeof insertPersonaConfigSchema>;
+export type PersonaConfigData = typeof personaConfigs.$inferSelect;
+
 // Analytics response types
 export type DashboardAnalytics = z.infer<typeof dashboardAnalyticsSchema>;
 export type GuideAnalyticsResponse = z.infer<typeof guideAnalyticsSchema>;
