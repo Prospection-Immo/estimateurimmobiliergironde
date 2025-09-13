@@ -64,6 +64,8 @@ import {
 } from "lucide-react";
 
 import GuideForm from "@/components/GuideForm";
+import LeadScoringDashboard from "@/components/LeadScoringDashboard";
+import SmsCampaignsManager from "@/components/SmsCampaignsManager";
 import type { 
   Lead, 
   Estimation, 
@@ -3286,14 +3288,7 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
 
       // Leads & Contacts sections
       case "lead-scoring":
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Scoring des leads</h2>
-            <Card className="p-6">
-              <p className="text-muted-foreground">Système de notation et qualification automatique des leads...</p>
-            </Card>
-          </div>
-        );
+        return <LeadScoringDashboard />;
 
       case "follow-up":
         return (
@@ -3306,14 +3301,7 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
         );
 
       case "sms-campaigns":
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Campagnes SMS</h2>
-            <Card className="p-6">
-              <p className="text-muted-foreground">Gestion des campagnes SMS marketing...</p>
-            </Card>
-          </div>
-        );
+        return <SmsCampaignsManager />;
 
       // Estimations sections
       case "pending-estimations":

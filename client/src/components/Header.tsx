@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -29,7 +29,7 @@ export default function Header({ domain = "estimation-immobilier-gironde.fr" }: 
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
+          <Link href="/" className="flex items-center gap-2">
             <div className="bg-primary text-primary-foreground p-2 rounded-md">
               <Home className="h-5 w-5" />
             </div>
@@ -41,12 +41,12 @@ export default function Header({ domain = "estimation-immobilier-gironde.fr" }: 
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-3">
+          <nav className="hidden md:flex items-center gap-1">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center space-x-1 px-2 py-2 rounded-md text-sm transition-colors hover-elevate ${
+                className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm transition-colors hover-elevate ${
                   location === item.href
                     ? "bg-primary text-primary-foreground"
                     : "text-foreground hover:bg-accent"
@@ -61,7 +61,7 @@ export default function Header({ domain = "estimation-immobilier-gironde.fr" }: 
 
 
           {/* Theme Toggle and Mobile Menu */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <ThemeToggle />
             <Button
               variant="ghost"
@@ -83,7 +83,7 @@ export default function Header({ domain = "estimation-immobilier-gironde.fr" }: 
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm transition-colors hover-elevate ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors hover-elevate ${
                     location === item.href
                       ? "bg-primary text-primary-foreground"
                       : "text-foreground hover:bg-accent"

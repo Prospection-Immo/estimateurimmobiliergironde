@@ -451,6 +451,478 @@ export const insertPersonaConfigSchema = createInsertSchema(personaConfigs).omit
 export type InsertPersonaConfig = z.infer<typeof insertPersonaConfigSchema>;
 export type PersonaConfigData = typeof personaConfigs.$inferSelect;
 
+// Lead Scoring System Tables - BANT Methodology
+export const leadScoring = pgTable("lead_scoring", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leadId: varchar("lead_id").references(() => leads.id).notNull().unique(),
+  totalScore: integer("total_score").notNull().default(0), // 0-100
+  budgetScore: integer("budget_score").notNull().default(0), // 0-25
+  authorityScore: integer("authority_score").notNull().default(0), // 0-25
+  needScore: integer("need_score").notNull().default(0), // 0-25
+  timelineScore: integer("timeline_score").notNull().default(0), // 0-25
+  qualificationStatus: text("qualification_status").notNull().default("unqualified"), // "unqualified" | "to_review" | "qualified" | "hot_lead"
+  confidenceLevel: integer("confidence_level").notNull().default(50), // 0-100 confidence in score accuracy
+  lastCalculatedAt: timestamp("last_calculated_at").defaultNow(),
+  manualAdjustment: integer("manual_adjustment").default(0), // Manual points added/removed
+  notes: text("notes"), // Qualification notes
+  assignedTo: text("assigned_to"), // Commercial assigned
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const scoringConfig = pgTable("scoring_config", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  criteriaType: text("criteria_type").notNull(), // "budget" | "authority" | "need" | "timeline"
+  weight: integer("weight").notNull().default(25), // Percentage weight (0-100)
+  isActive: boolean("is_active").notNull().default(true),
+  rules: text("rules"), // JSON configuration for scoring rules
+  thresholds: text("thresholds"), // JSON for qualification thresholds
+  bonusRules: text("bonus_rules"), // JSON for bonus point rules
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const leadScoreHistory = pgTable("lead_score_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leadId: varchar("lead_id").references(() => leads.id).notNull(),
+  oldScore: integer("old_score").notNull(),
+  newScore: integer("new_score").notNull(),
+  scoreChange: integer("score_change").notNull(), // Calculated: newScore - oldScore
+  changeReason: text("change_reason").notNull(), // "automatic_calculation" | "manual_adjustment" | "config_update" | "data_update"
+  changedBy: text("changed_by"), // User ID or "system"
+  details: text("details"), // JSON with specific changes
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Insert schemas for lead scoring
+export const insertLeadScoringSchema = createInsertSchema(leadScoring).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true,
+  lastCalculatedAt: true 
+});
+
+export const insertScoringConfigSchema = createInsertSchema(scoringConfig).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+
+export const insertLeadScoreHistorySchema = createInsertSchema(leadScoreHistory).omit({ 
+  id: true, 
+  createdAt: true 
+});
+
+// Types for lead scoring
+export type LeadScoring = typeof leadScoring.$inferSelect;
+export type ScoringConfig = typeof scoringConfig.$inferSelect;
+export type LeadScoreHistory = typeof leadScoreHistory.$inferSelect;
+
+export type InsertLeadScoring = z.infer<typeof insertLeadScoringSchema>;
+export type InsertScoringConfig = z.infer<typeof insertScoringConfigSchema>;
+export type InsertLeadScoreHistory = z.infer<typeof insertLeadScoreHistorySchema>;
+
+// BANT Methodology Constants
+export const BANT_CRITERIA = {
+  budget: 'Budget',
+  authority: 'Authority', 
+  need: 'Need',
+  timeline: 'Timeline'
+} as const;
+
+export const QUALIFICATION_STATUS = {
+  unqualified: 'Non qualifié',
+  to_review: 'À examiner', 
+  qualified: 'Qualifié',
+  hot_lead: 'Lead chaud'
+} as const;
+
+export type BANTCriteria = keyof typeof BANT_CRITERIA;
+export type QualificationStatus = keyof typeof QUALIFICATION_STATUS;
+
+// Lead scoring analytics schema
+export const leadScoringAnalyticsSchema = z.object({
+  period: z.string(),
+  dateRange: z.object({
+    start: z.string(),
+    end: z.string()
+  }),
+  overview: z.object({
+    totalLeads: z.number(),
+    averageScore: z.number(),
+    qualifiedLeads: z.number(),
+    qualificationRate: z.number(),
+    hotLeads: z.number(),
+    conversionRate: z.number()
+  }),
+  scoreDistribution: z.array(z.object({
+    range: z.string(),
+    count: z.number(),
+    percentage: z.number(),
+    conversionRate: z.number()
+  })),
+  bantBreakdown: z.object({
+    budget: z.object({
+      average: z.number(),
+      distribution: z.record(z.number())
+    }),
+    authority: z.object({
+      average: z.number(), 
+      distribution: z.record(z.number())
+    }),
+    need: z.object({
+      average: z.number(),
+      distribution: z.record(z.number()) 
+    }),
+    timeline: z.object({
+      average: z.number(),
+      distribution: z.record(z.number())
+    })
+  }),
+  trends: z.object({
+    scoreEvolution: z.array(z.object({
+      date: z.string(),
+      averageScore: z.number(),
+      qualificationRate: z.number()
+    })),
+    conversionByScore: z.array(z.object({
+      scoreRange: z.string(),
+      leads: z.number(),
+      conversions: z.number(),
+      rate: z.number()
+    }))
+  }),
+  topPerformingCriteria: z.array(z.object({
+    criteria: z.string(),
+    impact: z.number(),
+    accuracy: z.number()
+  })),
+  recommendations: z.array(z.object({
+    type: z.string(),
+    description: z.string(),
+    impact: z.string()
+  }))
+});
+
+export type LeadScoringAnalytics = z.infer<typeof leadScoringAnalyticsSchema>;
+
+// SMS Campaigns System Tables
+export const smsCampaigns = pgTable("sms_campaigns", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  message: text("message").notNull(), // SMS content with variables
+  audience: text("audience").notNull(), // "all" | "persona:presse" | "segment:qualified" | "custom"
+  audienceFilter: text("audience_filter"), // JSON with detailed filtering criteria
+  status: text("status").notNull().default("draft"), // "draft" | "scheduled" | "sending" | "sent" | "paused" | "completed"
+  sendType: text("send_type").notNull().default("immediate"), // "immediate" | "scheduled" | "recurring"
+  scheduledFor: timestamp("scheduled_for"),
+  recurringPattern: text("recurring_pattern"), // JSON for recurring campaigns
+  templateId: varchar("template_id").references(() => smsTemplates.id),
+  totalContacts: integer("total_contacts").default(0),
+  sentCount: integer("sent_count").default(0),
+  deliveredCount: integer("delivered_count").default(0),
+  failedCount: integer("failed_count").default(0),
+  clickedCount: integer("clicked_count").default(0),
+  unsubscribedCount: integer("unsubscribed_count").default(0),
+  conversionCount: integer("conversion_count").default(0),
+  estimatedCost: decimal("estimated_cost", { precision: 8, scale: 4 }).default("0.0000"), // Cost in euros
+  actualCost: decimal("actual_cost", { precision: 8, scale: 4 }).default("0.0000"),
+  roi: decimal("roi", { precision: 8, scale: 2 }).default("0.00"), // Return on Investment
+  abTestEnabled: boolean("ab_test_enabled").default(false),
+  abTestVariant: text("ab_test_variant"), // JSON with A/B test configuration
+  createdBy: text("created_by").notNull(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const smsTemplates = pgTable("sms_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  content: text("content").notNull(), // SMS template with variables like {prenom}, {ville}
+  persona: text("persona"), // Target persona: "presse" | "maximisateur" | "succession" | etc. (optional)
+  category: text("category").notNull(), // "welcome" | "follow_up" | "promotion" | "reminder" | "nurturing"
+  variables: text("variables").array().notNull().default([]), // Array of variable names used in template
+  characterCount: integer("character_count").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  usageCount: integer("usage_count").notNull().default(0),
+  lastUsed: timestamp("last_used"),
+  conversionRate: decimal("conversion_rate", { precision: 5, scale: 2 }).default("0.00"),
+  description: text("description"),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const smsContacts = pgTable("sms_contacts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  phoneNumber: text("phone_number").notNull().unique(),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name"),
+  email: text("email"), // Optional link to lead
+  leadId: varchar("lead_id").references(() => leads.id), // Link to main leads table
+  persona: text("persona"), // Inferred persona based on behavior/lead data
+  city: text("city"),
+  postalCode: text("postal_code"),
+  isOptedIn: boolean("is_opted_in").notNull().default(true),
+  optInDate: timestamp("opt_in_date").defaultNow(),
+  optInSource: text("opt_in_source"), // "estimation_form" | "guide_download" | "manual" | "import"
+  optOutDate: timestamp("opt_out_date"),
+  optOutReason: text("opt_out_reason"),
+  isBlacklisted: boolean("is_blacklisted").default(false),
+  blacklistReason: text("blacklist_reason"),
+  lastContactDate: timestamp("last_contact_date"),
+  totalMessagesSent: integer("total_messages_sent").default(0),
+  totalMessagesDelivered: integer("total_messages_delivered").default(0),
+  totalMessagesClicked: integer("total_messages_clicked").default(0),
+  conversionCount: integer("conversion_count").default(0),
+  leadScore: integer("lead_score").default(0),
+  tags: text("tags").array().default([]), // Array of tags for segmentation
+  notes: text("notes"),
+  gdprConsentDate: timestamp("gdpr_consent_date"),
+  gdprConsentSource: text("gdpr_consent_source"),
+  ipAddress: text("ip_address"), // IP when consent was given
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const smsSentMessages = pgTable("sms_sent_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  campaignId: varchar("campaign_id").references(() => smsCampaigns.id),
+  templateId: varchar("template_id").references(() => smsTemplates.id),
+  contactId: varchar("contact_id").references(() => smsContacts.id).notNull(),
+  phoneNumber: text("phone_number").notNull(),
+  messageContent: text("message_content").notNull(), // Final message with variables replaced
+  status: text("status").notNull().default("pending"), // "pending" | "sent" | "delivered" | "failed" | "clicked" | "unsubscribed"
+  twilioMessageSid: text("twilio_message_sid"), // Twilio message identifier
+  twilioStatus: text("twilio_status"), // Twilio's status response
+  errorCode: text("error_code"),
+  errorMessage: text("error_message"),
+  cost: decimal("cost", { precision: 8, scale: 4 }).default("0.0000"), // Cost in euros
+  sentAt: timestamp("sent_at"),
+  deliveredAt: timestamp("delivered_at"),
+  failedAt: timestamp("failed_at"),
+  clickedAt: timestamp("clicked_at"),
+  unsubscribedAt: timestamp("unsubscribed_at"),
+  clickUrl: text("click_url"), // If message contains a link
+  userAgent: text("user_agent"), // For click tracking
+  ipAddress: text("ip_address"), // For click tracking
+  conversionTracked: boolean("conversion_tracked").default(false),
+  conversionValue: decimal("conversion_value", { precision: 10, scale: 2 }),
+  webhookData: text("webhook_data"), // Raw webhook data from Twilio
+  retryCount: integer("retry_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const smsSequences = pgTable("sms_sequences", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  trigger: text("trigger").notNull(), // "new_lead" | "guide_download" | "estimation_completed" | "lead_qualified" | "manual"
+  triggerConditions: text("trigger_conditions"), // JSON with specific conditions
+  persona: text("persona"), // Target persona for this sequence
+  isActive: boolean("is_active").notNull().default(true),
+  steps: text("steps"), // JSON array with sequence steps
+  totalContacts: integer("total_contacts").default(0),
+  activeContacts: integer("active_contacts").default(0),
+  completedContacts: integer("completed_contacts").default(0),
+  conversionRate: decimal("conversion_rate", { precision: 5, scale: 2 }).default("0.00"),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const smsSequenceEnrollments = pgTable("sms_sequence_enrollments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sequenceId: varchar("sequence_id").references(() => smsSequences.id).notNull(),
+  contactId: varchar("contact_id").references(() => smsContacts.id).notNull(),
+  currentStep: integer("current_step").notNull().default(0),
+  status: text("status").notNull().default("active"), // "active" | "paused" | "completed" | "cancelled" | "opted_out"
+  enrolledAt: timestamp("enrolled_at").defaultNow(),
+  nextScheduledAt: timestamp("next_scheduled_at"),
+  completedAt: timestamp("completed_at"),
+  pausedAt: timestamp("paused_at"),
+  pauseReason: text("pause_reason"),
+  messagesCount: integer("messages_count").default(0),
+  conversions: integer("conversions").default(0),
+  totalCost: decimal("total_cost", { precision: 8, scale: 4 }).default("0.0000"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Insert schemas for SMS system
+export const insertSmsCampaignSchema = createInsertSchema(smsCampaigns).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true,
+  startedAt: true,
+  completedAt: true
+});
+
+export const insertSmsTemplateSchema = createInsertSchema(smsTemplates).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true,
+  lastUsed: true
+});
+
+export const insertSmsContactSchema = createInsertSchema(smsContacts).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true,
+  optInDate: true,
+  optOutDate: true
+});
+
+export const insertSmsSentMessageSchema = createInsertSchema(smsSentMessages).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true,
+  sentAt: true,
+  deliveredAt: true,
+  failedAt: true,
+  clickedAt: true,
+  unsubscribedAt: true
+});
+
+export const insertSmsSequenceSchema = createInsertSchema(smsSequences).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true
+});
+
+export const insertSmsSequenceEnrollmentSchema = createInsertSchema(smsSequenceEnrollments).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true,
+  enrolledAt: true,
+  completedAt: true,
+  pausedAt: true
+});
+
+// Types for SMS system
+export type SmsCampaign = typeof smsCampaigns.$inferSelect;
+export type SmsTemplate = typeof smsTemplates.$inferSelect;
+export type SmsContact = typeof smsContacts.$inferSelect;
+export type SmsSentMessage = typeof smsSentMessages.$inferSelect;
+export type SmsSequence = typeof smsSequences.$inferSelect;
+export type SmsSequenceEnrollment = typeof smsSequenceEnrollments.$inferSelect;
+
+export type InsertSmsCampaign = z.infer<typeof insertSmsCampaignSchema>;
+export type InsertSmsTemplate = z.infer<typeof insertSmsTemplateSchema>;
+export type InsertSmsContact = z.infer<typeof insertSmsContactSchema>;
+export type InsertSmsSentMessage = z.infer<typeof insertSmsSentMessageSchema>;
+export type InsertSmsSequence = z.infer<typeof insertSmsSequenceSchema>;
+export type InsertSmsSequenceEnrollment = z.infer<typeof insertSmsSequenceEnrollmentSchema>;
+
+// SMS Constants
+export const SMS_CAMPAIGN_STATUS = {
+  draft: 'Brouillon',
+  scheduled: 'Programmée',
+  sending: 'En cours d\'envoi',
+  sent: 'Envoyée',
+  paused: 'En pause',
+  completed: 'Terminée'
+} as const;
+
+export const SMS_TEMPLATE_CATEGORIES = {
+  welcome: 'Bienvenue',
+  follow_up: 'Relance',
+  promotion: 'Promotion',
+  reminder: 'Rappel',
+  nurturing: 'Nurturing'
+} as const;
+
+export const SMS_MESSAGE_STATUS = {
+  pending: 'En attente',
+  sent: 'Envoyé',
+  delivered: 'Livré',
+  failed: 'Échoué',
+  clicked: 'Cliqué',
+  unsubscribed: 'Désabonné'
+} as const;
+
+export type SmsCampaignStatus = keyof typeof SMS_CAMPAIGN_STATUS;
+export type SmsTemplateCategory = keyof typeof SMS_TEMPLATE_CATEGORIES;
+export type SmsMessageStatus = keyof typeof SMS_MESSAGE_STATUS;
+
+// SMS Analytics Schema
+export const smsAnalyticsSchema = z.object({
+  period: z.string(),
+  dateRange: z.object({
+    start: z.string(),
+    end: z.string()
+  }),
+  overview: z.object({
+    totalCampaigns: z.number(),
+    activeCampaigns: z.number(),
+    totalMessagesSent: z.number(),
+    totalMessagesDelivered: z.number(),
+    totalMessagesClicked: z.number(),
+    totalUnsubscribes: z.number(),
+    deliveryRate: z.number(),
+    clickRate: z.number(),
+    unsubscribeRate: z.number(),
+    totalCost: z.number(),
+    averageCostPerMessage: z.number(),
+    totalConversions: z.number(),
+    conversionRate: z.number(),
+    roi: z.number()
+  }),
+  campaignPerformance: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    status: z.string(),
+    sent: z.number(),
+    delivered: z.number(),
+    clicked: z.number(),
+    conversions: z.number(),
+    deliveryRate: z.number(),
+    clickRate: z.number(),
+    conversionRate: z.number(),
+    cost: z.number(),
+    roi: z.number(),
+    createdAt: z.string()
+  })),
+  templatePerformance: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    category: z.string(),
+    usageCount: z.number(),
+    conversionRate: z.number(),
+    averageClickRate: z.number(),
+    lastUsed: z.string().optional()
+  })),
+  personaAnalytics: z.record(z.object({
+    totalContacts: z.number(),
+    messagesSent: z.number(),
+    deliveryRate: z.number(),
+    clickRate: z.number(),
+    conversionRate: z.number(),
+    averageCost: z.number()
+  })),
+  dailyTrends: z.array(z.object({
+    date: z.string(),
+    sent: z.number(),
+    delivered: z.number(),
+    clicked: z.number(),
+    conversions: z.number(),
+    cost: z.number()
+  })),
+  bestPerformingTimes: z.array(z.object({
+    hour: z.number(),
+    dayOfWeek: z.number(),
+    deliveryRate: z.number(),
+    clickRate: z.number(),
+    volume: z.number()
+  }))
+});
+
+export type SmsAnalytics = z.infer<typeof smsAnalyticsSchema>;
+
 // Analytics response types
 export type DashboardAnalytics = z.infer<typeof dashboardAnalyticsSchema>;
 export type GuideAnalyticsResponse = z.infer<typeof guideAnalyticsSchema>;

@@ -122,12 +122,12 @@ function HomePage() {
       />
         <Hero domain={domain} />
         
-        {/* Filtres de recherche rapide */}
+        {/* Section d'estimation rapide */}
         <section className="py-8 bg-background border-b">
           <div className="max-w-6xl mx-auto px-4">
             <div className="flex flex-wrap items-center justify-center gap-4">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-foreground">Recherche rapide :</span>
+                <span className="text-sm font-medium text-foreground">Estimation rapide :</span>
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 <select className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="filter-city">
@@ -162,9 +162,9 @@ function HomePage() {
                   <option value="4">4 pièces</option>
                   <option value="5+">5+ pièces</option>
                 </select>
-                <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover-elevate transition-colors" data-testid="button-search">
-                  Rechercher
-                </button>
+                <Link href="/estimation" className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover-elevate transition-colors inline-block" data-testid="button-estimate">
+                  Demander une estimation
+                </Link>
               </div>
             </div>
           </div>

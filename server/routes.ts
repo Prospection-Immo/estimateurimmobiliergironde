@@ -1,12 +1,13 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertLeadSchema, insertEstimationSchema, insertContactSchema, insertArticleSchema, insertEmailTemplateSchema, insertEmailHistorySchema, insertGuideSchema, insertGuideDownloadSchema, insertGuideAnalyticsSchema, GUIDE_PERSONAS } from "@shared/schema";
+import { insertLeadSchema, insertEstimationSchema, insertContactSchema, insertArticleSchema, insertEmailTemplateSchema, insertEmailHistorySchema, insertGuideSchema, insertGuideDownloadSchema, insertGuideAnalyticsSchema, insertScoringConfigSchema, insertSmsCampaignSchema, insertSmsTemplateSchema, insertSmsContactSchema, insertSmsSentMessageSchema, insertSmsSequenceSchema, insertSmsSequenceEnrollmentSchema, GUIDE_PERSONAS, BANT_CRITERIA, QUALIFICATION_STATUS } from "@shared/schema";
 import { sanitizeArticleContent } from "./services/htmlSanitizer";
 import { generateRealEstateArticle } from "./services/openai";
 import emailService from "./services/emailService";
 import emailSequenceService from "./services/emailSequenceService";
 import emailTemplateGenerator from "./services/emailTemplateGenerator";
+import { leadScoringService } from "./services/leadScoringService";
 import { z } from "zod";
 import crypto from "crypto";
 import twilio from "twilio";
@@ -4737,6 +4738,581 @@ Actions à effectuer:
       }
     });
   }
+
+  // ===== LEAD SCORING API ROUTES =====
+  
+  // Initialize lead scoring system
+  app.post('/api/admin/scoring/initialize', requireAuth, async (req, res) => {
+    try {
+      await leadScoringService.initializeDefaultConfig();
+      res.json({ success: true, message: 'Lead scoring system initialized' });
+    } catch (error) {
+      console.error('Error initializing scoring system:', error);
+      res.status(500).json({ error: 'Failed to initialize scoring system' });
+    }
+  });
+
+  // Get lead scoring data
+  app.get('/api/admin/scoring/leads', requireAuth, async (req, res) => {
+    try {
+      const { limit = 50, status } = req.query;
+      const allScoring = await storage.getAllLeadScoring(
+        parseInt(limit as string), 
+        status as string
+      );
+      
+      // Get lead details for each scoring
+      const leadIds = allScoring.map(s => s.leadId);
+      const leads = await storage.getLeads();
+      const leadsMap = new Map(leads.map(l => [l.id, l]));
+      
+      const scoringWithLeads = allScoring.map(scoring => ({
+        ...scoring,
+        lead: leadsMap.get(scoring.leadId)
+      }));
+
+      res.json(scoringWithLeads);
+    } catch (error) {
+      console.error('Error fetching lead scoring:', error);
+      res.status(500).json({ error: 'Failed to fetch lead scoring' });
+    }
+  });
+
+  // Get specific lead scoring
+  app.get('/api/admin/scoring/leads/:leadId', requireAuth, async (req, res) => {
+    try {
+      const { leadId } = req.params;
+      const scoring = await storage.getLeadScoring(leadId);
+      
+      if (!scoring) {
+        return res.status(404).json({ error: 'Lead scoring not found' });
+      }
+
+      // Get lead details
+      const leads = await storage.getLeads();
+      const lead = leads.find(l => l.id === leadId);
+      
+      // Get score history
+      const history = await storage.getLeadScoreHistory(leadId);
+
+      res.json({
+        ...scoring,
+        lead,
+        history
+      });
+    } catch (error) {
+      console.error('Error fetching lead scoring:', error);
+      res.status(500).json({ error: 'Failed to fetch lead scoring' });
+    }
+  });
+
+  // Calculate or recalculate lead score
+  app.post('/api/admin/scoring/leads/:leadId/calculate', requireAuth, async (req, res) => {
+    try {
+      const { leadId } = req.params;
+      const { reason = 'manual_recalculation' } = req.body;
+      
+      const existingScoring = await storage.getLeadScoring(leadId);
+      const updatedScoring = await leadScoringService.updateLeadScoring(
+        leadId,
+        existingScoring,
+        reason,
+        'admin'
+      );
+
+      res.json(updatedScoring);
+    } catch (error) {
+      console.error('Error calculating lead score:', error);
+      res.status(500).json({ error: 'Failed to calculate lead score' });
+    }
+  });
+
+  // Manual score adjustment
+  app.post('/api/admin/scoring/leads/:leadId/adjust', requireAuth, async (req, res) => {
+    try {
+      const { leadId } = req.params;
+      const adjustmentSchema = z.object({
+        adjustment: z.number().min(-50).max(50),
+        notes: z.string().max(500),
+        assignedTo: z.string().optional()
+      });
+      
+      const { adjustment, notes, assignedTo } = adjustmentSchema.parse(req.body);
+      
+      const updatedScoring = await leadScoringService.adjustLeadScore(
+        leadId,
+        adjustment,
+        notes,
+        'admin'
+      );
+
+      // Update assignment if provided
+      if (assignedTo) {
+        await storage.updateLeadScoring(leadId, { assignedTo });
+      }
+
+      res.json(updatedScoring);
+    } catch (error) {
+      console.error('Error adjusting lead score:', error);
+      res.status(500).json({ error: 'Failed to adjust lead score' });
+    }
+  });
+
+  // Bulk recalculate all scores
+  app.post('/api/admin/scoring/recalculate-all', requireAuth, async (req, res) => {
+    try {
+      const result = await leadScoringService.recalculateAllScores();
+      res.json(result);
+    } catch (error) {
+      console.error('Error recalculating all scores:', error);
+      res.status(500).json({ error: 'Failed to recalculate scores' });
+    }
+  });
+
+  // ===== SCORING CONFIGURATION ROUTES =====
+
+  // Get scoring configuration
+  app.get('/api/admin/scoring/config', requireAuth, async (req, res) => {
+    try {
+      const configs = await storage.getScoringConfigs();
+      res.json(configs);
+    } catch (error) {
+      console.error('Error fetching scoring config:', error);
+      res.status(500).json({ error: 'Failed to fetch scoring configuration' });
+    }
+  });
+
+  // Update scoring configuration
+  app.put('/api/admin/scoring/config/:id', requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = insertScoringConfigSchema.partial().parse(req.body);
+      
+      const updatedConfig = await storage.updateScoringConfig(id, updateData);
+      
+      // Trigger recalculation if weights or rules changed
+      if (updateData.weight || updateData.rules || updateData.thresholds) {
+        leadScoringService.recalculateAllScores().catch(console.error);
+      }
+
+      res.json(updatedConfig);
+    } catch (error) {
+      console.error('Error updating scoring config:', error);
+      res.status(500).json({ error: 'Failed to update scoring configuration' });
+    }
+  });
+
+  // Create new scoring configuration
+  app.post('/api/admin/scoring/config', requireAuth, async (req, res) => {
+    try {
+      const configData = insertScoringConfigSchema.parse(req.body);
+      const newConfig = await storage.createScoringConfig(configData);
+      res.json(newConfig);
+    } catch (error) {
+      console.error('Error creating scoring config:', error);
+      res.status(500).json({ error: 'Failed to create scoring configuration' });
+    }
+  });
+
+  // Delete scoring configuration
+  app.delete('/api/admin/scoring/config/:id', requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteScoringConfig(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting scoring config:', error);
+      res.status(500).json({ error: 'Failed to delete scoring configuration' });
+    }
+  });
+
+  // ===== SCORING ANALYTICS ROUTES =====
+
+  // Get scoring analytics dashboard
+  app.get('/api/admin/scoring/analytics', requireAuth, async (req, res) => {
+    try {
+      const { period = '30d' } = req.query;
+      
+      let startDate: Date | undefined;
+      let endDate: Date = new Date();
+      
+      switch (period) {
+        case '7d':
+          startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case '30d':
+          startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        case '90d':
+          startDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+          break;
+      }
+
+      const analytics = await leadScoringService.getScoringAnalytics(startDate, endDate);
+      
+      res.json({
+        period,
+        dateRange: {
+          start: startDate?.toISOString(),
+          end: endDate.toISOString()
+        },
+        ...analytics
+      });
+    } catch (error) {
+      console.error('Error fetching scoring analytics:', error);
+      res.status(500).json({ error: 'Failed to fetch scoring analytics' });
+    }
+  });
+
+  // Get score history for all leads
+  app.get('/api/admin/scoring/history', requireAuth, async (req, res) => {
+    try {
+      const { limit = 100 } = req.query;
+      const history = await storage.getAllScoreHistory(parseInt(limit as string));
+      
+      // Get lead details for history entries
+      const leadIds = [...new Set(history.map(h => h.leadId))];
+      const leads = await storage.getLeads();
+      const leadsMap = new Map(leads.map(l => [l.id, l]));
+      
+      const historyWithLeads = history.map(entry => ({
+        ...entry,
+        lead: leadsMap.get(entry.leadId)
+      }));
+
+      res.json(historyWithLeads);
+    } catch (error) {
+      console.error('Error fetching score history:', error);
+      res.status(500).json({ error: 'Failed to fetch score history' });
+    }
+  });
+
+  // Get BANT criteria definitions
+  app.get('/api/admin/scoring/criteria', requireAuth, async (req, res) => {
+    try {
+      res.json({
+        criteria: BANT_CRITERIA,
+        qualificationStatus: QUALIFICATION_STATUS
+      });
+    } catch (error) {
+      console.error('Error fetching criteria:', error);
+      res.status(500).json({ error: 'Failed to fetch criteria' });
+    }
+  });
+
+  // Update lead qualification status
+  app.put('/api/admin/scoring/leads/:leadId/status', requireAuth, async (req, res) => {
+    try {
+      const { leadId } = req.params;
+      const statusSchema = z.object({
+        qualificationStatus: z.enum(['unqualified', 'to_review', 'qualified', 'hot_lead']),
+        notes: z.string().optional(),
+        assignedTo: z.string().optional()
+      });
+      
+      const { qualificationStatus, notes, assignedTo } = statusSchema.parse(req.body);
+      
+      const updatedScoring = await storage.updateLeadScoring(leadId, {
+        qualificationStatus,
+        notes,
+        assignedTo
+      });
+
+      // Create history entry for manual status change
+      await storage.createLeadScoreHistory({
+        leadId,
+        oldScore: updatedScoring.totalScore,
+        newScore: updatedScoring.totalScore,
+        scoreChange: 0,
+        changeReason: 'manual_status_change',
+        changedBy: 'admin',
+        details: JSON.stringify({
+          newStatus: qualificationStatus,
+          notes,
+          assignedTo
+        })
+      });
+
+      res.json(updatedScoring);
+    } catch (error) {
+      console.error('Error updating qualification status:', error);
+      res.status(500).json({ error: 'Failed to update qualification status' });
+    }
+  });
+
+  // Hook: Automatically calculate score when new lead is created
+  const originalCreateLead = storage.createLead.bind(storage);
+  storage.createLead = async function(lead) {
+    const newLead = await originalCreateLead(lead);
+    
+    // Calculate initial score asynchronously
+    setTimeout(async () => {
+      try {
+        await leadScoringService.updateLeadScoring(newLead.id);
+      } catch (error) {
+        console.error('Error calculating initial score for lead:', newLead.id, error);
+      }
+    }, 1000);
+    
+    return newLead;
+  };
+
+  // ===== SMS CAMPAIGNS ROUTES =====
+
+  // SMS Campaigns
+  app.get('/api/admin/sms/campaigns', requireAuth, async (req, res) => {
+    try {
+      const { status, limit } = req.query;
+      const campaigns = await storage.getSmsCampaigns(status as string, Number(limit) || 50);
+      res.json(campaigns);
+    } catch (error) {
+      console.error('Error fetching SMS campaigns:', error);
+      res.status(500).json({ error: 'Failed to fetch SMS campaigns' });
+    }
+  });
+
+  app.post('/api/admin/sms/campaigns', requireAuth, async (req, res) => {
+    try {
+      const campaignData = insertSmsCampaignSchema.parse(req.body);
+      const campaign = await storage.createSmsCampaign(campaignData);
+      res.json(campaign);
+    } catch (error) {
+      console.error('Error creating SMS campaign:', error);
+      res.status(400).json({ error: 'Failed to create SMS campaign' });
+    }
+  });
+
+  app.get('/api/admin/sms/campaigns/:id', requireAuth, async (req, res) => {
+    try {
+      const campaign = await storage.getSmsCampaignById(req.params.id);
+      if (!campaign) {
+        return res.status(404).json({ error: 'Campaign not found' });
+      }
+      res.json(campaign);
+    } catch (error) {
+      console.error('Error fetching SMS campaign:', error);
+      res.status(500).json({ error: 'Failed to fetch SMS campaign' });
+    }
+  });
+
+  app.put('/api/admin/sms/campaigns/:id', requireAuth, async (req, res) => {
+    try {
+      const updates = insertSmsCampaignSchema.partial().parse(req.body);
+      const campaign = await storage.updateSmsCampaign(req.params.id, updates);
+      res.json(campaign);
+    } catch (error) {
+      console.error('Error updating SMS campaign:', error);
+      res.status(400).json({ error: 'Failed to update SMS campaign' });
+    }
+  });
+
+  app.delete('/api/admin/sms/campaigns/:id', requireAuth, async (req, res) => {
+    try {
+      await storage.deleteSmsCampaign(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting SMS campaign:', error);
+      res.status(500).json({ error: 'Failed to delete SMS campaign' });
+    }
+  });
+
+  // SMS Templates
+  app.get('/api/admin/sms/templates', requireAuth, async (req, res) => {
+    try {
+      const { category, persona, isActive } = req.query;
+      const templates = await storage.getSmsTemplates(
+        category as string,
+        persona as string,
+        isActive ? isActive === 'true' : undefined
+      );
+      res.json(templates);
+    } catch (error) {
+      console.error('Error fetching SMS templates:', error);
+      res.status(500).json({ error: 'Failed to fetch SMS templates' });
+    }
+  });
+
+  app.post('/api/admin/sms/templates', requireAuth, async (req, res) => {
+    try {
+      const templateData = insertSmsTemplateSchema.parse(req.body);
+      const template = await storage.createSmsTemplate(templateData);
+      res.json(template);
+    } catch (error) {
+      console.error('Error creating SMS template:', error);
+      res.status(400).json({ error: 'Failed to create SMS template' });
+    }
+  });
+
+  app.put('/api/admin/sms/templates/:id', requireAuth, async (req, res) => {
+    try {
+      const updates = insertSmsTemplateSchema.partial().parse(req.body);
+      const template = await storage.updateSmsTemplate(req.params.id, updates);
+      res.json(template);
+    } catch (error) {
+      console.error('Error updating SMS template:', error);
+      res.status(400).json({ error: 'Failed to update SMS template' });
+    }
+  });
+
+  app.delete('/api/admin/sms/templates/:id', requireAuth, async (req, res) => {
+    try {
+      await storage.deleteSmsTemplate(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting SMS template:', error);
+      res.status(500).json({ error: 'Failed to delete SMS template' });
+    }
+  });
+
+  // SMS Contacts
+  app.get('/api/admin/sms/contacts', requireAuth, async (req, res) => {
+    try {
+      const { persona, isOptedIn, limit } = req.query;
+      const contacts = await storage.getSmsContacts(
+        persona as string,
+        isOptedIn ? isOptedIn === 'true' : undefined,
+        Number(limit) || 100
+      );
+      res.json(contacts);
+    } catch (error) {
+      console.error('Error fetching SMS contacts:', error);
+      res.status(500).json({ error: 'Failed to fetch SMS contacts' });
+    }
+  });
+
+  app.post('/api/admin/sms/contacts', requireAuth, async (req, res) => {
+    try {
+      const contactData = insertSmsContactSchema.parse(req.body);
+      const contact = await storage.createSmsContact(contactData);
+      res.json(contact);
+    } catch (error) {
+      console.error('Error creating SMS contact:', error);
+      res.status(400).json({ error: 'Failed to create SMS contact' });
+    }
+  });
+
+  // SMS Analytics
+  app.get('/api/admin/sms/analytics/overview', requireAuth, async (req, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      const stats = await storage.getSmsAnalyticsOverview(
+        startDate ? new Date(startDate as string) : undefined,
+        endDate ? new Date(endDate as string) : undefined
+      );
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching SMS analytics:', error);
+      res.status(500).json({ error: 'Failed to fetch SMS analytics' });
+    }
+  });
+
+  app.get('/api/admin/sms/analytics/campaigns', requireAuth, async (req, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      const performance = await storage.getSmsCampaignPerformance(
+        startDate ? new Date(startDate as string) : undefined,
+        endDate ? new Date(endDate as string) : undefined
+      );
+      res.json(performance);
+    } catch (error) {
+      console.error('Error fetching campaign performance:', error);
+      res.status(500).json({ error: 'Failed to fetch campaign performance' });
+    }
+  });
+
+  app.get('/api/admin/sms/analytics/templates', requireAuth, async (req, res) => {
+    try {
+      const performance = await storage.getSmsTemplatePerformance();
+      res.json(performance);
+    } catch (error) {
+      console.error('Error fetching template performance:', error);
+      res.status(500).json({ error: 'Failed to fetch template performance' });
+    }
+  });
+
+  // Send SMS Campaign
+  app.post('/api/admin/sms/campaigns/:id/send', requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const campaign = await storage.getSmsCampaignById(id);
+      
+      if (!campaign) {
+        return res.status(404).json({ error: 'Campaign not found' });
+      }
+
+      // Get contacts based on campaign audience
+      const contacts = await storage.getSmsContacts(campaign.audiencePersona || undefined, true);
+      
+      if (contacts.length === 0) {
+        return res.status(400).json({ error: 'No contacts found for campaign audience' });
+      }
+
+      let sentCount = 0;
+      let failedCount = 0;
+
+      // Send SMS to each contact
+      for (const contact of contacts) {
+        try {
+          const message = await twilioClient.messages.create({
+            body: campaign.message,
+            from: process.env.TWILIO_PHONE_NUMBER,
+            to: contact.phoneNumber,
+          });
+
+          // Record sent message
+          await storage.createSmsSentMessage({
+            campaignId: id,
+            contactId: contact.id,
+            phoneNumber: contact.phoneNumber,
+            message: campaign.message,
+            status: 'sent',
+            twilioSid: message.sid,
+            cost: '0.05', // Default cost per SMS
+            sentAt: new Date()
+          });
+
+          sentCount++;
+        } catch (error) {
+          console.error(`Failed to send SMS to ${contact.phoneNumber}:`, error);
+          
+          await storage.createSmsSentMessage({
+            campaignId: id,
+            contactId: contact.id,
+            phoneNumber: contact.phoneNumber,
+            message: campaign.message,
+            status: 'failed',
+            errorMessage: error.message
+          });
+
+          failedCount++;
+        }
+      }
+
+      // Update campaign stats
+      await storage.updateSmsCampaignStats(id, {
+        sentCount,
+        failedCount,
+        actualCost: (sentCount * 0.05).toFixed(2)
+      });
+
+      // Update campaign status
+      await storage.updateSmsCampaign(id, {
+        status: 'completed',
+        sentAt: new Date()
+      });
+
+      res.json({
+        success: true,
+        sentCount,
+        failedCount,
+        totalContacts: contacts.length
+      });
+
+    } catch (error) {
+      console.error('Error sending SMS campaign:', error);
+      res.status(500).json({ error: 'Failed to send SMS campaign' });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
