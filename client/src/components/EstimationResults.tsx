@@ -19,16 +19,20 @@ import {
 
 interface EstimationData {
   lead: {
+    id: string;
     address: string;
     city: string;
+    postalCode: string;
     propertyType: string;
-    surface: number;
-    rooms: number;
+    surface?: number;
+    rooms?: number;
   };
   estimation: {
     estimatedValue: string;
     pricePerM2: string;
     confidence: number;
+    surface?: number;
+    rooms?: number;
   };
   calculatedData: {
     estimatedValue: number;
@@ -40,19 +44,42 @@ interface EstimationData {
 export default function EstimationResults() {
   const [estimationData, setEstimationData] = useState<EstimationData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Get estimation data from localStorage (set by form submission)
-    const savedData = localStorage.getItem('estimationResult');
-    if (savedData) {
-      try {
-        const parsed = JSON.parse(savedData);
-        setEstimationData(parsed);
-      } catch (error) {
-        console.error('Error parsing estimation data:', error);
-      }
+    // Get estimation ID from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const estimationId = urlParams.get('id');
+    
+    console.log('URL search:', window.location.search);
+    console.log('Estimation ID extracted:', estimationId);
+    
+    if (!estimationId || estimationId === 'null' || estimationId === 'undefined') {
+      console.error('Invalid estimation ID:', estimationId);
+      setError('ID d\'estimation manquant ou invalide');
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+    
+    // Fetch estimation data from API
+    const fetchEstimationData = async () => {
+      try {
+        const response = await fetch(`/api/estimations-results/${estimationId}`);
+        if (!response.ok) {
+          throw new Error('Estimation non trouvée');
+        }
+        
+        const data = await response.json();
+        setEstimationData(data);
+      } catch (err) {
+        console.error('Error fetching estimation data:', err);
+        setError('Impossible de charger les données d\'estimation');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchEstimationData();
   }, []);
 
   if (loading) {
@@ -65,15 +92,15 @@ export default function EstimationResults() {
     );
   }
 
-  if (!estimationData) {
+  if (error || !estimationData) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Aucune estimation trouvée</h1>
+          <h1 className="text-2xl font-bold mb-4">{error || 'Aucune estimation trouvée'}</h1>
           <p className="text-muted-foreground mb-6">
-            Veuillez d'abord remplir le formulaire d'estimation.
+            {error || 'Veuillez d\'abord remplir le formulaire d\'estimation.'}
           </p>
-          <a href="/estimation" className="inline-block bg-primary text-primary-foreground px-6 py-3 rounded-md hover-elevate">
+          <a href="/" className="inline-block bg-primary text-primary-foreground px-6 py-3 rounded-md hover-elevate">
             Faire une estimation
           </a>
         </div>
@@ -85,8 +112,9 @@ export default function EstimationResults() {
     type: estimationData.lead.propertyType === 'house' ? 'Maison' : 'Appartement',
     address: estimationData.lead.address,
     city: estimationData.lead.city,
-    surface: estimationData.lead.surface,
-    rooms: estimationData.lead.rooms,
+    postalCode: estimationData.lead.postalCode,
+    surface: estimationData.lead.surface || estimationData.estimation?.surface || 0,
+    rooms: estimationData.lead.rooms || estimationData.estimation?.rooms || 0,
     estimatedValue: estimationData.calculatedData.estimatedValue,
     pricePerM2: estimationData.calculatedData.pricePerM2,
     confidence: estimationData.calculatedData.confidence
@@ -122,12 +150,12 @@ export default function EstimationResults() {
         <Card className="p-8 text-center">
           <div className="space-y-6">
             {/* Property Info */}
-            <div className="flex items-center justify-center space-x-2 text-muted-foreground">
+            <div className="flex items-center justify-center space-x-2 text-muted-foreground flex-wrap">
               <Home className="h-5 w-5" />
               <span>{propertyData.type}</span>
               <span>•</span>
               <MapPin className="h-4 w-4" />
-              <span>{propertyData.address}</span>
+              <span>{propertyData.address}, {propertyData.postalCode} {propertyData.city}</span>
             </div>
 
             {/* Estimated Value */}
@@ -211,122 +239,32 @@ export default function EstimationResults() {
           </div>
         </Card>
 
-        {/* Market Analysis */}
-        <Card className="p-6">
-          <h3 className="text-xl font-semibold mb-6">Analyse du marché</h3>
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-chart-2">275 000 €</p>
-              <p className="text-sm text-muted-foreground">Fourchette basse</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-primary">{propertyData.estimatedValue.toLocaleString()} €</p>
-              <p className="text-sm text-muted-foreground">Estimation centrale</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-chart-3">295 000 €</p>
-              <p className="text-sm text-muted-foreground">Fourchette haute</p>
-            </div>
-          </div>
-        </Card>
-
-        {/* Support Section */}
-        <Card className="p-6">
+        {/* Call-to-Action pour l'estimation détaillée */}
+        <Card className="p-6 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
           <div className="text-center space-y-4">
-            <div className="bg-primary/10 p-4 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
-              <Phone className="h-8 w-8 text-primary" />
-            </div>
-            <div>
-              <h4 className="font-semibold text-lg mb-2">Notre solution d'accompagnement gratuite</h4>
-              <p className="text-muted-foreground mb-4 max-w-2xl mx-auto">
-                Vous bénéficiez d'un accès exclusif à nos experts immobiliers locaux. 
-                Contactez-nous pour optimiser vos résultats et économiser du temps avec nos conseils garantis.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button variant="outline" data-testid="button-call-expert">
-                  <Phone className="h-4 w-4 mr-2" />
-                  05 56 XX XX XX
-                </Button>
-                <Button variant="outline" data-testid="button-email-expert">
-                  <Mail className="h-4 w-4 mr-2" />
-                  Nous contacter
-                </Button>
-              </div>
-            </div>
+            <h3 className="text-xl font-semibold text-primary">Vous voulez une analyse plus précise ?</h3>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Cette estimation gratuite vous donne une première idée. Pour une évaluation complète avec analyse du marché local, 
+              comparaisons détaillées et rapport complet, demandez votre <strong>estimation détaillée gratuite</strong>.
+            </p>
+            <Button size="lg" asChild data-testid="button-detailed-estimation">
+              <a href="/estimation">
+                Obtenir mon estimation détaillée gratuite
+              </a>
+            </Button>
           </div>
         </Card>
 
-        {/* Free Guides */}
-        <div className="bg-gradient-to-br from-muted/50 to-muted p-6 rounded-lg">
-          <div className="text-center mb-6">
-            <h3 className="text-xl font-semibold mb-2">Nouvelle solution : guides gratuits pour gagner plus</h3>
-            <p className="text-muted-foreground">
-              Accédez à nos guides exclusifs pour maximiser vos résultats et économiser des milliers d'euros
-            </p>
-          </div>
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card className="p-6 hover-elevate">
-              <div className="flex items-start space-x-4">
-                <div className="bg-destructive/10 p-3 rounded-lg">
-                  <AlertTriangle className="h-6 w-6 text-destructive" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold mb-2">7 erreurs coûteuses à éviter - Solution gratuite</h4>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Notre guide exclusif vous fait économiser des milliers d'euros - résultats garantis
-                  </p>
-                  <Button variant="outline" data-testid="button-guide-errors" asChild>
-                    <Link href="/actualites/7-erreurs-a-eviter-vente-bien-gironde">
-                      Lire le guide
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            </Card>
-            <Card className="p-6 hover-elevate">
-              <div className="flex items-start space-x-4">
-                <div className="bg-chart-2/10 p-3 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-chart-2" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold mb-2">Nouvelle stratégie : 5 actions pour gagner du temps</h4>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Votre solution gratuite exclusive pour des résultats rapides garantis sans dépenser un euro
-                  </p>
-                  <Button variant="outline" data-testid="button-guide-practices" asChild>
-                    <Link href="/actualites/5-bonnes-choses-a-faire-gratuitement-pour-vendre-rapidement-en-gironde">
-                      Lire le guide
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          </div>
-        </div>
-
-        {/* Next Steps */}
-        <Card className="p-6 bg-muted">
-          <h3 className="text-xl font-semibold mb-4">Vos prochaines étapes pour gagner plus ?</h3>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="font-medium mb-2">Vous voulez gagner plus en vendant ?</h4>
-              <p className="text-sm text-muted-foreground mb-3">
-                Notre solution exclusive d'accompagnement vous garantit de meilleurs résultats.
-              </p>
-              <Button variant="outline" data-testid="button-sell-property">
-                Vendre mon bien
-              </Button>
-            </div>
-            <div>
-              <h4 className="font-medium mb-2">Nouvelle solution de financement ?</h4>
-              <p className="text-sm text-muted-foreground mb-3">
-                Économisez sur votre crédit avec notre solution gratuite exclusive.
-              </p>
-              <Button variant="outline" data-testid="button-financing">
-                Simulation crédit
-              </Button>
-            </div>
-          </div>
+        {/* Contact simple pour plus d'informations */}
+        <Card className="p-6 text-center bg-muted/30">
+          <h3 className="text-lg font-semibold mb-3">Des questions sur votre estimation ?</h3>
+          <p className="text-muted-foreground mb-4">
+            Nos experts immobiliers locaux sont à votre disposition pour répondre à vos questions.
+          </p>
+          <Button variant="outline" data-testid="button-contact-expert">
+            <Phone className="h-4 w-4 mr-2" />
+            Contactez un expert local
+          </Button>
         </Card>
       </div>
     </div>

@@ -556,6 +556,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get estimation results by ID (for results page)
+  app.get('/api/estimations-results/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Get the lead data
+      const leads = await storage.getLeads();
+      const lead = leads.find(l => l.id === id);
+      if (!lead) {
+        return res.status(404).json({ error: 'Estimation non trouvée' });
+      }
+      
+      // Get the estimation data
+      const estimations = await storage.getEstimationsByLeadId(id);
+      const estimation = estimations[0];
+      
+      if (!estimation) {
+        return res.status(404).json({ error: 'Données d\'estimation non trouvées' });
+      }
+      
+      // Calculate data for display
+      const calculatedData = {
+        estimatedValue: parseInt(estimation.estimatedValue),
+        pricePerM2: parseInt(estimation.pricePerM2),
+        confidence: estimation.confidence
+      };
+      
+      res.json({
+        lead,
+        estimation,
+        calculatedData
+      });
+    } catch (error) {
+      console.error('Error fetching estimation results:', error);
+      res.status(500).json({ error: 'Erreur lors de la récupération des résultats' });
+    }
+  });
+
   // Create guide download lead - SECURED with RGPD compliance and rate limiting (SMS verification bypassed for public access)
   app.post('/api/guide-leads', rateLimit(5, 60000), async (req, res) => {
     try {

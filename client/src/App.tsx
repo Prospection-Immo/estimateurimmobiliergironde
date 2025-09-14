@@ -115,7 +115,7 @@ function HomePage() {
         });
         
         // Redirect to results page
-        window.location.href = `/estimation-resultats?id=${data.id}`;
+        window.location.href = `/estimation-resultats?id=${data.lead.id}`;
       } else {
         setError("Erreur lors de la création de l'estimation");
         setShowSmsDialog(false);
