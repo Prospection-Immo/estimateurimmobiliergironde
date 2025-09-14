@@ -7,6 +7,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { ArrowRight, ArrowLeft, Home, Building, User, Building2, UserCog, Target, Smartphone, CheckCircle, AlertCircle } from "lucide-react";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 import bordeaux_house from "@assets/generated_images/Bordeaux_house_property_photo_41cf0370.png";
 
 interface FormData {
@@ -82,6 +83,7 @@ export default function PropertyEstimationForm() {
     isLoading: false,
     error: null
   });
+  const [isAddressValid, setIsAddressValid] = useState(false);
 
   const totalSteps = 6; // 1-3: property info, 4: basic estimation, 5: SMS verification, 6: contact/final
   const progress = (step / totalSteps) * 100;
@@ -209,6 +211,25 @@ export default function PropertyEstimationForm() {
   };
 
   const nextStep = async () => {
+    // Validation for step 2 (address)
+    if (step === 2) {
+      if (!formData.address || !formData.city || !formData.postalCode) {
+        alert('Veuillez saisir une adresse complète');
+        return;
+      }
+      
+      // Check if postal code is in Gironde (33xxx)
+      if (!formData.postalCode.startsWith('33')) {
+        alert('Notre service est actuellement disponible uniquement pour la Gironde (codes postaux 33xxx)');
+        return;
+      }
+      
+      if (!isAddressValid) {
+        alert('Veuillez sélectionner une adresse valide dans la liste');
+        return;
+      }
+    }
+    
     if (step === 3) {
       // After step 3, calculate basic estimation
       setIsCalculatingBasic(true);
@@ -361,16 +382,23 @@ export default function PropertyEstimationForm() {
           <div className="space-y-6">
             <h3 className="text-xl font-semibold">Localisation de votre propriété</h3>
             <div className="grid gap-4">
-              <div>
-                <Label htmlFor="address">Adresse</Label>
-                <Input
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => updateFormData("address", e.target.value)}
-                  placeholder="Ex: 123 rue de la Paix"
-                  data-testid="input-address"
-                />
-              </div>
+              <AddressAutocomplete
+                value={formData.address}
+                onAddressSelect={(address: string, city: string, postalCode: string) => {
+                  updateFormData("address", address);
+                  updateFormData("city", city || "");
+                  updateFormData("postalCode", postalCode || "");
+                }}
+                onValidationChange={(isValid: boolean, errorMessage?: string) => {
+                  setIsAddressValid(isValid);
+                  if (!isValid && errorMessage) {
+                    // Could show error message to user if needed
+                    console.log("Address validation error:", errorMessage);
+                  }
+                }}
+                placeholder="Saisissez votre adresse complète"
+                restrictToGironde={true}
+              />
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="city">Ville</Label>
@@ -380,6 +408,7 @@ export default function PropertyEstimationForm() {
                     onChange={(e) => updateFormData("city", e.target.value)}
                     placeholder="Ex: Bordeaux"
                     data-testid="input-city-form"
+                    readOnly
                   />
                 </div>
                 <div>
@@ -390,6 +419,7 @@ export default function PropertyEstimationForm() {
                     onChange={(e) => updateFormData("postalCode", e.target.value)}
                     placeholder="Ex: 33000"
                     data-testid="input-postal-code"
+                    readOnly
                   />
                 </div>
               </div>
@@ -845,7 +875,7 @@ export default function PropertyEstimationForm() {
               ) : (
                 <Button
                   onClick={nextStep}
-                  disabled={isCalculatingBasic}
+                  disabled={isCalculatingBasic || (step === 2 && (!formData.address || !isAddressValid))}
                   data-testid="button-next-step"
                 >
                   {isCalculatingBasic ? "Calcul..." : "Suivant"}
