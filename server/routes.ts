@@ -265,6 +265,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Basic estimation without SMS verification (for detailed form)
+  app.post('/api/estimations-basic', async (req, res) => {
+    try {
+      const propertyData = req.body;
+      
+      console.log('=== BASIC ESTIMATION DEBUG ===');
+      console.log('PropertyData:', propertyData);
+      
+      // Validate required fields
+      if (!propertyData.propertyType || !propertyData.city || !propertyData.surface) {
+        return res.status(400).json({ error: 'Données manquantes' });
+      }
+
+      // Validate surface is a valid number
+      const surface = parseInt(propertyData.surface);
+      if (isNaN(surface) || surface <= 0) {
+        return res.status(400).json({ error: 'Surface invalide' });
+      }
+
+      // Validate rooms is a valid number if provided
+      const rooms = propertyData.rooms ? parseInt(propertyData.rooms) : undefined;
+      if (propertyData.rooms && (isNaN(rooms) || rooms <= 0)) {
+        return res.status(400).json({ error: 'Nombre de pièces invalide' });
+      }
+
+      // Calculate basic estimation using existing function
+      const estimation = calculateEstimation({
+        propertyType: propertyData.propertyType,
+        city: propertyData.city,
+        surface: surface,
+        rooms: rooms
+      });
+
+      console.log('Basic estimation calculated:', estimation);
+
+      // Return basic estimation format (compatible with frontend)
+      const result = {
+        minPrice: Math.round(estimation.estimatedValue * 0.9), // -10%
+        maxPrice: Math.round(estimation.estimatedValue * 1.1), // +10%
+        averagePrice: estimation.estimatedValue,
+        pricePerSqm: estimation.pricePerM2,
+        confidence: estimation.confidence
+      };
+
+      res.json(result);
+
+    } catch (error) {
+      console.error('Error calculating basic estimation:', error);
+      res.status(500).json({ error: 'Erreur lors du calcul de l\'estimation' });
+    }
+  });
+
   // Create quick estimation (from homepage)
   app.post('/api/estimations-quick', async (req, res) => {
     try {

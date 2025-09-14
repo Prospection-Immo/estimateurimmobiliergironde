@@ -103,7 +103,6 @@ export default function PropertyEstimationForm() {
     }
 
     const propertyData = {
-      sessionId: currentSessionId,
       propertyType: formData.propertyType,
       city: formData.city,
       surface: parseInt(formData.surface) || 0,
@@ -112,8 +111,8 @@ export default function PropertyEstimationForm() {
 
     console.log('Calculating basic estimation with data:', propertyData);
 
-    // Call the quick estimation API
-    const response = await fetch('/api/estimations-quick', {
+    // Call the basic estimation API (no SMS verification needed)
+    const response = await fetch('/api/estimations-basic', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
