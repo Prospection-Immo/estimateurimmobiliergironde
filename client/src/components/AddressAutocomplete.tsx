@@ -70,6 +70,7 @@ export default function AddressAutocomplete({
       }
       
       const data = await response.json();
+      console.log('AddressAutocomplete: API key fetched successfully:', data.apiKey ? 'YES' : 'NO');
       setApiKey(data.apiKey);
       setApiKeyFetched(true);
     } catch (error) {
@@ -81,6 +82,7 @@ export default function AddressAutocomplete({
   };
 
   useEffect(() => {
+    console.log("AddressAutocomplete: Component mounted, fetching API key...");
     fetchApiKey();
   }, []);
 
@@ -88,9 +90,18 @@ export default function AddressAutocomplete({
     if (!apiKeyFetched) return;
 
     const initializeAutocomplete = () => {
-      if (!window.google || !inputRef.current) return;
+      console.log('AddressAutocomplete: initializeAutocomplete called', { 
+        hasGoogle: !!window.google, 
+        hasInput: !!inputRef.current 
+      });
+      
+      if (!window.google || !inputRef.current) {
+        console.log('AddressAutocomplete: Cannot initialize - missing Google or input ref');
+        return;
+      }
 
       try {
+        console.log('AddressAutocomplete: Starting autocomplete initialization...');
         // Define Gironde bounds (département 33)
         const girondeBounds = new window.google.maps.LatLngBounds(
           new window.google.maps.LatLng(44.165, -1.50), // SW corner
@@ -138,8 +149,11 @@ export default function AddressAutocomplete({
       }
     };
 
+    console.log('AddressAutocomplete: Initializing...', { hasGoogle: !!window.google, hasApiKey: !!apiKey });
+    
     // Load Google Maps API if not already loaded and we have an API key
     if (!window.google && apiKey) {
+      console.log('AddressAutocomplete: Loading Google Maps script...');
       setIsLoading(true);
       const script = document.createElement('script');
       
@@ -148,6 +162,7 @@ export default function AddressAutocomplete({
       script.defer = true;
       
       window.initGoogleMaps = () => {
+        console.log('AddressAutocomplete: Google Maps script loaded successfully');
         setIsLoading(false);
         initializeAutocomplete();
       };
@@ -159,9 +174,11 @@ export default function AddressAutocomplete({
       
       document.head.appendChild(script);
     } else if (window.google) {
+      console.log('AddressAutocomplete: Google Maps already loaded, initializing autocomplete...');
       setIsLoading(false);
       initializeAutocomplete();
     } else {
+      console.log('AddressAutocomplete: No API key or Google Maps, falling back to manual input');
       // No API key available, use manual input only
       setIsLoading(false);
       setError('');

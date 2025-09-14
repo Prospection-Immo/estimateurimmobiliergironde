@@ -385,6 +385,7 @@ export default function PropertyEstimationForm() {
               <AddressAutocomplete
                 value={formData.address}
                 onAddressSelect={(addressDetails) => {
+                  console.log("Address selected:", addressDetails);
                   updateFormData("address", addressDetails.formattedAddress);
                   updateFormData("city", addressDetails.locality || "");
                   updateFormData("postalCode", addressDetails.postalCode || "");
@@ -395,9 +396,11 @@ export default function PropertyEstimationForm() {
                   
                   if (!isGironde) {
                     console.log("Address validation: Only Gironde addresses (33xxx) are allowed");
+                  } else {
+                    console.log("Address validated: Gironde address accepted");
                   }
                 }}
-                placeholder="Saisissez votre adresse complète"
+                placeholder="Commencez à taper votre adresse (ex: 12 rue de la Paix, Bordeaux)"
                 data-testid="input-address-detailed"
               />
               <div className="grid grid-cols-2 gap-4">
