@@ -126,11 +126,54 @@ function HomePage() {
         <Hero domain={domain} />
         
         {/* Section d'estimation rapide */}
-        <section className="py-16 bg-background border-b">
+        <section className="py-8 bg-background border-b">
           <div className="max-w-6xl mx-auto px-4">
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-foreground">Estimation rapide :</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <AddressAutocomplete
+                  onAddressSelect={(address) => setSelectedAddress(address)}
+                  placeholder="Adresse du bien"
+                  className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 min-w-[200px]"
+                  data-testid="filter-city"
+                />
+                <select className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="filter-property-type">
+                  <option value="">Type de bien</option>
+                  <option value="maison">Maison</option>
+                  <option value="appartement">Appartement</option>
+                  <option value="terrain">Terrain</option>
+                </select>
+                <select className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="filter-surface">
+                  <option value="">Surface (m²)</option>
+                  <option value="0-50">- 50 m²</option>
+                  <option value="50-80">50 - 80 m²</option>
+                  <option value="80-120">80 - 120 m²</option>
+                  <option value="120-200">120 - 200 m²</option>
+                  <option value="200+">200+ m²</option>
+                </select>
+                <select className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="filter-rooms">
+                  <option value="">Pièces</option>
+                  <option value="1-2">1-2 pièces</option>
+                  <option value="3">3 pièces</option>
+                  <option value="4">4 pièces</option>
+                  <option value="5+">5+ pièces</option>
+                </select>
+                <Link href="/estimation" className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover-elevate transition-colors inline-block" data-testid="button-estimate">
+                  Demander une estimation
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+        
+        {/* Formulaire d'estimation complet avec SMS */}
+        <section className="py-16 bg-background">
+          <div className="max-w-4xl mx-auto px-4">
             <div className="text-center mb-8">
               <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">
-                Estimation rapide et gratuite
+                Estimation gratuite avec vérification SMS
               </h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
                 Obtenez une estimation précise de votre bien immobilier en 3 minutes avec vérification SMS sécurisée
