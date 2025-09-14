@@ -44,12 +44,47 @@ export default function AddressAutocomplete({
   const [inputValue, setInputValue] = useState(value);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [apiKeyFetched, setApiKeyFetched] = useState(false);
 
   useEffect(() => {
     setInputValue(value);
   }, [value]);
 
+  // Fetch Google Maps API key from backend
+  const fetchApiKey = async () => {
+    if (apiKeyFetched) return;
+    
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/config/google-maps-key');
+      
+      if (!response.ok) {
+        console.warn('Google Maps API key not available, falling back to manual input');
+        setApiKey(null);
+        setIsLoading(false);
+        setApiKeyFetched(true);
+        return;
+      }
+      
+      const data = await response.json();
+      setApiKey(data.apiKey);
+      setApiKeyFetched(true);
+    } catch (error) {
+      console.warn('Failed to fetch Google Maps API key:', error);
+      setApiKey(null);
+      setIsLoading(false);
+      setApiKeyFetched(true);
+    }
+  };
+
   useEffect(() => {
+    fetchApiKey();
+  }, []);
+
+  useEffect(() => {
+    if (!apiKeyFetched) return;
+
     const initializeAutocomplete = () => {
       if (!window.google || !inputRef.current) return;
 
@@ -88,17 +123,10 @@ export default function AddressAutocomplete({
       }
     };
 
-    // Load Google Maps API if not already loaded
-    if (!window.google) {
+    // Load Google Maps API if not already loaded and we have an API key
+    if (!window.google && apiKey) {
       setIsLoading(true);
       const script = document.createElement('script');
-      // Only load Google Maps if we have a valid API key
-      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-      if (!apiKey) {
-        setIsLoading(false);
-        setError('');
-        return;
-      }
       
       script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGoogleMaps&loading=async`;
       script.async = true;
@@ -115,8 +143,13 @@ export default function AddressAutocomplete({
       };
       
       document.head.appendChild(script);
-    } else {
+    } else if (window.google) {
+      setIsLoading(false);
       initializeAutocomplete();
+    } else {
+      // No API key available, use manual input only
+      setIsLoading(false);
+      setError('');
     }
 
     return () => {
@@ -124,7 +157,7 @@ export default function AddressAutocomplete({
         window.google?.maps?.event?.clearInstanceListeners(autocompleteRef.current);
       }
     };
-  }, [onAddressSelect]);
+  }, [onAddressSelect, apiKey, apiKeyFetched]);
 
   const parseAddressComponents = (place: any): AddressDetails => {
     const addressDetails: AddressDetails = {

@@ -250,6 +250,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   });
 
+  // Google Maps API key endpoint (public access needed for frontend)
+  app.get('/api/config/google-maps-key', async (req, res) => {
+    try {
+      const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+      if (!apiKey) {
+        return res.status(404).json({ error: 'Google Maps API key not configured' });
+      }
+      res.json({ apiKey });
+    } catch (error) {
+      console.error('Error fetching Google Maps config:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   // Create quick estimation (from homepage)
   app.post('/api/estimations-quick', async (req, res) => {
     try {
