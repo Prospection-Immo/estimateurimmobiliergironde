@@ -384,20 +384,21 @@ export default function PropertyEstimationForm() {
             <div className="grid gap-4">
               <AddressAutocomplete
                 value={formData.address}
-                onAddressSelect={(address: string, city: string, postalCode: string) => {
-                  updateFormData("address", address);
-                  updateFormData("city", city || "");
-                  updateFormData("postalCode", postalCode || "");
-                }}
-                onValidationChange={(isValid: boolean, errorMessage?: string) => {
-                  setIsAddressValid(isValid);
-                  if (!isValid && errorMessage) {
-                    // Could show error message to user if needed
-                    console.log("Address validation error:", errorMessage);
+                onAddressSelect={(addressDetails) => {
+                  updateFormData("address", addressDetails.formattedAddress);
+                  updateFormData("city", addressDetails.locality || "");
+                  updateFormData("postalCode", addressDetails.postalCode || "");
+                  
+                  // Validate Gironde postal code (33xxx)
+                  const isGironde = addressDetails.postalCode?.startsWith('33') || false;
+                  setIsAddressValid(isGironde);
+                  
+                  if (!isGironde) {
+                    console.log("Address validation: Only Gironde addresses (33xxx) are allowed");
                   }
                 }}
                 placeholder="Saisissez votre adresse complète"
-                restrictToGironde={true}
+                data-testid="input-address-detailed"
               />
               <div className="grid grid-cols-2 gap-4">
                 <div>
