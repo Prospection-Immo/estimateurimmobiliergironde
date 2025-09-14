@@ -215,19 +215,30 @@ export default function PropertyEstimationForm() {
       const result = await response.json();
       
       if (result.success) {
+        // CRITICAL: Only proceed if server returns a valid sessionId
+        if (!result.sessionId) {
+          console.error('SMS verification successful but no sessionId received from server');
+          setSmsVerification(prev => ({ 
+            ...prev, 
+            isLoading: false,
+            error: 'Erreur de session serveur - veuillez réessayer' 
+          }));
+          return false;
+        }
+
+        // Set sessionId from server response (never generate client-side)
+        setSessionId(result.sessionId);
+        console.log('SMS verification successful, using server sessionId:', result.sessionId);
+        
         setSmsVerification(prev => ({ 
           ...prev, 
           step: 'verified',
           isLoading: false 
         }));
-        // Generate sessionId for basic estimation
-        const newSessionId = crypto.randomUUID();
-        setSessionId(newSessionId);
         
-        // Move to basic estimation step (step 5)
+        // Move to basic estimation step (step 5) only after sessionId is set
         setStep(5);
         
-        // Note: The useEffect will trigger calculation when we reach step 5 with sessionId
         return true;
       } else {
         setSmsVerification(prev => ({ 
@@ -238,10 +249,11 @@ export default function PropertyEstimationForm() {
         return false;
       }
     } catch (error) {
+      console.error('Error in SMS verification:', error);
       setSmsVerification(prev => ({ 
         ...prev, 
         isLoading: false, 
-        error: 'Erreur de connexion' 
+        error: 'Erreur de connexion - veuillez réessayer' 
       }));
       return false;
     }
@@ -263,6 +275,86 @@ export default function PropertyEstimationForm() {
       
       if (!isAddressValid) {
         alert('Veuillez sélectionner une adresse valide dans la liste');
+        return;
+      }
+    }
+    
+    // CRITICAL GATING: Prevent bypassing SMS verification (step 4 → 5)
+    if (step === 4) {
+      // Multiple validation checks to prevent bypass
+      if (smsVerification.step !== 'verified') {
+        alert('Vous devez d\'abord vérifier votre numéro de téléphone avec le code SMS reçu.');
+        console.warn('SMS verification gating: SMS not verified', {
+          smsStep: smsVerification.step,
+          currentStep: step
+        });
+        return;
+      }
+      
+      if (!sessionId || sessionId.length === 0) {
+        alert('Session invalide. Veuillez recommencer la vérification SMS.');
+        console.warn('SMS verification gating: No valid sessionId', {
+          sessionId: sessionId,
+          sessionIdLength: sessionId?.length || 0,
+          currentStep: step
+        });
+        // Reset SMS verification to force restart
+        setSmsVerification({
+          step: 'request',
+          phoneNumber: '',
+          verificationCode: '',
+          isLoading: false,
+          error: null
+        });
+        return;
+      }
+      
+      // Additional validation: sessionId should be a valid UUID format
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(sessionId)) {
+        alert('Session corrompue. Veuillez recommencer la vérification SMS.');
+        console.error('SMS verification gating: Invalid sessionId format', {
+          sessionId: sessionId,
+          currentStep: step
+        });
+        // Reset SMS verification to force restart
+        setSmsVerification({
+          step: 'request',
+          phoneNumber: '',
+          verificationCode: '',
+          isLoading: false,
+          error: null
+        });
+        setSessionId('');
+        return;
+      }
+      
+      console.log('SMS verification gating: All checks passed', {
+        smsStep: smsVerification.step,
+        sessionId: sessionId,
+        currentStep: step
+      });
+    }
+    
+    // Additional gating: Prevent accessing step 5+ without proper SMS verification
+    if (step >= 5) {
+      if (smsVerification.step !== 'verified' || !sessionId) {
+        alert('Accès non autorisé. Veuillez recommencer la vérification SMS.');
+        console.error('Unauthorized access attempt to protected step', {
+          step,
+          smsVerificationStep: smsVerification.step,
+          hasSessionId: !!sessionId
+        });
+        // Force user back to SMS verification step
+        setStep(4);
+        setSmsVerification({
+          step: 'request',
+          phoneNumber: '',
+          verificationCode: '',
+          isLoading: false,
+          error: null
+        });
+        setSessionId('');
         return;
       }
     }

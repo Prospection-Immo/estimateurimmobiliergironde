@@ -1402,13 +1402,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await smsVerificationService.verifyCode(phoneNumber, code);
       
       if (result.success) {
-        res.json({
-          success: true,
-          message: 'Code vérifié avec succès',
-          verified: true
-        });
+        // Generate unique sessionId for this verification
+        const sessionId = crypto.randomUUID();
+        const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+        
+        try {
+          const authSession = await storage.createAuthSession({
+            id: sessionId,
+            email: '', // Will be populated during estimation form
+            phoneNumber: phoneNumber,
+            isEmailVerified: false,
+            isSmsVerified: true,
+            verificationSid: null,
+            expiresAt: expiresAt
+          });
+          
+          console.log('Auth session created after SMS verification:', {
+            sessionId: authSession.id,
+            phoneNumber: authSession.phoneNumber,
+            isSmsVerified: authSession.isSmsVerified,
+            expiresAt: authSession.expiresAt
+          });
+          
+          // CRITICAL: Always return sessionId for successful verification
+          return res.json({
+            success: true,
+            message: 'Code vérifié avec succès',
+            verified: true,
+            sessionId: authSession.id
+          });
+        } catch (sessionError) {
+          console.error('Error creating auth session:', sessionError);
+          return res.status(500).json({
+            success: false,
+            error: 'Erreur lors de la création de la session'
+          });
+        }
       } else {
-        res.status(400).json({
+        return res.status(400).json({
           success: false,
           error: result.error || 'Code de vérification incorrect',
           attemptsRemaining: result.attemptsRemaining
@@ -1416,7 +1447,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       console.error('Error in verify-code route:', error);
-      res.status(500).json({ 
+      return res.status(500).json({ 
         success: false, 
         error: 'Erreur serveur lors de la vérification du code' 
       });
