@@ -104,7 +104,8 @@ function getLeadFromToken(token: string): { firstName: string; email: string; ci
 
 function cleanupExpiredTokens() {
   const now = Date.now();
-  for (const [token, data] of leadTokenStore.entries()) {
+  const entries = Array.from(leadTokenStore.entries());
+  for (const [token, data] of entries) {
     if (now > data.expiresAt) {
       leadTokenStore.delete(token);
     }
@@ -275,6 +276,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('PropertyData:', propertyData);
       console.log('Domain:', domain);
       
+      // Validate address is in Gironde (département 33)
+      if (propertyData.city && propertyData.postalCode) {
+        const postalCode = String(propertyData.postalCode).trim();
+        if (!/^33\d{3}$/.test(postalCode)) {
+          console.log('❌ Address rejected - not in Gironde:', postalCode);
+          return res.status(400).json({ 
+            error: 'Cette adresse n\'est pas en Gironde (département 33). Notre service est spécialisé uniquement pour la Gironde.' 
+          });
+        }
+        console.log('✅ Address validated - Gironde:', postalCode);
+      }
+      
       // Validate sessionId is provided
       if (!sessionId) {
         return res.status(400).json({ error: 'SessionId requis' });
@@ -406,6 +419,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/estimations', async (req, res) => {
     try {
       const domain = req.headers['x-domain'] as string;
+      
+      // Validate address is in Gironde (département 33) FIRST
+      if (req.body.postalCode) {
+        const postalCode = String(req.body.postalCode).trim();
+        if (!/^33\d{3}$/.test(postalCode)) {
+          console.log('❌ Detailed estimation rejected - not in Gironde:', postalCode);
+          return res.status(400).json({ 
+            error: 'Cette adresse n\'est pas en Gironde (département 33). Notre service est spécialisé uniquement pour la Gironde.' 
+          });
+        }
+        console.log('✅ Detailed estimation validated - Gironde:', postalCode);
+      }
       
       // Validate the request body for detailed estimation leads
       const validatedData = insertEstimationLeadSchema.parse({

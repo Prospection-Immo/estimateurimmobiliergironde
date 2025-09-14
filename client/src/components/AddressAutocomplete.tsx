@@ -16,6 +16,8 @@ interface AddressDetails {
   locality?: string;
   postalCode?: string;
   country?: string;
+  department?: string;
+  departmentCode?: string;
   lat?: number;
   lng?: number;
 }
@@ -89,16 +91,19 @@ export default function AddressAutocomplete({
       if (!window.google || !inputRef.current) return;
 
       try {
-        // Initialize Google Places Autocomplete
+        // Define Gironde bounds (département 33)
+        const girondeBounds = new window.google.maps.LatLngBounds(
+          new window.google.maps.LatLng(44.165, -1.50), // SW corner
+          new window.google.maps.LatLng(45.688, 0.18)   // NE corner
+        );
+
+        // Initialize Google Places Autocomplete - GIRONDE ONLY
         autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
           types: ['address'],
           componentRestrictions: { country: 'fr' }, // Restrict to France
           fields: ['geometry', 'formatted_address', 'address_components'],
-          // Bias results towards Gironde region (Bordeaux coordinates)
-          locationBias: {
-            radius: 50000, // 50km radius
-            center: { lat: 44.8378, lng: -0.5792 } // Bordeaux coordinates
-          }
+          bounds: girondeBounds,
+          strictBounds: true // Only show addresses within Gironde bounds
         });
 
         // Listen for place selection
@@ -107,6 +112,16 @@ export default function AddressAutocomplete({
           
           if (!place.geometry || !place.geometry.location) {
             setError('Veuillez sélectionner une adresse valide dans la liste');
+            return;
+          }
+
+          // Validate address is in Gironde (département 33)
+          if (!isAddressInGironde(place)) {
+            setError('🚫 Cette adresse n\'est pas en Gironde (département 33). Notre service est spécialisé uniquement pour la Gironde.');
+            setInputValue('');
+            if (inputRef.current) {
+              inputRef.current.focus();
+            }
             return;
           }
 
@@ -159,6 +174,47 @@ export default function AddressAutocomplete({
     };
   }, [onAddressSelect, apiKey, apiKeyFetched]);
 
+  // Validate address is in Gironde (département 33)
+  const isAddressInGironde = (place: any): boolean => {
+    if (!place.address_components) return false;
+
+    let postalCode = '';
+    let department = '';
+    
+    // Extract postal code and department from address components
+    for (const component of place.address_components) {
+      const types = component.types;
+      
+      if (types.includes('postal_code')) {
+        postalCode = component.long_name;
+      } else if (types.includes('administrative_area_level_2')) {
+        department = component.long_name;
+      }
+    }
+
+    // Method 1: Check if department is "Gironde"
+    if (department.toLowerCase().includes('gironde')) {
+      return true;
+    }
+
+    // Method 2: Check if postal code starts with "33"
+    if (postalCode && /^33\d{3}$/.test(postalCode)) {
+      return true;
+    }
+
+    // Method 3: Check if coordinates are within Gironde bounds
+    if (place.geometry && place.geometry.location) {
+      const lat = place.geometry.location.lat();
+      const lng = place.geometry.location.lng();
+      
+      // Gironde approximate bounds
+      const inBounds = lat >= 44.165 && lat <= 45.688 && lng >= -1.50 && lng <= 0.18;
+      return inBounds;
+    }
+
+    return false;
+  };
+
   const parseAddressComponents = (place: any): AddressDetails => {
     const addressDetails: AddressDetails = {
       formattedAddress: place.formatted_address || '',
@@ -181,6 +237,10 @@ export default function AddressAutocomplete({
           addressDetails.postalCode = component.long_name;
         } else if (types.includes('country')) {
           addressDetails.country = component.long_name;
+        } else if (types.includes('administrative_area_level_2')) {
+          addressDetails.department = component.long_name;
+        } else if (types.includes('administrative_area_level_1')) {
+          addressDetails.departmentCode = component.short_name;
         }
       }
     }
@@ -196,19 +256,37 @@ export default function AddressAutocomplete({
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && inputValue.trim() && !window.google) {
-      // If Google Maps is not available, treat manual input as selected address
-      onAddressSelect({
-        formattedAddress: inputValue.trim()
-      });
+      // If Google Maps is not available, validate manual input for Gironde
+      const manualAddress = inputValue.trim();
+      
+      // Check if manual input contains a Gironde postal code (33xxx)
+      const hasGirondePostalCode = /\b33\d{3}\b/.test(manualAddress);
+      
+      if (hasGirondePostalCode) {
+        onAddressSelect({
+          formattedAddress: manualAddress
+        });
+      } else {
+        setError('🚫 Veuillez saisir une adresse en Gironde (code postal 33xxx)');
+      }
     }
   };
 
   const handleBlur = () => {
     if (inputValue.trim() && !window.google) {
-      // If Google Maps is not available, treat manual input as selected address
-      onAddressSelect({
-        formattedAddress: inputValue.trim()
-      });
+      // If Google Maps is not available, validate manual input for Gironde
+      const manualAddress = inputValue.trim();
+      
+      // Check if manual input contains a Gironde postal code (33xxx)
+      const hasGirondePostalCode = /\b33\d{3}\b/.test(manualAddress);
+      
+      if (hasGirondePostalCode) {
+        onAddressSelect({
+          formattedAddress: manualAddress
+        });
+      } else {
+        setError('🚫 Veuillez saisir une adresse en Gironde (code postal 33xxx)');
+      }
     }
   };
 
