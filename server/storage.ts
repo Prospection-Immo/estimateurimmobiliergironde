@@ -316,7 +316,9 @@ export interface IStorage {
 export class SupabaseStorage implements IStorage {
   // Memory store for development mode (when database is not connected)
   private memoryStore = {
-    authSessions: new Map<string, AuthSession>()
+    authSessions: new Map<string, AuthSession>(),
+    leads: new Map<string, Lead>(),
+    estimations: new Map<string, Estimation[]>()
   };
 
   // Users
@@ -338,8 +340,8 @@ export class SupabaseStorage implements IStorage {
   // Leads
   async createLead(insertLead: InsertLead): Promise<Lead> {
     if (isDevelopmentMode) {
-      // Return mock lead for development
-      return {
+      // Create and store lead in memory for development
+      const lead: Lead = {
         id: `dev-lead-${Date.now()}`,
         email: insertLead.email,
         phone: insertLead.phone,
@@ -363,6 +365,12 @@ export class SupabaseStorage implements IStorage {
         notes: insertLead.notes,
         createdAt: new Date()
       };
+      
+      // Store in memory
+      this.memoryStore.leads.set(lead.id, lead);
+      console.log(`✅ Lead stored in memory: ${lead.id}`);
+      
+      return lead;
     }
     
     const result = await db.insert(leads).values(insertLead).returning();
@@ -370,6 +378,13 @@ export class SupabaseStorage implements IStorage {
   }
 
   async getLeads(limit = 50): Promise<Lead[]> {
+    if (isDevelopmentMode) {
+      // Read from memory in development mode
+      const leadsArray = Array.from(this.memoryStore.leads.values());
+      return leadsArray
+        .sort((a, b) => b.createdAt!.getTime() - a.createdAt!.getTime())
+        .slice(0, limit);
+    }
     return await db.select().from(leads).orderBy(desc(leads.createdAt)).limit(limit);
   }
 
@@ -380,8 +395,8 @@ export class SupabaseStorage implements IStorage {
   // Estimations
   async createEstimation(insertEstimation: InsertEstimation): Promise<Estimation> {
     if (isDevelopmentMode) {
-      // Return mock estimation for development
-      return {
+      // Create and store estimation in memory for development
+      const estimation: Estimation = {
         id: `dev-estimation-${Date.now()}`,
         leadId: insertEstimation.leadId,
         propertyType: insertEstimation.propertyType,
@@ -396,6 +411,15 @@ export class SupabaseStorage implements IStorage {
         comparableProperties: insertEstimation.comparableProperties,
         createdAt: new Date()
       };
+      
+      // Store in memory
+      if (!this.memoryStore.estimations.has(insertEstimation.leadId)) {
+        this.memoryStore.estimations.set(insertEstimation.leadId, []);
+      }
+      this.memoryStore.estimations.get(insertEstimation.leadId)!.push(estimation);
+      console.log(`✅ Estimation stored in memory: ${estimation.id} for lead ${insertEstimation.leadId}`);
+      
+      return estimation;
     }
     
     const result = await db.insert(estimations).values(insertEstimation).returning();
@@ -403,6 +427,10 @@ export class SupabaseStorage implements IStorage {
   }
 
   async getEstimationsByLeadId(leadId: string): Promise<Estimation[]> {
+    if (isDevelopmentMode) {
+      // Read from memory in development mode
+      return this.memoryStore.estimations.get(leadId) || [];
+    }
     return await db.select().from(estimations).where(eq(estimations.leadId, leadId));
   }
 
