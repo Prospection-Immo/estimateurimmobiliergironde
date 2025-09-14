@@ -8,6 +8,7 @@ import emailService from "./services/emailService";
 import emailSequenceService from "./services/emailSequenceService";
 import emailTemplateGenerator from "./services/emailTemplateGenerator";
 import { leadScoringService } from "./services/leadScoringService";
+import smsVerificationService from "./services/smsVerificationService";
 import { z } from "zod";
 import crypto from "crypto";
 import twilio from "twilio";
@@ -1188,6 +1189,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/check", (req, res) => {
     res.json({ authenticated: !!(req.session as any).isAuthenticated });
   });
+
+  // ===== SMS VERIFICATION ROUTES =====
+  
+  // Send SMS verification code
+  app.post('/api/sms/send-verification', rateLimit(3, 5 * 60 * 1000), async (req, res) => {
+    try {
+      const { phoneNumber } = req.body;
+      
+      if (!phoneNumber) {
+        return res.status(400).json({ error: 'Numéro de téléphone requis' });
+      }
+
+      const result = await smsVerificationService.sendVerificationCode(phoneNumber);
+      
+      if (result.success) {
+        res.json({
+          success: true,
+          message: 'Code de vérification envoyé',
+          expiresIn: result.expiresIn || 600,
+          messageId: result.messageId
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          error: result.error || 'Erreur lors de l\'envoi du SMS'
+        });
+      }
+    } catch (error) {
+      console.error('Error in send-verification route:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Erreur serveur lors de l\'envoi du SMS' 
+      });
+    }
+  });
+
+  // Verify SMS code
+  app.post('/api/sms/verify-code', rateLimit(10, 5 * 60 * 1000), async (req, res) => {
+    try {
+      const { phoneNumber, code } = req.body;
+      
+      if (!phoneNumber || !code) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'Numéro de téléphone et code requis' 
+        });
+      }
+
+      const result = await smsVerificationService.verifyCode(phoneNumber, code);
+      
+      if (result.success) {
+        res.json({
+          success: true,
+          message: 'Code vérifié avec succès',
+          verified: true
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          error: result.error || 'Code de vérification incorrect',
+          attemptsRemaining: result.attemptsRemaining
+        });
+      }
+    } catch (error) {
+      console.error('Error in verify-code route:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Erreur serveur lors de la vérification du code' 
+      });
+    }
+  });
+
+  // Get verification status (optional utility route)
+  app.get('/api/sms/verification-status/:phoneNumber', rateLimit(10, 1 * 60 * 1000), async (req, res) => {
+    try {
+      const { phoneNumber } = req.params;
+      
+      if (!phoneNumber) {
+        return res.status(400).json({ error: 'Numéro de téléphone requis' });
+      }
+
+      const status = smsVerificationService.getVerificationStatus(phoneNumber);
+      res.json(status);
+    } catch (error) {
+      console.error('Error in verification-status route:', error);
+      res.status(500).json({ error: 'Erreur serveur' });
+    }
+  });
+
+  // Development/Testing routes
+  if (process.env.NODE_ENV === 'development') {
+    // Test SMS service connection
+    app.get('/api/sms/test-connection', async (req, res) => {
+      try {
+        const testResult = await smsVerificationService.testConnection();
+        res.json(testResult);
+      } catch (error) {
+        console.error('Error testing SMS connection:', error);
+        res.status(500).json({ error: 'Erreur lors du test de connexion' });
+      }
+    });
+
+    // Get debug info (development only)
+    app.get('/api/sms/debug', async (req, res) => {
+      try {
+        const debugInfo = smsVerificationService.getDebugInfo();
+        res.json(debugInfo);
+      } catch (error) {
+        console.error('Error getting SMS debug info:', error);
+        res.status(500).json({ error: 'Erreur lors de la récupération des informations de débogage' });
+      }
+    });
+  }
 
   // Middleware to check authentication
   const requireAuth = (req: any, res: any, next: any) => {
