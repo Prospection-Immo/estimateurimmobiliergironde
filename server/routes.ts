@@ -265,13 +265,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Basic estimation without SMS verification (for detailed form)
+  // Basic estimation with SMS verification (for detailed form)
   app.post('/api/estimations-basic', async (req, res) => {
     try {
-      const propertyData = req.body;
+      const { sessionId, ...propertyData } = req.body;
       
       console.log('=== BASIC ESTIMATION DEBUG ===');
+      console.log('SessionId:', sessionId);
       console.log('PropertyData:', propertyData);
+      
+      // Validate sessionId is provided
+      if (!sessionId) {
+        return res.status(400).json({ error: 'SessionId requis' });
+      }
+
+      // Retrieve contact data from SMS verification session
+      const authSession = await storage.getAuthSession(sessionId);
+      console.log('AuthSession retrieved:', {
+        exists: !!authSession,
+        email: authSession?.email,
+        phoneNumber: authSession?.phoneNumber,
+        isSmsVerified: authSession?.isSmsVerified,
+        expiresAt: authSession?.expiresAt
+      });
+      
+      if (!authSession || authSession.expiresAt < new Date()) {
+        console.log('Session validation failed:', {
+          sessionExists: !!authSession,
+          isExpired: authSession ? authSession.expiresAt < new Date() : 'no-session'
+        });
+        return res.status(400).json({ error: 'Session expirée ou invalide' });
+      }
+
+      // Check that SMS verification was completed
+      if (!authSession.isSmsVerified) {
+        console.log('SMS verification not completed');
+        return res.status(400).json({ error: 'Vérification SMS non complétée' });
+      }
       
       // Validate required fields
       if (!propertyData.propertyType || !propertyData.city || !propertyData.surface) {
@@ -295,7 +325,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         propertyType: propertyData.propertyType,
         city: propertyData.city,
         surface: surface,
-        rooms: rooms
+        rooms: rooms || undefined
       });
 
       console.log('Basic estimation calculated:', estimation);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -86,32 +86,50 @@ export default function PropertyEstimationForm() {
   });
   const [isAddressValid, setIsAddressValid] = useState(false);
 
-  const totalSteps = 6; // 1-3: property info, 4: basic estimation, 5: SMS verification, 6: contact/final
+  const totalSteps = 6; // 1-3: property info, 4: SMS verification, 5: basic estimation, 6: contact/final
   const progress = (step / totalSteps) * 100;
 
   const updateFormData = (field: keyof FormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Calculate basic estimation using first 3 steps
+  // Calculate basic estimation when arriving at step 5 (after SMS verification)
+  useEffect(() => {
+    if (step === 5 && sessionId && !basicEstimation && !isCalculatingBasic) {
+      const calculateEstimation = async () => {
+        setIsCalculatingBasic(true);
+        try {
+          const estimation = await calculateBasicEstimation();
+          setBasicEstimation(estimation);
+        } catch (error) {
+          console.error('Erreur estimation basique:', error);
+          // Even if estimation fails, we allow user to continue
+        } finally {
+          setIsCalculatingBasic(false);
+        }
+      };
+      calculateEstimation();
+    }
+  }, [step, sessionId, basicEstimation, isCalculatingBasic]);
+
+  // Calculate basic estimation using first 3 steps + SMS verification
   const calculateBasicEstimation = async (): Promise<BasicEstimation> => {
-    // Generate sessionId if not exists
-    let currentSessionId = sessionId;
-    if (!currentSessionId) {
-      currentSessionId = crypto.randomUUID();
-      setSessionId(currentSessionId);
+    // Use existing sessionId (must be set after SMS verification)
+    if (!sessionId) {
+      throw new Error('Session non valide. Veuillez vérifier votre numéro de téléphone.');
     }
 
     const propertyData = {
       propertyType: formData.propertyType,
       city: formData.city,
       surface: parseInt(formData.surface) || 0,
-      rooms: parseInt(formData.rooms) || 0
+      rooms: parseInt(formData.rooms) || 0,
+      sessionId: sessionId
     };
 
     console.log('Calculating basic estimation with data:', propertyData);
 
-    // Call the basic estimation API (no SMS verification needed)
+    // Call the basic estimation API (SMS verification required)
     const response = await fetch('/api/estimations-basic', {
       method: 'POST',
       headers: {
@@ -202,8 +220,14 @@ export default function PropertyEstimationForm() {
           step: 'verified',
           isLoading: false 
         }));
-        // Move to next step
-        setStep(6);
+        // Generate sessionId for basic estimation
+        const newSessionId = crypto.randomUUID();
+        setSessionId(newSessionId);
+        
+        // Move to basic estimation step (step 5)
+        setStep(5);
+        
+        // Note: The useEffect will trigger calculation when we reach step 5 with sessionId
         return true;
       } else {
         setSmsVerification(prev => ({ 
@@ -243,21 +267,7 @@ export default function PropertyEstimationForm() {
       }
     }
     
-    if (step === 3) {
-      // After step 3, calculate basic estimation
-      setIsCalculatingBasic(true);
-      try {
-        const estimation = await calculateBasicEstimation();
-        setBasicEstimation(estimation);
-        setStep(4);
-      } catch (error) {
-        console.error('Erreur estimation basique:', error);
-        // For now, continue to next step even if estimation fails
-        setStep(4);
-      } finally {
-        setIsCalculatingBasic(false);
-      }
-    } else if (step < totalSteps) {
+    if (step < totalSteps) {
       setStep(step + 1);
     }
   };
@@ -542,66 +552,8 @@ export default function PropertyEstimationForm() {
           </div>
         )}
 
-        {/* Step 4: Basic Estimation Results */}
+        {/* Step 4: SMS Verification */}
         {step === 4 && (
-          <div className="space-y-6">
-            <h3 className="text-xl font-semibold">Votre estimation basique</h3>
-            
-            {isCalculatingBasic ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-muted-foreground">Calcul de votre estimation en cours...</p>
-              </div>
-            ) : basicEstimation ? (
-              <div className="space-y-6">
-                <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-6 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <div className="text-center">
-                    <h4 className="text-2xl font-bold text-primary mb-2">Estimation approximative</h4>
-                    <div className="text-3xl font-bold text-foreground mb-1">
-                      {basicEstimation.minPrice.toLocaleString('fr-FR')}€ - {basicEstimation.maxPrice.toLocaleString('fr-FR')}€
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Soit environ {basicEstimation.pricePerSqm.toLocaleString('fr-FR')}€/m²
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="text-center space-y-4">
-                  <div className="flex items-center justify-center space-x-2 text-amber-600 dark:text-amber-400">
-                    <AlertCircle className="h-5 w-5" />
-                    <p className="font-medium">Estimation basée sur les données de marché</p>
-                  </div>
-                  <p className="text-muted-foreground">
-                    Pour obtenir votre estimation détaillée et précise avec analyse complète,
-                    <br/>
-                    <strong className="text-foreground">vérifiez votre numéro de téléphone</strong>
-                  </p>
-                  
-                  <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
-                    <div className="flex items-center justify-center space-x-2 text-primary">
-                      <Smartphone className="h-5 w-5" />
-                      <p className="font-medium">Pourquoi vérifier mon numéro ?</p>
-                    </div>
-                    <ul className="mt-2 text-sm text-muted-foreground space-y-1">
-                      <li>• Estimation précise basée sur votre profil</li>
-                      <li>• Analyse personnalisée de votre bien</li>
-                      <li>• Accompagnement gratuit par nos experts</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-                <p className="text-muted-foreground">Impossible de calculer l'estimation pour le moment</p>
-                <p className="text-sm text-muted-foreground">Veuillez continuer pour obtenir votre estimation détaillée</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Step 5: SMS Verification */}
-        {step === 5 && (
           <div className="space-y-6">
             {smsVerification.step === 'request' ? (
               <div className="space-y-6">
@@ -707,6 +659,64 @@ export default function PropertyEstimationForm() {
                 <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-green-700 dark:text-green-400 mb-2">Numéro vérifié !</h3>
                 <p className="text-muted-foreground">Accès à votre estimation détaillée</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Step 5: Basic Estimation Results */}
+        {step === 5 && (
+          <div className="space-y-6">
+            <h3 className="text-xl font-semibold">Votre estimation basique</h3>
+            
+            {isCalculatingBasic ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Calcul de votre estimation en cours...</p>
+              </div>
+            ) : basicEstimation ? (
+              <div className="space-y-6">
+                <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-6 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="text-center">
+                    <h4 className="text-2xl font-bold text-primary mb-2">Estimation approximative</h4>
+                    <div className="text-3xl font-bold text-foreground mb-1">
+                      {basicEstimation.minPrice.toLocaleString('fr-FR')}€ - {basicEstimation.maxPrice.toLocaleString('fr-FR')}€
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Soit environ {basicEstimation.pricePerSqm.toLocaleString('fr-FR')}€/m²
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="text-center space-y-4">
+                  <div className="flex items-center justify-center space-x-2 text-amber-600 dark:text-amber-400">
+                    <AlertCircle className="h-5 w-5" />
+                    <p className="font-medium">Estimation basée sur les données de marché</p>
+                  </div>
+                  <p className="text-muted-foreground">
+                    Pour obtenir votre estimation détaillée et précise avec analyse complète,
+                    <br/>
+                    <strong className="text-foreground">renseignez vos coordonnées ci-dessous</strong>
+                  </p>
+                  
+                  <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                    <div className="flex items-center justify-center space-x-2 text-primary">
+                      <Target className="h-5 w-5" />
+                      <p className="font-medium">Estimation détaillée gratuite</p>
+                    </div>
+                    <ul className="mt-2 text-sm text-muted-foreground space-y-1">
+                      <li>• Analyse approfondie de votre bien</li>
+                      <li>• Comparaison avec les ventes récentes</li>
+                      <li>• Rapport d'expertise gratuit par email</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+                <p className="text-muted-foreground">Impossible de calculer l'estimation pour le moment</p>
+                <p className="text-sm text-muted-foreground">Veuillez continuer pour obtenir votre estimation détaillée</p>
               </div>
             )}
           </div>
