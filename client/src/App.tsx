@@ -22,6 +22,7 @@ import ContactForm from "@/components/ContactForm";
 import AdminDashboard from "@/components/AdminDashboard";
 import AdminDashboardDev from "@/components/AdminDashboardDev";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
+import { useToast } from "@/hooks/use-toast";
 import FinancementPage from "@/pages/FinancementPage";
 import MentionsLegalesPage from "@/pages/MentionsLegalesPage";
 import ConfidentialitePage from "@/pages/ConfidentialitePage";
@@ -49,7 +50,81 @@ function getDomainFromHeaders(): string {
 function HomePage() {
   const domain = getDomainFromHeaders();
   const websiteUrl = `https://${domain}`;
+  
+  // Form state
+  const [propertyType, setPropertyType] = useState("");
+  const [surface, setSurface] = useState("");
+  const [rooms, setRooms] = useState("");
   const [selectedAddress, setSelectedAddress] = useState<any>(null);
+  const [step, setStep] = useState<'form' | 'verification'>('form');
+  const [error, setError] = useState("");
+  const { toast } = useToast();
+
+  const handleQuickEstimate = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    // Validation
+    if (!propertyType || !surface || !selectedAddress) {
+      setError("Veuillez remplir tous les champs requis");
+      return;
+    }
+
+    if (parseInt(surface.split('-')[0]) <= 0 && surface !== "200+") {
+      setError("Veuillez sélectionner une surface valide");
+      return;
+    }
+
+    // Move to SMS verification step
+    setStep('verification');
+  };
+
+  const handleVerified = async (sessionId: string) => {
+    try {
+      const surfaceValue = surface === "200+" ? 250 : 
+                          surface.includes('-') ? 
+                            parseInt(surface.split('-')[0]) + 25 : 
+                            parseInt(surface);
+
+      const response = await fetch('/api/estimations-quick', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          propertyType: propertyType === "maison" ? "house" : "apartment",
+          surface: surfaceValue,
+          city: selectedAddress?.city || selectedAddress?.cityName || "Bordeaux",
+          address: selectedAddress?.address || selectedAddress?.fullAddress || "Adresse non spécifiée",
+          postalCode: selectedAddress?.postalCode || "33000",
+          projectType: "renseignement",
+          timeline: "6-mois",
+          ownershipStatus: "proprietaire",
+          wantsExpertContact: false,
+          smsVerified: true,
+          sessionId
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast({
+          title: "Estimation créée !",
+          description: "Redirection vers vos résultats..."
+        });
+        
+        // Redirect to results page
+        window.location.href = `/estimation-resultats?id=${data.id}`;
+      } else {
+        setError("Erreur lors de la création de l'estimation");
+        setStep('form');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      setError("Erreur lors de la création de l'estimation");
+      setStep('form');
+    }
+  };
   
   // Structured data for local business
   const localBusinessSchema = createLocalBusinessSchema(
@@ -128,43 +203,91 @@ function HomePage() {
         {/* Section d'estimation rapide */}
         <section className="py-8 bg-background border-b">
           <div className="max-w-6xl mx-auto px-4">
-            <div className="flex flex-wrap items-center justify-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-foreground">Estimation rapide :</span>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <AddressAutocomplete
-                  onAddressSelect={(address) => setSelectedAddress(address)}
-                  placeholder="Adresse du bien"
-                  className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 min-w-[200px]"
-                  data-testid="filter-city"
+            {step === 'form' ? (
+              <form onSubmit={handleQuickEstimate}>
+                <div className="flex flex-wrap items-center justify-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-foreground">Estimation rapide :</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <AddressAutocomplete
+                      onAddressSelect={(address) => setSelectedAddress(address)}
+                      placeholder="Adresse du bien"
+                      className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 min-w-[200px]"
+                      data-testid="filter-city"
+                    />
+                    <select 
+                      value={propertyType}
+                      onChange={(e) => setPropertyType(e.target.value)}
+                      className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" 
+                      data-testid="filter-property-type"
+                    >
+                      <option value="">Type de bien</option>
+                      <option value="maison">Maison</option>
+                      <option value="appartement">Appartement</option>
+                      <option value="terrain">Terrain</option>
+                    </select>
+                    <select 
+                      value={surface}
+                      onChange={(e) => setSurface(e.target.value)}
+                      className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" 
+                      data-testid="filter-surface"
+                    >
+                      <option value="">Surface (m²)</option>
+                      <option value="0-50">- 50 m²</option>
+                      <option value="50-80">50 - 80 m²</option>
+                      <option value="80-120">80 - 120 m²</option>
+                      <option value="120-200">120 - 200 m²</option>
+                      <option value="200+">200+ m²</option>
+                    </select>
+                    <select 
+                      value={rooms}
+                      onChange={(e) => setRooms(e.target.value)}
+                      className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" 
+                      data-testid="filter-rooms"
+                    >
+                      <option value="">Pièces (optionnel)</option>
+                      <option value="1-2">1-2 pièces</option>
+                      <option value="3">3 pièces</option>
+                      <option value="4">4 pièces</option>
+                      <option value="5+">5+ pièces</option>
+                    </select>
+                    <button 
+                      type="submit"
+                      className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover-elevate transition-colors" 
+                      data-testid="button-estimate"
+                    >
+                      Demander une estimation
+                    </button>
+                  </div>
+                </div>
+                {error && (
+                  <div className="text-center mt-4">
+                    <p className="text-red-600 text-sm">{error}</p>
+                  </div>
+                )}
+              </form>
+            ) : (
+              <div className="max-w-md mx-auto">
+                <div className="text-center mb-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                    Vérification SMS
+                  </h3>
+                  <p className="text-muted-foreground text-sm">
+                    Pour sécuriser votre estimation et vous envoyer les résultats
+                  </p>
+                </div>
+                <SmsVerificationHome 
+                  propertyData={{
+                    propertyType: propertyType === "maison" ? "Maison" : "Appartement", 
+                    surface: surface,
+                    city: selectedAddress?.city || selectedAddress?.cityName || "Non spécifié"
+                  }}
+                  onVerified={handleVerified}
+                  onBack={() => setStep('form')}
                 />
-                <select className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="filter-property-type">
-                  <option value="">Type de bien</option>
-                  <option value="maison">Maison</option>
-                  <option value="appartement">Appartement</option>
-                  <option value="terrain">Terrain</option>
-                </select>
-                <select className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="filter-surface">
-                  <option value="">Surface (m²)</option>
-                  <option value="0-50">- 50 m²</option>
-                  <option value="50-80">50 - 80 m²</option>
-                  <option value="80-120">80 - 120 m²</option>
-                  <option value="120-200">120 - 200 m²</option>
-                  <option value="200+">200+ m²</option>
-                </select>
-                <select className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="filter-rooms">
-                  <option value="">Pièces</option>
-                  <option value="1-2">1-2 pièces</option>
-                  <option value="3">3 pièces</option>
-                  <option value="4">4 pièces</option>
-                  <option value="5+">5+ pièces</option>
-                </select>
-                <Link href="/estimation" className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover-elevate transition-colors inline-block" data-testid="button-estimate">
-                  Demander une estimation
-                </Link>
               </div>
-            </div>
+            )}
           </div>
         </section>
         
