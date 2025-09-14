@@ -368,7 +368,6 @@ export class SupabaseStorage implements IStorage {
       
       // Store in memory
       this.memoryStore.leads.set(lead.id, lead);
-      console.log(`✅ Lead stored in memory: ${lead.id}`);
       
       return lead;
     }
@@ -417,7 +416,6 @@ export class SupabaseStorage implements IStorage {
         this.memoryStore.estimations.set(insertEstimation.leadId, []);
       }
       this.memoryStore.estimations.get(insertEstimation.leadId)!.push(estimation);
-      console.log(`✅ Estimation stored in memory: ${estimation.id} for lead ${insertEstimation.leadId}`);
       
       return estimation;
     }
