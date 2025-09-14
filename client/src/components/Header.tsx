@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { Menu, X, Home, Calculator, FileText, Euro, Newspaper, BookOpen } from "lucide-react";
 
 interface HeaderProps {
@@ -60,9 +59,8 @@ export default function Header({ domain = "estimation-immobilier-gironde.fr" }: 
           </nav>
 
 
-          {/* Theme Toggle and Mobile Menu */}
+          {/* Mobile Menu */}
           <div className="flex items-center gap-1">
-            <ThemeToggle />
             <Button
               variant="ghost"
               size="icon"
