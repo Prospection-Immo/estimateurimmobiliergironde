@@ -75,8 +75,10 @@ export default function HomepageEstimationForm() {
           title: "Estimation créée !",
           description: "Votre estimation a été calculée avec succès.",
         });
-        // For now, redirect to estimation page
-        window.location.href = `/estimation?leadId=${data.lead.id}`;
+        // Store result in localStorage for results page
+        localStorage.setItem('estimationResult', JSON.stringify(data));
+        // Navigate to results page
+        window.location.href = '/estimation-resultats';
       } else {
         const errorData = await response.json();
         setError(errorData.error || "Erreur lors du calcul de l'estimation");
