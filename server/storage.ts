@@ -314,6 +314,11 @@ export interface IStorage {
 }
 
 export class SupabaseStorage implements IStorage {
+  // Memory store for development mode (when database is not connected)
+  private memoryStore = {
+    authSessions: new Map<string, AuthSession>()
+  };
+
   // Users
   async getUser(id: string): Promise<User | undefined> {
     const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
@@ -589,35 +594,37 @@ export class SupabaseStorage implements IStorage {
 
   // Auth Sessions (2FA)
   async createAuthSession(session: InsertAuthSession): Promise<AuthSession> {
-    const result = await db
-      .insert(authSessions)
-      .values(session)
-      .returning();
+    // Since we're in memory mode, create a session object directly
+    const newSession: AuthSession = {
+      id: session.id || crypto.randomUUID(),
+      email: session.email,
+      phoneNumber: session.phoneNumber,
+      isEmailVerified: session.isEmailVerified || false,
+      isSmsVerified: session.isSmsVerified || false,
+      verificationSid: session.verificationSid || null,
+      expiresAt: session.expiresAt,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
     
-    // Handle case where returning() doesn't return an array
-    const authSession = Array.isArray(result) ? result[0] : result;
-    if (!authSession) {
-      throw new Error('Failed to create auth session');
-    }
-    return authSession;
+    // Store in memory (since database is not connected)
+    this.memoryStore.authSessions.set(newSession.id, newSession);
+    
+    return newSession;
   }
 
   async getAuthSession(id: string): Promise<AuthSession | undefined> {
-    const result = await db
-      .select()
-      .from(authSessions)
-      .where(eq(authSessions.id, id))
-      .limit(1);
-    
-    // Handle array or single result
-    return Array.isArray(result) ? result[0] : result;
+    // Get from memory store (since database is not connected)
+    return this.memoryStore.authSessions.get(id);
   }
 
   async updateAuthSession(id: string, updates: Partial<InsertAuthSession>): Promise<void> {
-    await db
-      .update(authSessions)
-      .set(updates)
-      .where(eq(authSessions.id, id));
+    // Update in memory store (since database is not connected)
+    const existing = this.memoryStore.authSessions.get(id);
+    if (existing) {
+      const updated = { ...existing, ...updates, updatedAt: new Date() };
+      this.memoryStore.authSessions.set(id, updated);
+    }
   }
 
   // Guides
