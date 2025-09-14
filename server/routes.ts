@@ -1003,16 +1003,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Step 1: Start homepage verification session
   app.post("/api/homepage-verification/start", rateLimit(3, 5 * 60 * 1000), async (req, res) => {
     try {
-      const { email, firstName, phoneNumber, propertyData } = req.body;
+      const { phoneNumber, propertyData } = req.body;
       
       // Basic validation
-      if (!email || !firstName || !phoneNumber || !propertyData) {
-        return res.status(400).json({ error: "Tous les champs sont requis" });
-      }
-
-      // Validate email format
-      if (!email.includes('@')) {
-        return res.status(400).json({ error: "Format d'email invalide" });
+      if (!phoneNumber || !propertyData) {
+        return res.status(400).json({ error: "Le numéro de téléphone est requis" });
       }
 
       // Validate phone number
@@ -1024,9 +1019,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create auth session for homepage verification
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
       const authSession = await storage.createAuthSession({
-        email: email.toLowerCase(),
+        email: `temp-${Date.now()}@sms-verification.local`, // Temporary email for SMS-only verification
         phoneNumber: phoneValidation.formatted,
-        isEmailVerified: false, // We'll mark this as true since we have the email
+        isEmailVerified: true, // We skip email verification for SMS-only flow
         isSmsVerified: false,
         expiresAt
       });
@@ -1034,8 +1029,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Store temporary lead data in session for later use
       (req.session as any).homepageVerificationData = {
         authSessionId: authSession.id,
-        firstName,
-        email: email.toLowerCase(),
         phoneNumber: phoneValidation.formatted,
         propertyData
       };

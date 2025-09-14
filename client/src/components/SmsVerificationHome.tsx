@@ -16,8 +16,6 @@ interface SmsVerificationHomeProps {
 }
 
 export default function SmsVerificationHome({ propertyData, onVerified, onBack }: SmsVerificationHomeProps) {
-  const [email, setEmail] = useState("");
-  const [firstName, setFirstName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -33,14 +31,8 @@ export default function SmsVerificationHome({ propertyData, onVerified, onBack }
     setError("");
 
     // Basic validation
-    if (!email || !firstName || !phoneNumber) {
-      setError("Tous les champs sont requis");
-      setIsLoading(false);
-      return;
-    }
-
-    if (!email.includes('@')) {
-      setError("Veuillez entrer une adresse email valide");
+    if (!phoneNumber) {
+      setError("Le numéro de téléphone est requis");
       setIsLoading(false);
       return;
     }
@@ -52,8 +44,6 @@ export default function SmsVerificationHome({ propertyData, onVerified, onBack }
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          email, 
-          firstName, 
           phoneNumber,
           propertyData 
         }),
@@ -149,35 +139,12 @@ export default function SmsVerificationHome({ propertyData, onVerified, onBack }
             Vérification pour accéder à votre estimation
           </h3>
           <p className="text-muted-foreground text-sm">
-            Pour protéger nos données et vous garantir les meilleurs résultats, nous vérifions votre identité par SMS
+            Pour bannir les <strong>SPAMMERS, ROBOTS et HACKERS</strong>, nous vérifions votre identité par SMS.
+            <br /><span className="text-xs text-green-600 font-medium">🔒 Votre numéro n'est PAS sauvegardé</span>
           </p>
         </div>
 
         <form onSubmit={handleContactSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-card-foreground block mb-2">Prénom*</label>
-              <Input
-                type="text"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder="Ex: Jean"
-                required
-                data-testid="input-first-name"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-card-foreground block mb-2">Email*</label>
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Ex: jean@example.com"
-                required
-                data-testid="input-email"
-              />
-            </div>
-          </div>
           <div>
             <label className="text-sm font-medium text-card-foreground block mb-2">Téléphone mobile*</label>
             <Input
