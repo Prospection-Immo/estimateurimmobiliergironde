@@ -589,20 +589,28 @@ export class SupabaseStorage implements IStorage {
 
   // Auth Sessions (2FA)
   async createAuthSession(session: InsertAuthSession): Promise<AuthSession> {
-    const [authSession] = await db
+    const result = await db
       .insert(authSessions)
       .values(session)
       .returning();
+    
+    // Handle case where returning() doesn't return an array
+    const authSession = Array.isArray(result) ? result[0] : result;
+    if (!authSession) {
+      throw new Error('Failed to create auth session');
+    }
     return authSession;
   }
 
   async getAuthSession(id: string): Promise<AuthSession | undefined> {
-    const [authSession] = await db
+    const result = await db
       .select()
       .from(authSessions)
       .where(eq(authSessions.id, id))
       .limit(1);
-    return authSession;
+    
+    // Handle array or single result
+    return Array.isArray(result) ? result[0] : result;
   }
 
   async updateAuthSession(id: string, updates: Partial<InsertAuthSession>): Promise<void> {
