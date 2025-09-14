@@ -1041,8 +1041,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: phoneValidation.error });
       }
 
-      // Create auth session for homepage verification
-      const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+      // Create auth session for homepage verification (30 minutes pour debug)
+      const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+      
+      console.log('🔧 Creating auth session:', {
+        phoneNumber: phoneValidation.formatted,
+        expiresAt: expiresAt.toISOString()
+      });
       const authSession = await storage.createAuthSession({
         email: `temp-${Date.now()}@sms-verification.local`, // Temporary email for SMS-only verification
         phoneNumber: phoneValidation.formatted,
@@ -1058,6 +1063,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         propertyData
       };
 
+      console.log('✅ Auth session created successfully:', {
+        sessionId: authSession.id,
+        expiresAt: authSession.expiresAt?.toISOString()
+      });
+      
       res.json({ 
         success: true, 
         sessionId: authSession.id,
