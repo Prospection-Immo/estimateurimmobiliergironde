@@ -127,7 +127,7 @@ export default function EstimationResults() {
               <span>{propertyData.type}</span>
               <span>•</span>
               <MapPin className="h-4 w-4" />
-              <span>{propertyData.city}</span>
+              <span>{propertyData.address}</span>
             </div>
 
             {/* Estimated Value */}
@@ -163,7 +163,7 @@ export default function EstimationResults() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
               <Button onClick={handleDownloadReport} data-testid="button-download-report">
                 <Download className="h-4 w-4 mr-2" />
-                Recevoir mon rapport gratuit
+                Estimation en ligne pour complète et détaillée
               </Button>
               <Button variant="outline" onClick={handleRequestContact} data-testid="button-contact-expert">
                 <Phone className="h-4 w-4 mr-2" />

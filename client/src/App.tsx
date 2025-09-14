@@ -870,15 +870,16 @@ function Router() {
 export default function App() {
   const [location] = useLocation();
   
-  // Check if this is an admin route that should not use PublicLayout
+  // Check if this is an admin route or results page that should not use PublicLayout
   const isAdminRoute = location.startsWith('/admin') || location === '/admin-dev' || location === '/login' || location === '/gironde-login' || location === '/gironde-admin-dashboard';
+  const isResultsPage = location === '/estimation-resultats' || location.startsWith('/estimation-resultats');
   
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
-          {isAdminRoute ? (
-            // Admin routes render without PublicLayout (they have their own sidebar)
+          {isAdminRoute || isResultsPage ? (
+            // Admin routes and results page render without PublicLayout
             <>
               <Router />
               <Toaster />
