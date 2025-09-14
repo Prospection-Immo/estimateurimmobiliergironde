@@ -21,7 +21,6 @@ import EstimationResults from "@/components/EstimationResults";
 import ContactForm from "@/components/ContactForm";
 import AdminDashboard from "@/components/AdminDashboard";
 import AdminDashboardDev from "@/components/AdminDashboardDev";
-import HomepageEstimationForm from "@/components/HomepageEstimationForm";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import FinancementPage from "@/pages/FinancementPage";
 import MentionsLegalesPage from "@/pages/MentionsLegalesPage";
@@ -50,6 +49,7 @@ function getDomainFromHeaders(): string {
 function HomePage() {
   const domain = getDomainFromHeaders();
   const websiteUrl = `https://${domain}`;
+  const [selectedAddress, setSelectedAddress] = useState<any>(null);
   
   // Structured data for local business
   const localBusinessSchema = createLocalBusinessSchema(
@@ -168,20 +168,6 @@ function HomePage() {
           </div>
         </section>
         
-        {/* Formulaire d'estimation complet avec SMS */}
-        <section className="py-16 bg-background">
-          <div className="max-w-4xl mx-auto px-4">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">
-                Estimation gratuite avec vérification SMS
-              </h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                Obtenez une estimation précise de votre bien immobilier en 3 minutes avec vérification SMS sécurisée
-              </p>
-            </div>
-            <HomepageEstimationForm />
-          </div>
-        </section>
         
         {/* 3 Blocs Section */}
         <section className="py-16 bg-background">
