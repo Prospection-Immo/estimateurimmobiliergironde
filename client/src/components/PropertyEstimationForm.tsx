@@ -73,6 +73,7 @@ const INITIAL_FORM_DATA: FormData = {
 export default function PropertyEstimationForm() {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
+  const [sessionId, setSessionId] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [basicEstimation, setBasicEstimation] = useState<BasicEstimation | null>(null);
   const [isCalculatingBasic, setIsCalculatingBasic] = useState(false);
@@ -94,12 +95,22 @@ export default function PropertyEstimationForm() {
 
   // Calculate basic estimation using first 3 steps
   const calculateBasicEstimation = async (): Promise<BasicEstimation> => {
+    // Generate sessionId if not exists
+    let currentSessionId = sessionId;
+    if (!currentSessionId) {
+      currentSessionId = crypto.randomUUID();
+      setSessionId(currentSessionId);
+    }
+
     const propertyData = {
+      sessionId: currentSessionId,
       propertyType: formData.propertyType,
       city: formData.city,
       surface: parseInt(formData.surface) || 0,
       rooms: parseInt(formData.rooms) || 0
     };
+
+    console.log('Calculating basic estimation with data:', propertyData);
 
     // Call the quick estimation API
     const response = await fetch('/api/estimations-quick', {
@@ -111,10 +122,13 @@ export default function PropertyEstimationForm() {
     });
 
     if (!response.ok) {
-      throw new Error('Erreur lors du calcul de l\'estimation');
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      console.error('API Error:', errorData);
+      throw new Error(errorData.error || 'Erreur lors du calcul de l\'estimation');
     }
 
     const result = await response.json();
+    console.log('Basic estimation result:', result);
     return {
       minPrice: result.minPrice,
       maxPrice: result.maxPrice,
