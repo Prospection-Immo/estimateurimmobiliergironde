@@ -146,13 +146,13 @@ function HomePage() {
                   <option value="appartement">Appartement</option>
                   <option value="terrain">Terrain</option>
                 </select>
-                <select className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="filter-price">
-                  <option value="">Budget</option>
-                  <option value="0-200000">- 200k €</option>
-                  <option value="200000-350000">200k - 350k €</option>
-                  <option value="350000-500000">350k - 500k €</option>
-                  <option value="500000-750000">500k - 750k €</option>
-                  <option value="750000+">750k € +</option>
+                <select className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="filter-surface">
+                  <option value="">Surface (m²)</option>
+                  <option value="0-50">- 50 m²</option>
+                  <option value="50-80">50 - 80 m²</option>
+                  <option value="80-120">80 - 120 m²</option>
+                  <option value="120-200">120 - 200 m²</option>
+                  <option value="200+">200+ m²</option>
                 </select>
                 <select className="px-3 py-2 border border-border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="filter-rooms">
                   <option value="">Pièces</option>
