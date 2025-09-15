@@ -126,7 +126,7 @@ export default function ActualitesPage({ domain = "estimation-immobilier-gironde
           <div className="max-w-6xl mx-auto px-4">
             <div className="animate-pulse space-y-4">
               {[1, 2, 3].map((i) => (
-                <Card key={i} className="h-48">
+                <Card key={i} className="h-64">
                   <CardHeader>
                     <div className="h-6 bg-muted rounded w-3/4"></div>
                     <div className="h-4 bg-muted rounded w-1/2"></div>

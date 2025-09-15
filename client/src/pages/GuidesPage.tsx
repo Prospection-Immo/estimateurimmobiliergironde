@@ -272,7 +272,7 @@ export default function GuidesPage() {
               {guides.map(guide => (
                 <Card key={guide.id} className="flex flex-col hover-elevate overflow-hidden" data-testid={`card-guide-${guide.id}`}>
                   {/* Image de la persona */}
-                  <div className="relative h-48 overflow-hidden bg-muted">
+                  <div className="relative h-64 overflow-hidden bg-muted">
                     <img 
                       src={guide.imageUrl || PERSONA_IMAGES[guide.persona] || PERSONA_IMAGES.primo}
                       alt={`Guide pour ${GUIDE_PERSONAS[guide.persona as keyof typeof GUIDE_PERSONAS]}`}
