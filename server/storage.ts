@@ -665,21 +665,196 @@ export class SupabaseStorage implements IStorage {
   async getGuides(persona?: string): Promise<Guide[]> {
     if (isDevelopmentMode) {
       // Return mock guides for development
-      return [
+      const mockGuides = [
         {
-          id: 'dev-guide-1',
-          title: 'Guide du Vendeur Pressé',
-          description: 'Pour vendre rapidement en Gironde',
+          id: 'dev-guide-presse',
+          title: 'Guide du Vendeur Pressé en Gironde',
+          slug: 'guide-vendeur-presse-gironde',
           persona: 'presse',
-          content: 'Contenu du guide...',
-          pdfUrl: null,
-          downloadCount: 15,
+          shortBenefit: 'Vendez votre bien en moins de 90 jours grâce à nos stratégies éprouvées',
+          readingTime: 15,
+          content: `<h1>Guide du Vendeur Pressé en Gironde</h1>
+            <p>Vous devez vendre rapidement votre bien immobilier en Gironde ? Ce guide vous révèle les stratégies qui fonctionnent dans un marché concurrentiel comme celui de Bordeaux et ses environs.</p>
+            
+            <h2>Stratégies de pricing agressif</h2>
+            <p>Le prix est votre arme principale. En Gironde, un bien correctement pricé se vend 40% plus vite. Découvrez comment positionner votre prix pour attirer immédiatement les acheteurs.</p>
+            
+            <h2>Home staging express</h2>
+            <p>Valorisez votre bien en 48h chrono avec des techniques de home staging adaptées aux goûts bordelais. Investissement moyen : 500€ pour un gain de 15 000€.</p>
+            
+            <h2>Réseau d'acheteurs qualifiés</h2>
+            <p>Accédez à notre réseau d'acheteurs pré-qualifiés en Gironde. 60% de nos ventes se font hors marché public.</p>`,
+          summary: 'Pricing stratégique • Home staging express • Réseau acheteurs • Négociation rapide',
+          imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop&crop=center',
+          metaDescription: 'Guide expert pour vendre rapidement votre bien immobilier en Gironde. Stratégies éprouvées, home staging, réseau acheteurs.',
+          seoTitle: 'Guide Vendeur Pressé Gironde | Vendre en 90 jours',
+          downloadCount: 125,
           isActive: true,
           sortOrder: 1,
           createdAt: new Date(),
-          updatedAt: null
+          updatedAt: new Date()
+        },
+        {
+          id: 'dev-guide-maximisateur',
+          title: 'Guide du Maximisateur de Plus-Value',
+          slug: 'guide-maximisateur-plus-value-gironde',
+          persona: 'maximisateur',
+          shortBenefit: 'Optimisez chaque euro de votre vente grâce à nos techniques de négociation avancées',
+          readingTime: 25,
+          content: `<h1>Guide du Maximisateur de Plus-Value en Gironde</h1>
+            <p>Vous voulez obtenir le meilleur prix pour votre bien ? Ce guide révèle les techniques utilisées par les négociateurs immobiliers d'élite en Gironde.</p>
+            
+            <h2>Valorisation maximale de votre bien</h2>
+            <p>Identifiez tous les leviers de valorisation : travaux rentables, optimisation fiscale, timing parfait. En Gironde, ces techniques permettent de gagner entre 5% et 15% sur le prix de vente.</p>
+            
+            <h2>Psychologie de négociation immobilière</h2>
+            <p>Maîtrisez l'art de la négociation avec les acheteurs girondins. Techniques de closing, gestion des objections, création d'urgence artificielle.</p>
+            
+            <h2>Analyse micro-marché Bordeaux Métropole</h2>
+            <p>Exploitez les spécificités de chaque quartier : Saint-Pierre, Chartrons, Caudéran... Maximisez selon votre localisation précise.</p>`,
+          summary: 'Valorisation maximale • Négociation avancée • Analyse micro-marché • ROI travaux • Fiscalité optimisée',
+          imageUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=300&fit=crop&crop=center',
+          metaDescription: 'Guide expert maximisation plus-value immobilière Gironde. Négociation, valorisation, fiscalité optimisée.',
+          seoTitle: 'Maximiser Plus-Value Immobilière Gironde | Guide Expert',
+          downloadCount: 89,
+          isActive: true,
+          sortOrder: 2,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          id: 'dev-guide-succession',
+          title: 'Guide Succession Immobilière Gironde',
+          slug: 'guide-succession-immobiliere-gironde',
+          persona: 'succession',
+          shortBenefit: 'Gérez sereinement la vente d\'un bien hérité avec nos conseils juridiques et pratiques',
+          readingTime: 30,
+          content: `<h1>Guide Succession Immobilière en Gironde</h1>
+            <p>Vendre un bien immobilier en succession nécessite des précautions particulières. Ce guide vous accompagne dans chaque étape administrative et pratique.</p>
+            
+            <h2>Démarches administratives succession</h2>
+            <p>Check-list complète : acte de notoriété, déclaration de succession, autorisation de vendre. Délais et pièges à éviter en Gironde.</p>
+            
+            <h2>Optimisation fiscale succession</h2>
+            <p>Minimisez les droits de succession, optimisez l'abattement, gérez la plus-value. Stratégies spécifiques aux biens girondins.</p>
+            
+            <h2>Gestion familiale et émotionnelle</h2>
+            <p>Conseils pour gérer les conflits familiaux, prendre des décisions consensuelles, préserver les relations tout en optimisant la vente.</p>
+            
+            <h2>Valorisation bien patrimoine</h2>
+            <p>Techniques spécifiques pour les biens anciens, maisons de famille, propriétés viticoles typiques de la Gironde.</p>`,
+          summary: 'Démarches légales • Fiscalité succession • Gestion familiale • Valorisation patrimoine • Optimisation droits',
+          imageUrl: 'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=400&h=300&fit=crop&crop=center',
+          metaDescription: 'Guide complet succession immobilière Gironde. Démarches, fiscalité, gestion familiale, conseils notariaux.',
+          seoTitle: 'Succession Immobilière Gironde | Guide Complet 2025',
+          downloadCount: 67,
+          isActive: true,
+          sortOrder: 3,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          id: 'dev-guide-nouvelle-vie',
+          title: 'Guide Nouvelle Vie - Changement Immobilier',
+          slug: 'guide-nouvelle-vie-changement-immobilier',
+          persona: 'nouvelle_vie',
+          shortBenefit: 'Accompagnement personnalisé pour votre projet de vie : déménagement, retraite, séparation',
+          readingTime: 20,
+          content: `<h1>Guide Nouvelle Vie - Changement Immobilier</h1>
+            <p>Divorce, retraite, changement professionnel... Les transitions de vie nécessitent des stratégies immobilières adaptées. Ce guide vous accompagne dans votre nouveau départ.</p>
+            
+            <h2>Stratégies selon votre situation</h2>
+            <p>Retraite : optimiser pour la fiscalité et le cash-flow. Divorce : préserver vos intérêts patrimoniaux. Mutation professionnelle : timing et négociation employeur.</p>
+            
+            <h2>Recherche nouveau logement</h2>
+            <p>Critères adaptés à votre nouvelle vie, quartiers recommandés en Gironde selon l'âge et les besoins, budgétisation réaliste.</p>
+            
+            <h2>Accompagnement émotionnel</h2>
+            <p>Gérer le stress du changement, prendre les bonnes décisions, éviter les erreurs dues à l'émotion. Support psychologique inclus.</p>
+            
+            <h2>Optimisation financière transition</h2>
+            <p>Crédit relais, vente avant achat, négociation des frais, solutions de financement transitoires.</p>`,
+          summary: 'Stratégies transition • Recherche logement • Support émotionnel • Optimisation financière • Accompagnement personnalisé',
+          imageUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=300&fit=crop&crop=center',
+          metaDescription: 'Guide changement vie immobilier Gironde. Retraite, divorce, mutation : stratégies et accompagnement personnalisé.',
+          seoTitle: 'Changement Vie Immobilier Gironde | Guide Transition',
+          downloadCount: 78,
+          isActive: true,
+          sortOrder: 4,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          id: 'dev-guide-investisseur',
+          title: 'Guide de l\'Investisseur Immobilier Gironde',
+          slug: 'guide-investisseur-immobilier-gironde',
+          persona: 'investisseur',
+          shortBenefit: 'Maximisez votre ROI avec les meilleures opportunités d\'investissement en Gironde',
+          readingTime: 35,
+          content: `<h1>Guide de l'Investisseur Immobilier en Gironde</h1>
+            <p>Investir dans l'immobilier girondin nécessite une connaissance fine du marché local. Ce guide révèle les stratégies des investisseurs qui réussissent.</p>
+            
+            <h2>Analyse marché Bordeaux Métropole</h2>
+            <p>Zones en développement, projets urbains 2025-2030, évolution des prix par secteur, identification des futures pépites immobilières.</p>
+            
+            <h2>Stratégies fiscales optimisées</h2>
+            <p>Pinel, Malraux, défiscalisation, SCI : choisir la meilleure structure selon votre profil fiscal et vos objectifs de rentabilité.</p>
+            
+            <h2>Calculs de rentabilité précis</h2>
+            <p>Cash-flow, rentabilité nette, impact fiscal, coûts cachés, seuils de rentabilité par type de bien et quartier en Gironde.</p>
+            
+            <h2>Négociation investisseur</h2>
+            <p>Techniques de négociation spécifiques aux investissements, identification des biens décotés, négociation avec les promoteurs.</p>
+            
+            <h2>Gestion locative optimisée</h2>
+            <p>Sélection locataires, optimisation loyers, gestion des impayés, stratégies de plus-value à moyen terme.</p>`,
+          summary: 'Analyse marché • Fiscalité optimisée • Calculs rentabilité • Négociation • Gestion locative • Stratégies ROI',
+          imageUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=300&fit=crop&crop=center',
+          metaDescription: 'Guide investissement immobilier Gironde. ROI, fiscalité, analyse marché, négociation, gestion locative.',
+          seoTitle: 'Investissement Immobilier Gironde | Guide ROI 2025',
+          downloadCount: 156,
+          isActive: true,
+          sortOrder: 5,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          id: 'dev-guide-primo',
+          title: 'Guide du Primo-Vendeur en Gironde',
+          slug: 'guide-primo-vendeur-gironde',
+          persona: 'primo',
+          shortBenefit: 'Votre première vente immobilière expliquée étape par étape, sans stress ni piège',
+          readingTime: 18,
+          content: `<h1>Guide du Primo-Vendeur en Gironde</h1>
+            <p>Première vente immobilière ? Ce guide vous accompagne pas à pas pour éviter les erreurs et optimiser votre transaction en toute sérénité.</p>
+            
+            <h2>Étapes de la vente immobilière</h2>
+            <p>Chronologie complète : de l'estimation à la signature chez le notaire. Check-list détaillée, délais à respecter, documents à préparer.</p>
+            
+            <h2>Estimation juste de votre bien</h2>
+            <p>Méthodes d'estimation, erreurs courantes des primo-vendeurs, importance du prix juste, comparaison avec le marché girondin.</p>
+            
+            <h2>Choisir son professionnel</h2>
+            <p>Agent immobilier vs vente directe : avantages/inconvénients. Comment sélectionner le bon partenaire en Gironde.</p>
+            
+            <h2>Négociation pour débutants</h2>
+            <p>Bases de la négociation immobilière, répondre aux objections courantes, éviter les erreurs qui coûtent cher.</p>
+            
+            <h2>Aspects juridiques simplifiés</h2>
+            <p>Diagnostics obligatoires, compromis de vente, conditions suspensives. Tout comprendre sans jargon juridique.</p>`,
+          summary: 'Étapes vente • Estimation juste • Choix professionnel • Négociation basics • Juridique simplifié • Éviter pièges',
+          imageUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=300&fit=crop&crop=center',
+          metaDescription: 'Guide première vente immobilière Gironde. Étapes, estimation, négociation, conseils primo-vendeur.',
+          seoTitle: 'Primo-Vendeur Immobilier Gironde | Guide Première Vente',
+          downloadCount: 203,
+          isActive: true,
+          sortOrder: 6,
+          createdAt: new Date(),
+          updatedAt: new Date()
         }
-      ].filter(g => !persona || g.persona === persona);
+      ];
+      
+      return mockGuides.filter(g => !persona || g.persona === persona);
     }
     
     if (persona) {
