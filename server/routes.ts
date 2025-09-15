@@ -266,24 +266,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Zod schema for complete estimation validation
+  const completeEstimationSchema = z.object({
+    sessionId: z.string().uuid('SessionId doit être un UUID valide'),
+    email: z.string().email('Format email invalide').max(255),
+    phone: z.string().max(20).optional(),
+    propertyType: z.enum(['house', 'apartment'], { errorMap: () => ({ message: 'Type de propriété invalide' }) }),
+    address: z.string().min(1, 'Adresse requise').max(500),
+    city: z.string().min(1, 'Ville requise').max(100),
+    postalCode: z.string().regex(/^33\d{3}$/, 'Code postal Gironde requis (33xxx)'),
+    surface: z.number().positive('Surface doit être positive').max(10000),
+    rooms: z.number().int().min(1).max(50).optional(),
+    bedrooms: z.number().int().min(0).max(50).optional(),
+    bathrooms: z.number().int().min(0).max(50).optional(),
+    constructionYear: z.number().int().min(1800).max(new Date().getFullYear() + 2).optional(),
+    hasGarden: z.boolean().optional(),
+    hasParking: z.boolean().optional(),
+    hasBalcony: z.boolean().optional()
+  });
+
   // Complete estimation with Perplexity analysis (requires SMS verification + email)
-  app.post('/api/estimations-complete', async (req, res) => {
+  // CRITICAL: Rate limited and validated - expensive Perplexity API calls
+  app.post('/api/estimations-complete', rateLimit(2, 10 * 60 * 1000), async (req, res) => {
     try {
-      const { sessionId, email, phone, propertyType, address, city, postalCode, surface, rooms, bedrooms, bathrooms, constructionYear, hasGarden, hasParking, hasBalcony } = req.body;
+      // Zod validation with detailed error messages
+      const validationResult = completeEstimationSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        const errors = validationResult.error.errors.map(err => 
+          `${err.path.join('.')}: ${err.message}`
+        ).join(', ');
+        return res.status(400).json({ 
+          error: 'Données invalides', 
+          details: errors,
+          code: 'VALIDATION_ERROR'
+        });
+      }
+
+      const { sessionId, email, phone, propertyType, address, city, postalCode, surface, rooms, bedrooms, bathrooms, constructionYear, hasGarden, hasParking, hasBalcony } = validationResult.data;
       
       console.log('=== COMPLETE ESTIMATION WITH PERPLEXITY ===');
       console.log('SessionId:', sessionId);
       console.log('Email:', email);
       console.log('Property details:', { propertyType, city, surface, rooms });
-      
-      // Validate required fields
-      if (!sessionId || !email) {
-        return res.status(400).json({ error: 'SessionId et email requis' });
-      }
-      
-      if (!email.includes('@')) {
-        return res.status(400).json({ error: 'Format email invalide' });
-      }
 
       // Retrieve and validate SMS verification session
       const authSession = await storage.getAuthSession(sessionId);

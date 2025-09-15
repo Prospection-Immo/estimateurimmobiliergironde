@@ -338,14 +338,18 @@ export default function PropertyEstimationForm() {
         return;
       }
       
-      // Additional validation: sessionId should be a valid UUID format
+      // Additional validation: sessionId should be a valid UUID format (improved with better logging)
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(sessionId)) {
-        alert('Session corrompue. Veuillez recommencer la vérification SMS.');
-        console.error('SMS verification gating: Invalid sessionId format', {
+      
+      // Enhanced UUID validation with better error handling
+      if (!sessionId || sessionId.trim() === '' || typeof sessionId !== 'string') {
+        console.error('SMS verification gating: Empty or invalid sessionId type', {
           sessionId: sessionId,
+          sessionIdType: typeof sessionId,
+          sessionIdLength: sessionId?.length || 0,
           currentStep: step
         });
+        alert('Session invalide (vide). Veuillez recommencer la vérification SMS.');
         // Reset SMS verification to force restart
         setSmsVerification({
           step: 'request',
@@ -356,6 +360,38 @@ export default function PropertyEstimationForm() {
         });
         setSessionId('');
         return;
+      }
+      
+      // Check UUID format (but be more lenient about exact format)
+      const trimmedSessionId = sessionId.trim();
+      if (!uuidRegex.test(trimmedSessionId)) {
+        console.error('SMS verification gating: Invalid sessionId format', {
+          sessionId: sessionId,
+          trimmedSessionId: trimmedSessionId,
+          sessionIdLength: sessionId.length,
+          regexTest: uuidRegex.test(trimmedSessionId),
+          currentStep: step
+        });
+        
+        // Only block if sessionId is clearly not a UUID (more lenient check)
+        if (trimmedSessionId.length < 30 || !trimmedSessionId.includes('-')) {
+          alert('Format de session invalide. Veuillez recommencer la vérification SMS.');
+          // Reset SMS verification to force restart
+          setSmsVerification({
+            step: 'request',
+            phoneNumber: '',
+            verificationCode: '',
+            isLoading: false,
+            error: null
+          });
+          setSessionId('');
+          return;
+        } else {
+          // Log the issue but allow progression (more permissive)
+          console.warn('SessionId format non-standard mais probablement valide, autorisation de continuer:', {
+            sessionId: trimmedSessionId
+          });
+        }
       }
       
       console.log('SMS verification gating: All checks passed', {
