@@ -48,6 +48,19 @@ interface SmsVerificationState {
   expiresIn?: number;
 }
 
+interface CompleteEstimation {
+  estimatedValue: number;
+  pricePerM2: number;
+  confidence: number;
+  detailedAnalysis: {
+    environmentalFactors: string;
+    marketAnalysis: string;
+    priceEvolution: string;
+    recommendations: string;
+    localInfrastructure: string;
+  };
+}
+
 const INITIAL_FORM_DATA: FormData = {
   propertyType: "house",
   address: "",
@@ -77,6 +90,8 @@ export default function PropertyEstimationForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [basicEstimation, setBasicEstimation] = useState<BasicEstimation | null>(null);
   const [isCalculatingBasic, setIsCalculatingBasic] = useState(false);
+  const [completeEstimation, setCompleteEstimation] = useState<CompleteEstimation | null>(null);
+  const [isCalculatingComplete, setIsCalculatingComplete] = useState(false);
   const [smsVerification, setSmsVerification] = useState<SmsVerificationState>({
     step: 'request',
     phoneNumber: '',
@@ -86,71 +101,85 @@ export default function PropertyEstimationForm() {
   });
   const [isAddressValid, setIsAddressValid] = useState(false);
 
-  const totalSteps = 6; // 1-3: property info, 4: SMS verification, 5: basic estimation, 6: contact/final
+  const totalSteps = 7; // 1-3: property info, 4: SMS verification, 5: email/phone, 6: complete estimation, 7: contact/final
   const progress = (step / totalSteps) * 100;
 
   const updateFormData = (field: keyof FormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Calculate basic estimation when arriving at step 5 (after SMS verification)
+  // Calculate complete estimation when arriving at step 6 (after email/phone collection)
   useEffect(() => {
-    if (step === 5 && sessionId && !basicEstimation && !isCalculatingBasic) {
-      const calculateEstimation = async () => {
-        setIsCalculatingBasic(true);
+    if (step === 6 && sessionId && formData.email && !completeEstimation && !isCalculatingComplete) {
+      const calculateCompleteEstimation = async () => {
+        setIsCalculatingComplete(true);
         try {
-          const estimation = await calculateBasicEstimation();
-          setBasicEstimation(estimation);
+          const estimation = await performCompleteEstimation();
+          setCompleteEstimation(estimation);
         } catch (error) {
-          console.error('Erreur estimation basique:', error);
+          console.error('Erreur estimation complète:', error);
           // Even if estimation fails, we allow user to continue
         } finally {
-          setIsCalculatingBasic(false);
+          setIsCalculatingComplete(false);
         }
       };
-      calculateEstimation();
+      calculateCompleteEstimation();
     }
-  }, [step, sessionId, basicEstimation, isCalculatingBasic]);
+  }, [step, sessionId, formData.email, completeEstimation, isCalculatingComplete]);
 
-  // Calculate basic estimation using first 3 steps + SMS verification
-  const calculateBasicEstimation = async (): Promise<BasicEstimation> => {
+  // Calculate complete estimation with Perplexity analysis
+  const performCompleteEstimation = async (): Promise<CompleteEstimation> => {
     // Use existing sessionId (must be set after SMS verification)
     if (!sessionId) {
       throw new Error('Session non valide. Veuillez vérifier votre numéro de téléphone.');
     }
+    
+    if (!formData.email) {
+      throw new Error('Email requis pour l\'estimation complète.');
+    }
 
-    const propertyData = {
+    const estimationData = {
+      sessionId: sessionId,
+      email: formData.email,
+      phone: formData.phone || '',
       propertyType: formData.propertyType,
+      address: formData.address,
       city: formData.city,
+      postalCode: formData.postalCode,
       surface: parseInt(formData.surface) || 0,
       rooms: parseInt(formData.rooms) || 0,
-      sessionId: sessionId
+      bedrooms: parseInt(formData.bedrooms) || 0,
+      bathrooms: parseInt(formData.bathrooms) || 0,
+      constructionYear: parseInt(formData.constructionYear) || undefined,
+      hasGarden: formData.hasGarden,
+      hasParking: formData.hasParking,
+      hasBalcony: formData.hasBalcony
     };
 
-    console.log('Calculating basic estimation with data:', propertyData);
+    console.log('Calculating complete estimation with data:', estimationData);
 
-    // Call the basic estimation API (SMS verification required)
-    const response = await fetch('/api/estimations-basic', {
+    // Call the complete estimation API with Perplexity analysis
+    const response = await fetch('/api/estimations-complete', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(propertyData)
+      body: JSON.stringify(estimationData)
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
       console.error('API Error:', errorData);
-      throw new Error(errorData.error || 'Erreur lors du calcul de l\'estimation');
+      throw new Error(errorData.error || 'Erreur lors du calcul de l\'estimation complète');
     }
 
     const result = await response.json();
-    console.log('Basic estimation result:', result);
+    console.log('Complete estimation result:', result);
     return {
-      minPrice: result.minPrice,
-      maxPrice: result.maxPrice,
-      averagePrice: result.averagePrice,
-      pricePerSqm: result.pricePerSqm
+      estimatedValue: result.estimatedValue,
+      pricePerM2: result.pricePerM2,
+      confidence: result.confidence,
+      detailedAnalysis: result.detailedAnalysis
     };
   };
 
@@ -236,7 +265,7 @@ export default function PropertyEstimationForm() {
           isLoading: false 
         }));
         
-        // Move to basic estimation step (step 5) only after sessionId is set
+        // Move to email/phone collection step (step 5) only after sessionId is set
         setStep(5);
         
         return true;
@@ -334,6 +363,14 @@ export default function PropertyEstimationForm() {
         sessionId: sessionId,
         currentStep: step
       });
+    }
+    
+    // Validation for step 5 (email/phone collection)
+    if (step === 5) {
+      if (!formData.email || !formData.email.includes('@')) {
+        alert('Veuillez saisir une adresse email valide');
+        return;
+      }
     }
     
     // Additional gating: Prevent accessing step 5+ without proper SMS verification
@@ -756,66 +793,158 @@ export default function PropertyEstimationForm() {
           </div>
         )}
 
-        {/* Step 5: Basic Estimation Results */}
+        {/* Step 5: Email/Phone Collection */}
         {step === 5 && (
           <div className="space-y-6">
-            <h3 className="text-xl font-semibold">Votre estimation basique</h3>
+            <div className="text-center">
+              <Target className="h-12 w-12 text-primary mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Vos coordonnées pour l'estimation détaillée</h3>
+              <p className="text-muted-foreground">
+                Recevez votre rapport d'expertise immobilière complet par email.
+                <br/>Analyse approfondie avec comparaisons de marché et conseils d'expert.
+              </p>
+            </div>
             
-            {isCalculatingBasic ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-muted-foreground">Calcul de votre estimation en cours...</p>
+            <div className="max-w-md mx-auto space-y-4">
+              <div>
+                <Label htmlFor="email-collection">Adresse email *</Label>
+                <Input
+                  id="email-collection"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => updateFormData("email", e.target.value)}
+                  placeholder="votre@email.com"
+                  data-testid="input-email-collection"
+                  required
+                />
               </div>
-            ) : basicEstimation ? (
-              <div className="space-y-6">
-                <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-6 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div>
+                <Label htmlFor="phone-collection">Téléphone (optionnel)</Label>
+                <Input
+                  id="phone-collection"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => updateFormData("phone", e.target.value)}
+                  placeholder="06 12 34 56 78"
+                  data-testid="input-phone-collection"
+                />
+              </div>
+            </div>
+            
+            <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <div className="flex items-center justify-center space-x-2 text-primary mb-2">
+                <CheckCircle className="h-5 w-5" />
+                <p className="font-medium">Rapport d'expertise inclus :</p>
+              </div>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• Estimation précise avec analyse Perplexity IA</li>
+                <li>• Étude de marché spécifique à votre quartier</li>
+                <li>• Analyse des infrastructures et environnement</li>
+                <li>• Conseils personnalisés pour optimiser la vente</li>
+                <li>• Tendances et évolution des prix</li>
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {/* Step 6: Complete Estimation with Perplexity Analysis */}
+        {step === 6 && (
+          <div className="space-y-6">
+            <h3 className="text-xl font-semibold">Votre estimation complète</h3>
+            
+            {isCalculatingComplete ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-6"></div>
+                <h4 className="text-lg font-semibold mb-2">Analyse en cours...</h4>
+                <p className="text-muted-foreground">Notre IA analyse votre bien et le marché local</p>
+                <div className="mt-4 max-w-sm mx-auto">
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <p>✓ Analyse des données de marché</p>
+                    <p>✓ Étude de l'environnement local</p>
+                    <p>✓ Comparaison avec les ventes récentes</p>
+                    <p>✓ Génération des recommandations...</p>
+                  </div>
+                </div>
+              </div>
+            ) : completeEstimation ? (
+              <div className="space-y-8">
+                {/* Prix principal */}
+                <div className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-8 rounded-lg border border-green-200 dark:border-green-800">
                   <div className="text-center">
-                    <h4 className="text-2xl font-bold text-primary mb-2">Estimation approximative</h4>
-                    <div className="text-3xl font-bold text-foreground mb-1">
-                      {basicEstimation.minPrice.toLocaleString('fr-FR')}€ - {basicEstimation.maxPrice.toLocaleString('fr-FR')}€
+                    <h4 className="text-3xl font-bold text-green-700 dark:text-green-400 mb-3">Estimation finale</h4>
+                    <div className="text-5xl font-bold text-foreground mb-2">
+                      {completeEstimation.estimatedValue.toLocaleString('fr-FR')}€
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Soit environ {basicEstimation.pricePerSqm.toLocaleString('fr-FR')}€/m²
-                    </p>
+                    <div className="text-lg text-muted-foreground mb-1">
+                      {completeEstimation.pricePerM2.toLocaleString('fr-FR')}€/m²
+                    </div>
+                    <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-400">
+                      Fiabilité: {completeEstimation.confidence}%
+                    </div>
                   </div>
                 </div>
                 
-                <div className="text-center space-y-4">
-                  <div className="flex items-center justify-center space-x-2 text-amber-600 dark:text-amber-400">
-                    <AlertCircle className="h-5 w-5" />
-                    <p className="font-medium">Estimation basée sur les données de marché</p>
+                {/* Analyses détaillées */}
+                <div className="grid gap-6">
+                  <div className="p-6 border border-border rounded-lg">
+                    <h5 className="font-semibold text-lg mb-3 flex items-center">
+                      <Building className="h-5 w-5 mr-2 text-primary" />
+                      Analyse de l'environnement
+                    </h5>
+                    <p className="text-muted-foreground whitespace-pre-line">{completeEstimation.detailedAnalysis.environmentalFactors}</p>
                   </div>
-                  <p className="text-muted-foreground">
-                    Pour obtenir votre estimation détaillée et précise avec analyse complète,
-                    <br/>
-                    <strong className="text-foreground">renseignez vos coordonnées ci-dessous</strong>
-                  </p>
                   
-                  <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
-                    <div className="flex items-center justify-center space-x-2 text-primary">
-                      <Target className="h-5 w-5" />
-                      <p className="font-medium">Estimation détaillée gratuite</p>
-                    </div>
-                    <ul className="mt-2 text-sm text-muted-foreground space-y-1">
-                      <li>• Analyse approfondie de votre bien</li>
-                      <li>• Comparaison avec les ventes récentes</li>
-                      <li>• Rapport d'expertise gratuit par email</li>
-                    </ul>
+                  <div className="p-6 border border-border rounded-lg">
+                    <h5 className="font-semibold text-lg mb-3 flex items-center">
+                      <Target className="h-5 w-5 mr-2 text-primary" />
+                      Analyse du marché local
+                    </h5>
+                    <p className="text-muted-foreground whitespace-pre-line">{completeEstimation.detailedAnalysis.marketAnalysis}</p>
                   </div>
+                  
+                  <div className="p-6 border border-border rounded-lg">
+                    <h5 className="font-semibold text-lg mb-3 flex items-center">
+                      <ArrowRight className="h-5 w-5 mr-2 text-primary" />
+                      Évolution des prix
+                    </h5>
+                    <p className="text-muted-foreground whitespace-pre-line">{completeEstimation.detailedAnalysis.priceEvolution}</p>
+                  </div>
+                  
+                  <div className="p-6 border border-border rounded-lg">
+                    <h5 className="font-semibold text-lg mb-3 flex items-center">
+                      <Building2 className="h-5 w-5 mr-2 text-primary" />
+                      Infrastructures locales
+                    </h5>
+                    <p className="text-muted-foreground whitespace-pre-line">{completeEstimation.detailedAnalysis.localInfrastructure}</p>
+                  </div>
+                  
+                  <div className="p-6 bg-primary/5 border border-primary/20 rounded-lg">
+                    <h5 className="font-semibold text-lg mb-3 flex items-center text-primary">
+                      <CheckCircle className="h-5 w-5 mr-2" />
+                      Recommandations d'expert
+                    </h5>
+                    <p className="text-muted-foreground whitespace-pre-line">{completeEstimation.detailedAnalysis.recommendations}</p>
+                  </div>
+                </div>
+                
+                <div className="text-center p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    💌 Un rapport détaillé a été envoyé à <strong>{formData.email}</strong>
+                  </p>
                 </div>
               </div>
             ) : (
               <div className="text-center py-8">
                 <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-                <p className="text-muted-foreground">Impossible de calculer l'estimation pour le moment</p>
-                <p className="text-sm text-muted-foreground">Veuillez continuer pour obtenir votre estimation détaillée</p>
+                <p className="text-muted-foreground">Impossible de calculer l'estimation complète pour le moment</p>
+                <p className="text-sm text-muted-foreground">Veuillez contacter notre équipe pour obtenir votre estimation</p>
               </div>
             )}
           </div>
         )}
-
-        {/* Step 6: Contact Info */}
-        {step === 6 && (
+        
+        {/* Step 7: Contact Info */}
+        {step === 7 && (
           <div className="space-y-6">
             <h3 className="text-xl font-semibold">Vos coordonnées</h3>
             <p className="text-muted-foreground">
@@ -971,7 +1100,7 @@ export default function PropertyEstimationForm() {
           <Button
             variant="outline"
             onClick={prevStep}
-            disabled={step === 1 || (step === 5 && smsVerification.step === 'verify')}
+            disabled={step === 1 || (step === 4 && smsVerification.step === 'verify') || step === 6}
             data-testid="button-prev-step"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -985,19 +1114,19 @@ export default function PropertyEstimationForm() {
                   onClick={() => setStep(5)}
                   data-testid="button-start-sms"
                 >
-                  Obtenir l'estimation complète
+                  Continuer
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
-              ) : step === 5 ? (
-                // SMS step navigation is handled within the step content
+              ) : step === 6 ? (
+                // Complete estimation step - no navigation button
                 null
               ) : (
                 <Button
                   onClick={nextStep}
-                  disabled={isCalculatingBasic || (step === 2 && (!formData.address || !isAddressValid))}
+                  disabled={isCalculatingComplete || (step === 2 && (!formData.address || !isAddressValid)) || (step === 5 && !formData.email)}
                   data-testid="button-next-step"
                 >
-                  {isCalculatingBasic ? "Calcul..." : "Suivant"}
+                  {step === 5 ? "Obtenir l'estimation complète" : "Suivant"}
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               )}

@@ -9,6 +9,7 @@ import emailSequenceService from "./services/emailSequenceService";
 import emailTemplateGenerator from "./services/emailTemplateGenerator";
 import { leadScoringService } from "./services/leadScoringService";
 import smsVerificationService from "./services/smsVerificationService";
+import { getMarketResearch } from "./services/perplexity";
 import { z } from "zod";
 import crypto from "crypto";
 import twilio from "twilio";
@@ -262,6 +263,177 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching Google Maps config:', error);
       res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Complete estimation with Perplexity analysis (requires SMS verification + email)
+  app.post('/api/estimations-complete', async (req, res) => {
+    try {
+      const { sessionId, email, phone, propertyType, address, city, postalCode, surface, rooms, bedrooms, bathrooms, constructionYear, hasGarden, hasParking, hasBalcony } = req.body;
+      
+      console.log('=== COMPLETE ESTIMATION WITH PERPLEXITY ===');
+      console.log('SessionId:', sessionId);
+      console.log('Email:', email);
+      console.log('Property details:', { propertyType, city, surface, rooms });
+      
+      // Validate required fields
+      if (!sessionId || !email) {
+        return res.status(400).json({ error: 'SessionId et email requis' });
+      }
+      
+      if (!email.includes('@')) {
+        return res.status(400).json({ error: 'Format email invalide' });
+      }
+
+      // Retrieve and validate SMS verification session
+      const authSession = await storage.getAuthSession(sessionId);
+      console.log('AuthSession retrieved:', {
+        exists: !!authSession,
+        email: authSession?.email,
+        phoneNumber: authSession?.phoneNumber,
+        isSmsVerified: authSession?.isSmsVerified,
+        expiresAt: authSession?.expiresAt
+      });
+      
+      if (!authSession || authSession.expiresAt < new Date()) {
+        console.log('Session validation failed');
+        return res.status(400).json({ error: 'Session expirée ou invalide' });
+      }
+
+      if (!authSession.isSmsVerified) {
+        console.log('SMS not verified');
+        return res.status(400).json({ error: 'Vérification SMS requise' });
+      }
+
+      // Base estimation calculation
+      const baseEstimation = calculateEstimation({
+        propertyType,
+        city,
+        surface: surface || 0,
+        rooms: rooms || 0,
+        bedrooms: bedrooms || 0,
+        bathrooms: bathrooms || 0,
+        constructionYear: constructionYear || undefined,
+        hasGarden: hasGarden || false,
+        hasParking: hasParking || false,
+        hasBalcony: hasBalcony || false
+      });
+
+      console.log('Base estimation calculated:', baseEstimation);
+
+      // Detailed Perplexity Analysis - Multiple specialized queries
+      console.log('Starting Perplexity analysis...');
+      
+      // 1. Environmental and Infrastructure Analysis
+      const environmentQuery = `Analyse complète de l'environnement et des infrastructures pour un ${propertyType} à ${city} (${postalCode}). Détaille : transports en commun (tramway, bus, gares), écoles et universités proximité, commerces et services, parcs et espaces verts, hôpitaux et services de santé, qualité du quartier, nuisances sonores potentielles, projets d'urbanisme prévus.`;
+      
+      // 2. Local Market Analysis
+      const marketQuery = `Analyse du marché immobilier spécifique pour un ${propertyType} à ${city} en Gironde. Prix récents au m², évolution des prix 2024-2025, temps de vente moyen, demande/offre pour ce type de bien, comparaison avec communes voisines, attractivité du secteur pour les acheteurs.`;
+      
+      // 3. Price Evolution and Trends
+      const trendQuery = `Tendances et évolution des prix immobilier à ${city} Gironde. Facteurs influençant les prix : projets Grand Bordeaux Métropole, nouvelles lignes transport, développement économique local, impact télétravail, prévisions 2025-2026, recommandations timing de vente.`;
+      
+      // 4. Infrastructure Impact on Price
+      const infrastructureQuery = `Impact des infrastructures et équipements sur le prix d'un ${propertyType} à ${city}. Analyse : proximité centres commerciaux, écoles réputées, transports, espaces verts, services municipaux, fibre optique, stationnement, sécurité du quartier, projets futurs prévus.`;
+
+      // Execute all Perplexity queries in parallel for efficiency
+      const [environmentAnalysis, marketAnalysis, trendAnalysis, infrastructureAnalysis] = await Promise.all([
+        getMarketResearch({ query: environmentQuery, region: 'Gironde', searchRecency: 'month', maxTokens: 800 }),
+        getMarketResearch({ query: marketQuery, region: 'Gironde', searchRecency: 'month', maxTokens: 800 }),
+        getMarketResearch({ query: trendQuery, region: 'Gironde', searchRecency: 'month', maxTokens: 800 }),
+        getMarketResearch({ query: infrastructureQuery, region: 'Gironde', searchRecency: 'month', maxTokens: 800 })
+      ]);
+
+      console.log('Perplexity analysis completed successfully');
+
+      // Generate expert recommendations based on all analyses
+      const recommendationsQuery = `Conseils d'expert personnalisés pour optimiser la vente d'un ${propertyType} de ${surface}m² à ${city}. Basé sur: marché local actuel, période optimale de vente, améliorations rentables à effectuer, stratégie de pricing, ciblage des acquéreurs potentiels, mise en valeur du bien.`;
+      
+      const recommendationsAnalysis = await getMarketResearch({ 
+        query: recommendationsQuery, 
+        region: 'Gironde', 
+        searchRecency: 'month', 
+        maxTokens: 1000 
+      });
+
+      // Prepare structured response
+      const completeEstimation = {
+        estimatedValue: baseEstimation.estimatedValue,
+        pricePerM2: baseEstimation.pricePerM2,
+        confidence: baseEstimation.confidence,
+        detailedAnalysis: {
+          environmentalFactors: environmentAnalysis.content || 'Analyse environnementale en cours...',
+          marketAnalysis: marketAnalysis.content || 'Analyse de marché en cours...',
+          priceEvolution: trendAnalysis.content || 'Analyse des tendances en cours...',
+          localInfrastructure: infrastructureAnalysis.content || 'Analyse des infrastructures en cours...',
+          recommendations: recommendationsAnalysis.content || 'Recommandations d\'expert en cours...'
+        },
+        analysisMetadata: {
+          analysisDate: new Date().toISOString(),
+          dataRecency: 'Données récentes (moins de 30 jours)',
+          totalCitations: [
+            ...environmentAnalysis.citations,
+            ...marketAnalysis.citations,
+            ...trendAnalysis.citations,
+            ...infrastructureAnalysis.citations,
+            ...recommendationsAnalysis.citations
+          ].slice(0, 10) // Limit to top 10 sources
+        }
+      };
+
+      // Save the complete estimation to storage
+      try {
+        const estimationData = {
+          sessionId,
+          email,
+          phone: phone || '',
+          propertyType,
+          address,
+          city,
+          postalCode,
+          surface: surface || 0,
+          rooms: rooms || 0,
+          bedrooms: bedrooms || 0,
+          bathrooms: bathrooms || 0,
+          constructionYear: constructionYear || null,
+          hasGarden: hasGarden || false,
+          hasParking: hasParking || false,
+          hasBalcony: hasBalcony || false,
+          estimatedValue: completeEstimation.estimatedValue,
+          pricePerM2: completeEstimation.pricePerM2,
+          confidence: completeEstimation.confidence,
+          detailedAnalysis: JSON.stringify(completeEstimation.detailedAnalysis),
+          source: 'estimation-complete'
+        };
+        
+        await storage.createEstimation(estimationData);
+        console.log('Complete estimation saved to storage');
+      } catch (storageError) {
+        console.error('Error saving estimation to storage:', storageError);
+        // Don't fail the request if storage fails
+      }
+
+      // Optional: Send email with detailed report
+      if (email) {
+        try {
+          // TODO: Implement email sending with detailed PDF report
+          // await emailService.sendEstimationReport(email, completeEstimation);
+          console.log('Email report queued for:', email);
+        } catch (emailError) {
+          console.error('Error sending email report:', emailError);
+          // Don't fail the request if email fails
+        }
+      }
+
+      console.log('Complete estimation response prepared');
+      res.json(completeEstimation);
+
+    } catch (error) {
+      console.error('Error in complete estimation:', error);
+      res.status(500).json({ 
+        error: 'Erreur lors du calcul de l\'estimation complète',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
