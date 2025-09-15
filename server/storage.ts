@@ -455,38 +455,609 @@ export class SupabaseStorage implements IStorage {
   async getArticles(limit = 50): Promise<Article[]> {
     if (isDevelopmentMode) {
       // Return mock articles for development
-      return [
+      const mockArticles = [
         {
           id: 'dev-article-1',
-          title: 'Comment estimer sa maison en Gironde',
-          slug: 'comment-estimer-maison-gironde',
-          content: 'Article sur l\'estimation immobilière...',
-          summary: 'Guide complet pour estimer votre propriété',
-          metaDescription: 'Estimez votre maison en Gironde avec notre guide expert',
-          keywords: ['estimation', 'gironde', 'immobilier'],
+          title: 'Comment estimer sa maison en Gironde : Guide complet 2025',
+          slug: 'comment-estimer-maison-gironde-guide-2025',
+          content: `
+            <h2>L'estimation immobilière en Gironde : les fondamentaux</h2>
+            <p>Estimer correctement sa maison en Gironde nécessite une approche méthodique et une connaissance approfondie du marché local. La Gironde, avec ses spécificités géographiques allant des vignobles de Saint-Émilion aux quartiers résidentiels de Bordeaux, présente une grande diversité de prix au m².</p>
+            
+            <h3>Les critères essentiels d'évaluation</h3>
+            <p>Plusieurs facteurs influencent directement la valeur de votre bien :</p>
+            <ul>
+              <li><strong>L'emplacement</strong> : proximité de Bordeaux, accessibilité transports</li>
+              <li><strong>La superficie et configuration</strong> : surface habitable, nombre de pièces</li>
+              <li><strong>L'état général</strong> : travaux récents, isolation, chauffage</li>
+              <li><strong>Les prestations</strong> : jardin, garage, balcon, cave</li>
+            </ul>
+            
+            <h3>Prix moyens en Gironde fin 2024</h3>
+            <p>Le marché girondin affiche des prix contrastés selon les secteurs :</p>
+            <ul>
+              <li>Bordeaux centre : 4 500-6 000 €/m²</li>
+              <li>Périphérie bordelaise : 3 200-4 200 €/m²</li>
+              <li>Communes rurales : 1 800-2 800 €/m²</li>
+              <li>Littoral bassin d'Arcachon : 5 000-8 000 €/m²</li>
+            </ul>
+            
+            <h3>Méthode d'estimation par comparaison</h3>
+            <p>La méthode la plus fiable consiste à analyser les ventes récentes de biens similaires dans votre secteur. Consultez les bases de données notariales et les annonces pour établir une fourchette de prix réaliste.</p>
+            
+            <h3>Quand faire appel à un professionnel ?</h3>
+            <p>Un expert immobilier local apporte une valeur ajoutée précieuse, notamment pour les biens atypiques ou dans les secteurs en mutation. Son analyse fine du quartier et sa connaissance des acheteurs potentiels garantissent une estimation juste.</p>
+            
+            <p><em>Une estimation précise est la clé d'une vente réussie dans les délais souhaités.</em></p>
+          `,
+          summary: 'Découvrez comment estimer correctement votre maison en Gironde avec notre guide expert. Méthodes, prix moyens 2025 et conseils pratiques.',
+          metaDescription: 'Guide complet pour estimer sa maison en Gironde en 2025. Prix moyens, critères d\'évaluation et conseils d\'experts immobiliers.',
+          keywords: ['estimation immobilière gironde', 'prix immobilier bordeaux', 'vendre maison gironde', 'estimation gratuite'],
           category: 'estimation',
           status: 'published' as const,
-          authorName: 'Expert Immobilier',
-          publishedAt: new Date(),
-          createdAt: new Date(),
+          authorName: 'Sophie Martinez - Expert Immobilier',
+          publishedAt: new Date('2025-01-10'),
+          createdAt: new Date('2025-01-10'),
           updatedAt: null
         },
         {
           id: 'dev-article-2', 
-          title: 'Marché immobilier Bordeaux 2025',
-          slug: 'marche-immobilier-bordeaux-2025',
-          content: 'Analyse du marché bordelais...',
-          summary: 'Tendances du marché immobilier bordelais',
-          metaDescription: 'Analyse complète du marché immobilier à Bordeaux',
-          keywords: ['bordeaux', 'marché', 'tendances'],
+          title: 'Marché immobilier Bordeaux 2025 : tendances et prévisions',
+          slug: 'marche-immobilier-bordeaux-2025-tendances-previsions',
+          content: `
+            <h2>État du marché immobilier bordelais début 2025</h2>
+            <p>Le marché immobilier de Bordeaux entame 2025 dans un contexte de stabilisation après plusieurs années de forte hausse. Les prix affichent une modération bienvenue, créant de nouvelles opportunités pour les acquéreurs.</p>
+            
+            <h3>Évolution des prix sur 12 mois</h3>
+            <p>L'analyse des transactions de 2024 révèle :</p>
+            <ul>
+              <li>Stabilisation des prix dans l'ancien : +1,2% sur l'année</li>
+              <li>Léger recul du neuf : -2,5% en moyenne</li>
+              <li>Délais de vente rallongés : 95 jours en moyenne</li>
+              <li>Négociations plus fréquentes : -3% en moyenne sur les prix annoncés</li>
+            </ul>
+            
+            <h3>Secteurs porteurs et délaissés</h3>
+            <p><strong>Quartiers en demande :</strong></p>
+            <ul>
+              <li>Caudéran : recherché pour ses espaces verts</li>
+              <li>Saint-Augustin : proximité tram et commerces</li>
+              <li>Chartrons : cachet historique préservé</li>
+            </ul>
+            
+            <p><strong>Secteurs en difficulté :</strong></p>
+            <ul>
+              <li>Bacalan : saturation de l'offre neuve</li>
+              <li>Bastide : concurrence forte</li>
+            </ul>
+            
+            <h3>Prévisions 2025</h3>
+            <p>Les experts anticipent :</p>
+            <ul>
+              <li>Poursuite de la stabilisation des prix</li>
+              <li>Retour progressif des primo-accédants</li>
+              <li>Intérêt maintenu pour les biens rénovés</li>
+              <li>Développement du marché des résidences secondaires</li>
+            </ul>
+            
+            <h3>Conseils pour vendeurs et acheteurs</h3>
+            <p><strong>Vendeurs :</strong> Privilégiez un prix attractif dès le départ pour réduire les délais de vente. La présentation du bien devient cruciale.</p>
+            <p><strong>Acheteurs :</strong> Le pouvoir de négociation s'améliore. Prenez le temps de comparer et n'hésitez pas à faire des offres réfléchies.</p>
+          `,
+          summary: 'Analyse complète du marché immobilier bordelais en 2025 : évolution des prix, secteurs porteurs et prévisions d\'experts.',
+          metaDescription: 'Marché immobilier Bordeaux 2025 : prix, tendances et prévisions. Analyse experte des secteurs porteurs et conseils achat-vente.',
+          keywords: ['marché immobilier bordeaux', 'prix bordeaux 2025', 'achat appartement bordeaux', 'vente maison bordeaux'],
           category: 'marche',
           status: 'published' as const,
-          authorName: 'Analyste Marché',
-          publishedAt: new Date(),
-          createdAt: new Date(),
+          authorName: 'Jean-Pierre Dubois - Analyste Marché',
+          publishedAt: new Date('2025-01-08'),
+          createdAt: new Date('2025-01-08'),
+          updatedAt: null
+        },
+        {
+          id: 'dev-article-3',
+          title: '10 conseils pour vendre rapidement sa maison en Gironde',
+          slug: '10-conseils-vendre-rapidement-maison-gironde',
+          content: `
+            <h2>Comment accélérer la vente de votre maison en Gironde</h2>
+            <p>Vendre rapidement sa maison en Gironde demande une stratégie bien pensée. Voici nos 10 conseils essentiels pour optimiser votre vente et séduire les acquéreurs potentiels.</p>
+            
+            <h3>1. Fixez le bon prix dès le départ</h3>
+            <p>Un prix juste dès la mise sur le marché génère immédiatement de l'intérêt. Surévaluer votre bien retarde la vente et dévalorise votre propriété aux yeux des acquéreurs.</p>
+            
+            <h3>2. Soignez la première impression</h3>
+            <p>La façade, l'entrée et le jardin sont cruciaux. Un coup de peinture, quelques plantations et un nettoyage approfondi peuvent transformer la perception de votre bien.</p>
+            
+            <h3>3. Dépersonnalisez votre intérieur</h3>
+            <p>Les acquéreurs doivent se projeter. Rangez les objets personnels, photos de famille et décorations trop spécifiques. Optez pour une décoration neutre et moderne.</p>
+            
+            <h3>4. Optimisez l'éclairage</h3>
+            <p>Un intérieur lumineux paraît plus grand et plus accueillant. Ouvrez tous les volets, allumez les lampes lors des visites et nettoyez les fenêtres.</p>
+            
+            <h3>5. Effectuez les petites réparations</h3>
+            <p>Robinetterie qui fuit, peinture écaillée, poignées défaillantes : ces détails créent une impression de mal-entretien. Investissez dans ces réparations mineures.</p>
+            
+            <h3>6. Mettez en valeur vos atouts</h3>
+            <p>Jardin, garage, cave, proximité écoles ou transports : valorisez tous les plus de votre propriété dans vos annonces et lors des visites.</p>
+            
+            <h3>7. Choisissez le bon moment pour vendre</h3>
+            <p>En Gironde, le printemps et l'automne sont les saisons les plus favorables. Évitez juillet-août et décembre-janvier si possible.</p>
+            
+            <h3>8. Soyez flexible sur les visites</h3>
+            <p>Plus vous proposez de créneaux, plus vous multipliez vos chances. Week-ends et fins d'après-midi sont particulièrement demandés.</p>
+            
+            <h3>9. Préparez vos documents</h3>
+            <p>Diagnostics, factures de travaux, charges de copropriété : avoir tous les documents prêts rassure les acquéreurs et accélère les démarches.</p>
+            
+            <h3>10. Travaillez avec un professionnel local</h3>
+            <p>Un agent immobilier girondin connaît parfaitement son marché, dispose d'un fichier client qualifié et sait négocier efficacement.</p>
+            
+            <p><em>L'application de ces conseils peut réduire significativement votre délai de vente, souvent de plusieurs mois.</em></p>
+          `,
+          summary: '10 conseils essentiels d\'experts pour vendre rapidement votre maison en Gironde. Stratégies éprouvées pour séduire les acquéreurs.',
+          metaDescription: '10 conseils d\'experts pour vendre rapidement sa maison en Gironde. Prix, présentation, timing : tout pour réussir votre vente immobilière.',
+          keywords: ['vendre maison rapidement gironde', 'conseils vente immobilière', 'vente rapide bordeaux', 'expert immobilier gironde'],
+          category: 'conseils',
+          status: 'published' as const,
+          authorName: 'Marie Lagrange - Consultante Immobilière',
+          publishedAt: new Date('2025-01-05'),
+          createdAt: new Date('2025-01-05'),
+          updatedAt: null
+        },
+        {
+          id: 'dev-article-4',
+          title: 'Investir dans l\'immobilier en Gironde : opportunités 2025',
+          slug: 'investir-immobilier-gironde-opportunites-2025',
+          content: `
+            <h2>L'investissement immobilier en Gironde : panorama 2025</h2>
+            <p>La Gironde offre des opportunités d'investissement diversifiées, de l'immobilier locatif traditionnel aux résidences de tourisme. Découvrez les secteurs porteurs et les stratégies gagnantes pour 2025.</p>
+            
+            <h3>Les secteurs géographiques d'avenir</h3>
+            <p><strong>Bordeaux Métropole :</strong></p>
+            <ul>
+              <li>Forte demande locative étudiante et jeunes actifs</li>
+              <li>Rendements bruts : 4-6% selon secteurs</li>
+              <li>Plus-values à long terme assurées</li>
+            </ul>
+            
+            <p><strong>Bassin d'Arcachon :</strong></p>
+            <ul>
+              <li>Marché de la résidence secondaire dynamique</li>
+              <li>Location saisonnière très rentable</li>
+              <li>Contraintes réglementaires à anticiper</li>
+            </ul>
+            
+            <p><strong>Communes périurbaines :</strong></p>
+            <ul>
+              <li>Maisons avec jardin très recherchées</li>
+              <li>Prix d'achat encore abordables</li>
+              <li>Développement des infrastructures</li>
+            </ul>
+            
+            <h3>Typologie de biens à privilégier</h3>
+            <p><strong>Appartements T2-T3 Bordeaux :</strong></p>
+            <p>Idéaux pour la location aux étudiants et jeunes actifs. Secteurs Victoire, Saint-Michel et Bastide particulièrement intéressants.</p>
+            
+            <p><strong>Maisons rénovées périphérie :</strong></p>
+            <p>Forte demande des familles cherchant à fuir les centres-villes. Potentiel de plus-value important sur 10-15 ans.</p>
+            
+            <p><strong>Biens atypiques centre-ville :</strong></p>
+            <p>Lofts, échoppes rénovées : niche haut de gamme avec rendements attractifs.</p>
+            
+            <h3>Financement et fiscalité</h3>
+            <p>Les taux d'intérêt stabilisés autour de 4% rendent l'investissement locatif à nouveau attractif. Dispositifs fiscaux disponibles :</p>
+            <ul>
+              <li>Loi Pinel dans certaines zones</li>
+              <li>Déficit foncier pour les rénovations lourdes</li>
+              <li>Régime réel pour optimiser la fiscalité</li>
+            </ul>
+            
+            <h3>Pièges à éviter</h3>
+            <ul>
+              <li>Surestimer les loyers potentiels</li>
+              <li>Négliger les charges de copropriété</li>
+              <li>Ignorer l'évolution urbaine du quartier</li>
+              <li>Investir sans étude de marché locative</li>
+            </ul>
+            
+            <h3>Conseil d'expert</h3>
+            <p>L'investissement immobilier girondin reste pertinent en 2025, à condition de bien choisir son secteur et son type de bien. La connaissance fine du marché local est indispensable pour sécuriser son investissement.</p>
+          `,
+          summary: 'Guide complet pour investir dans l\'immobilier girondin en 2025 : secteurs porteurs, rendements et stratégies d\'investissement.',
+          metaDescription: 'Investissement immobilier Gironde 2025 : secteurs porteurs, rendements locatifs et conseils d\'experts. Guide complet pour investisseurs.',
+          keywords: ['investissement immobilier gironde', 'rendement locatif bordeaux', 'achat investissement bordeaux', 'immobilier locatif gironde'],
+          category: 'investissement',
+          status: 'published' as const,
+          authorName: 'Philippe Rousseau - Conseiller Patrimoine',
+          publishedAt: new Date('2025-01-03'),
+          createdAt: new Date('2025-01-03'),
+          updatedAt: null
+        },
+        {
+          id: 'dev-article-5',
+          title: 'Vente immobilière : droits et obligations en Gironde',
+          slug: 'vente-immobiliere-droits-obligations-gironde',
+          content: `
+            <h2>Cadre juridique de la vente immobilière en Gironde</h2>
+            <p>Vendre un bien immobilier en Gironde implique le respect d'un cadre juridique précis. Vendeurs et acquéreurs ont des droits et obligations qu'il convient de maîtriser pour sécuriser la transaction.</p>
+            
+            <h3>Obligations du vendeur</h3>
+            <p><strong>Information et diagnostics :</strong></p>
+            <ul>
+              <li>Diagnostic de performance énergétique (DPE)</li>
+              <li>État relatif à la présence d'amiante</li>
+              <li>Constat de risque d'exposition au plomb</li>
+              <li>État de l'installation intérieure d'électricité</li>
+              <li>État de l'installation intérieure de gaz</li>
+              <li>État relatif à la présence de termites</li>
+              <li>État des risques naturels et technologiques</li>
+            </ul>
+            
+            <p><strong>Vice caché :</strong></p>
+            <p>Le vendeur doit garantir l'acquéreur contre les vices cachés qui rendraient le bien impropre à sa destination ou en diminueraient l'usage.</p>
+            
+            <h3>Spécificités girondines</h3>
+            <p><strong>Zones à risque :</strong></p>
+            <p>Certaines communes girondines sont classées en zones de sismicité modérée ou en zones de retrait-gonflement des argiles, nécessitant des informations complémentaires.</p>
+            
+            <p><strong>Patrimoine historique :</strong></p>
+            <p>Bordeaux étant classé UNESCO, certains biens sont soumis à l'avis des Architectes des Bâtiments de France pour les modifications.</p>
+            
+            <h3>La promesse de vente</h3>
+            <p>Document engageant le vendeur pendant une durée déterminée. En Gironde, la pratique locale favorise :</p>
+            <ul>
+              <li>Délai de rétractation de 10 jours pour l'acquéreur</li>
+              <li>Conditions suspensives (financement, vente du bien actuel)</li>
+              <li>Clause pénale en cas de désistement non justifié</li>
+            </ul>
+            
+            <h3>L'acte de vente définitif</h3>
+            <p>Signé devant notaire, il doit contenir :</p>
+            <ul>
+              <li>L'identité complète des parties</li>
+              <li>La désignation précise du bien</li>
+              <li>Le prix et les modalités de paiement</li>
+              <li>Les garanties données par le vendeur</li>
+              <li>L'origine de propriété</li>
+            </ul>
+            
+            <h3>Frais et taxes</h3>
+            <p><strong>À la charge de l'acquéreur :</strong></p>
+            <ul>
+              <li>Frais de notaire : 7-8% de la valeur dans l'ancien</li>
+              <li>Droits de mutation : 5,81% en Gironde</li>
+              <li>Émoluments et débours du notaire</li>
+            </ul>
+            
+            <p><strong>À la charge du vendeur :</strong></p>
+            <ul>
+              <li>Diagnostics immobiliers : 500-1500€</li>
+              <li>Plus-value immobilière si applicable</li>
+              <li>Frais d'agence si mandatement</li>
+            </ul>
+            
+            <h3>Recours en cas de litige</h3>
+            <p>En cas de conflit, plusieurs solutions existent :</p>
+            <ul>
+              <li>Médiation amiable</li>
+              <li>Tribunal judiciaire de Bordeaux</li>
+              <li>Expertise judiciaire si vice caché</li>
+            </ul>
+            
+            <p><em>La connaissance de vos droits et obligations sécurise votre transaction immobilière en Gironde.</em></p>
+          `,
+          summary: 'Guide juridique complet de la vente immobilière en Gironde : obligations, diagnostics, spécificités locales et recours.',
+          metaDescription: 'Vente immobilière Gironde : droits, obligations et cadre juridique. Guide complet des démarches légales pour vendeurs et acquéreurs.',
+          keywords: ['droit immobilier gironde', 'vente immobilière juridique', 'obligations vendeur bordeaux', 'diagnostics immobiliers'],
+          category: 'juridique',
+          status: 'published' as const,
+          authorName: 'Maître Claire Dubois - Notaire',
+          publishedAt: new Date('2024-12-30'),
+          createdAt: new Date('2024-12-30'),
+          updatedAt: null
+        },
+        {
+          id: 'dev-article-6',
+          title: 'Prix au m² en Gironde : cartographie détaillée par commune',
+          slug: 'prix-m2-gironde-cartographie-commune-2025',
+          content: `
+            <h2>Cartographie des prix immobiliers en Gironde</h2>
+            <p>La Gironde présente une grande disparité de prix selon les communes. Notre analyse détaillée vous aide à comprendre les écarts et identifier les opportunités d'achat ou de vente.</p>
+            
+            <h3>Bordeaux et ses arrondissements</h3>
+            <p><strong>Centre historique (Triangle d'Or) :</strong></p>
+            <ul>
+              <li>Appartements anciens : 5 500-7 000 €/m²</li>
+              <li>Programmes neufs : 6 500-8 500 €/m²</li>
+              <li>Évolution : +2,1% sur 12 mois</li>
+            </ul>
+            
+            <p><strong>Chartrons - Grand Parc :</strong></p>
+            <ul>
+              <li>Appartements anciens : 4 200-5 800 €/m²</li>
+              <li>Rénovations haut de gamme : 6 000-7 200 €/m²</li>
+              <li>Évolution : +1,8% sur 12 mois</li>
+            </ul>
+            
+            <p><strong>Bastide - Rive Droite :</strong></p>
+            <ul>
+              <li>Appartements anciens : 3 800-4 600 €/m²</li>
+              <li>Programmes neufs : 4 500-5 500 €/m²</li>
+              <li>Évolution : +0,5% sur 12 mois</li>
+            </ul>
+            
+            <h3>Première couronne bordelaise</h3>
+            <p><strong>Communes premium :</strong></p>
+            <ul>
+              <li>Le Bouscat : 4 100-4 800 €/m²</li>
+              <li>Talence : 3 900-4 600 €/m²</li>
+              <li>Pessac : 3 600-4 200 €/m²</li>
+              <li>Mérignac : 3 400-4 000 €/m²</li>
+            </ul>
+            
+            <p><strong>Secteurs en développement :</strong></p>
+            <ul>
+              <li>Bègles : 3 200-3 800 €/m²</li>
+              <li>Villenave d'Ornon : 3 000-3 600 €/m²</li>
+              <li>Gradignan : 3 400-4 000 €/m²</li>
+            </ul>
+            
+            <h3>Bassin d'Arcachon</h3>
+            <p>Le littoral girondin affiche les prix les plus élevés du département :</p>
+            <ul>
+              <li>Arcachon centre : 6 000-9 000 €/m²</li>
+              <li>Cap Ferret : 8 000-12 000 €/m²</li>
+              <li>La Teste-de-Buch : 4 500-6 000 €/m²</li>
+              <li>Andernos-les-Bains : 4 200-5 800 €/m²</li>
+            </ul>
+            
+            <h3>Secteurs viticoles</h3>
+            <p><strong>Prestige international :</strong></p>
+            <ul>
+              <li>Saint-Émilion : 3 200-4 800 €/m²</li>
+              <li>Pauillac : 2 800-3 600 €/m²</li>
+              <li>Margaux : 3 000-4 200 €/m²</li>
+            </ul>
+            
+            <p><strong>Autres appellations :</strong></p>
+            <ul>
+              <li>Cadillac : 2 200-2 800 €/m²</li>
+              <li>Langon : 1 800-2 400 €/m²</li>
+              <li>Créon : 2 000-2 600 €/m²</li>
+            </ul>
+            
+            <h3>Communes rurales</h3>
+            <p>L'immobilier rural girondin reste accessible :</p>
+            <ul>
+              <li>Haute-Gironde : 1 400-2 000 €/m²</li>
+              <li>Landes girondines : 1 600-2 200 €/m²</li>
+              <li>Entre-deux-Mers : 1 800-2 400 €/m²</li>
+            </ul>
+            
+            <h3>Facteurs d'évolution 2025</h3>
+            <p>Plusieurs éléments influenceront les prix :</p>
+            <ul>
+              <li>Extension ligne D du tramway</li>
+              <li>Développement télétravail</li>
+              <li>Nouvelle réglementation DPE</li>
+              <li>Arrivée LGV Bordeaux-Toulouse</li>
+            </ul>
+            
+            <h3>Conseil d'expertise</h3>
+            <p>Ces prix sont indicatifs et peuvent varier selon l'état du bien, ses prestations et sa situation précise. Une estimation personnalisée reste indispensable pour toute transaction.</p>
+          `,
+          summary: 'Cartographie complète des prix au m² en Gironde par commune. Analyse détaillée des secteurs et tendances d\'évolution 2025.',
+          metaDescription: 'Prix immobilier Gironde 2025 : cartographie détaillée par commune. Bordeaux, Bassin d\'Arcachon, vignobles et secteur rural.',
+          keywords: ['prix m2 gironde', 'prix immobilier bordeaux', 'marché immobilier arcachon', 'estimation prix commune gironde'],
+          category: 'estimation',
+          status: 'published' as const,
+          authorName: 'David Moreau - Expert Foncier',
+          publishedAt: new Date('2024-12-28'),
+          createdAt: new Date('2024-12-28'),
+          updatedAt: null
+        },
+        {
+          id: 'dev-article-7',
+          title: 'Home staging : valoriser sa maison avant la vente en Gironde',
+          slug: 'home-staging-valoriser-maison-vente-gironde',
+          content: `
+            <h2>Le home staging : un investissement rentable en Gironde</h2>
+            <p>Le home staging, art de valoriser un bien immobilier pour accélérer sa vente, connaît un succès croissant en Gironde. Cette technique peut réduire significativement votre délai de vente tout en optimisant le prix final.</p>
+            
+            <h3>Qu'est-ce que le home staging ?</h3>
+            <p>Le home staging consiste à préparer et mettre en scène votre bien pour séduire le maximum d'acquéreurs potentiels. L'objectif : permettre aux visiteurs de se projeter facilement dans leur futur logement.</p>
+            
+            <h3>Les règles d'or du home staging</h3>
+            <p><strong>Dépersonnaliser :</strong></p>
+            <ul>
+              <li>Retirer photos personnelles et objets trop spécifiques</li>
+              <li>Adopter une décoration neutre et contemporaine</li>
+              <li>Créer une atmosphère accueillante mais impersonnelle</li>
+            </ul>
+            
+            <p><strong>Désencombrer :</strong></p>
+            <ul>
+              <li>Vider 50% du contenu de chaque pièce</li>
+              <li>Libérer les espaces de circulation</li>
+              <li>Ranger placards et espaces de rangement</li>
+            </ul>
+            
+            <p><strong>Nettoyer en profondeur :</strong></p>
+            <ul>
+              <li>Sols, murs, plafonds impeccables</li>
+              <li>Vitres et miroirs étincelants</li>
+              <li>Éliminer toute odeur (tabac, animaux, cuisine)</li>
+            </ul>
+            
+            <h3>Spécificités du marché girondin</h3>
+            <p><strong>Échoppes bordelaises :</strong></p>
+            <p>Mettez en valeur l'authenticité tout en modernisant : poutres apparentes nettoyées, parquet rénové, luminaires design contrastant avec l'ancien.</p>
+            
+            <p><strong>Appartements haussmanniens :</strong></p>
+            <p>Valorisez les volumes et la lumière : miroirs stratégiques, couleurs claires, mobilier proportionné aux hauteurs sous plafond.</p>
+            
+            <p><strong>Pavillons périurbains :</strong></p>
+            <p>L'extérieur est crucial : jardin entretenu, terrasse aménagée, façade propre. L'intérieur doit respirer la modernité et la fonctionnalité.</p>
+            
+            <h3>Budget et retour sur investissement</h3>
+            <p><strong>Coûts moyens en Gironde :</strong></p>
+            <ul>
+              <li>Home staging léger : 1 000-3 000€</li>
+              <li>Home staging complet : 3 000-8 000€</li>
+              <li>Location mobilier : 300-800€/mois</li>
+            </ul>
+            
+            <p><strong>Retour sur investissement :</strong></p>
+            <ul>
+              <li>Réduction délai de vente : 30-50%</li>
+              <li>Prix de vente préservé ou bonifié</li>
+              <li>Moins de négociations sur le prix</li>
+            </ul>
+            
+            <h3>Home staging DIY : nos conseils</h3>
+            <p><strong>À faire soi-même :</strong></p>
+            <ul>
+              <li>Peinture fraîche en blanc ou beige</li>
+              <li>Remplacement des luminaires vétustes</li>
+              <li>Ajout de plantes vertes</li>
+              <li>Réorganisation du mobilier</li>
+            </ul>
+            
+            <p><strong>Investissements judicieux :</strong></p>
+            <ul>
+              <li>Nouvelles poignées et robinetterie : 200-500€</li>
+              <li>Coussins et rideaux modernes : 300-600€</li>
+              <li>Éclairage d'appoint design : 150-400€</li>
+            </ul>
+            
+            <h3>Erreurs à éviter</h3>
+            <ul>
+              <li>Surinvestir dans des travaux lourds</li>
+              <li>Imposer ses goûts personnels</li>
+              <li>Négliger l'extérieur et l'entrée</li>
+              <li>Oublier de créer une ambiance lors des visites</li>
+            </ul>
+            
+            <h3>Professionnels du home staging en Gironde</h3>
+            <p>De nombreux home stagers professionnels opèrent en Gironde. Ils apportent expertise, mobilier et décoration adaptés au marché local. Un investissement souvent rentabilisé par une vente plus rapide et mieux valorisée.</p>
+            
+            <p><em>Le home staging bien exécuté peut faire la différence sur un marché concurrentiel comme celui de la Gironde.</em></p>
+          `,
+          summary: 'Guide complet du home staging en Gironde pour accélérer la vente de votre maison. Techniques, budget et conseils d\'experts.',
+          metaDescription: 'Home staging Gironde : valorisez votre maison avant la vente. Techniques, budget et conseils pour vendre plus vite et mieux.',
+          keywords: ['home staging gironde', 'valoriser maison vente', 'vendre rapidement bordeaux', 'mise en scène immobilière'],
+          category: 'conseils',
+          status: 'published' as const,
+          authorName: 'Isabelle Moreau - Home Stager',
+          publishedAt: new Date('2024-12-25'),
+          createdAt: new Date('2024-12-25'),
+          updatedAt: null
+        },
+        {
+          id: 'dev-article-8',
+          title: 'Rénovation énergétique : impact sur la valeur immobilière en Gironde',
+          slug: 'renovation-energetique-impact-valeur-immobiliere-gironde',
+          content: `
+            <h2>Rénovation énergétique : un levier de valorisation immobilière</h2>
+            <p>Avec le durcissement de la réglementation DPE et la sensibilisation croissante aux enjeux environnementaux, la rénovation énergétique devient un facteur déterminant de la valeur immobilière en Gironde.</p>
+            
+            <h3>Impact du DPE sur les prix</h3>
+            <p>L'étiquette énergétique influence directement la valeur des biens :</p>
+            <ul>
+              <li><strong>Classe A-B :</strong> Bonus de 5-10% sur le prix de vente</li>
+              <li><strong>Classe C-D :</strong> Valeur de référence du marché</li>
+              <li><strong>Classe E :</strong> Décote de 5-8%</li>
+              <li><strong>Classe F-G :</strong> Décote de 10-20% et difficultés de vente</li>
+            </ul>
+            
+            <h3>Les passoires thermiques en Gironde</h3>
+            <p>En Gironde, environ 17% du parc immobilier est classé F ou G. Ces biens, appelés "passoires thermiques", font face à :</p>
+            <ul>
+              <li>Des délais de vente rallongés</li>
+              <li>Des négociations plus importantes</li>
+              <li>Une interdiction de location progressive (dès 2025 pour les G+)</li>
+            </ul>
+            
+            <h3>Travaux prioritaires pour améliorer le DPE</h3>
+            <p><strong>Isolation :</strong></p>
+            <ul>
+              <li>Combles : 3 000-6 000€ pour gagner 1-2 classes</li>
+              <li>Murs extérieurs : 15 000-25 000€ pour gagner 2-3 classes</li>
+              <li>Sol : 5 000-8 000€ pour gagner 1 classe</li>
+            </ul>
+            
+            <p><strong>Chauffage :</strong></p>
+            <ul>
+              <li>Pompe à chaleur : 10 000-18 000€</li>
+              <li>Chaudière gaz condensation : 4 000-7 000€</li>
+              <li>Poêle à granulés : 3 000-6 000€</li>
+            </ul>
+            
+            <p><strong>Fenêtres :</strong></p>
+            <ul>
+              <li>Double vitrage performant : 400-800€/m²</li>
+              <li>Triple vitrage : 600-1 000€/m²</li>
+            </ul>
+            
+            <h3>Aides disponibles en Gironde</h3>
+            <p><strong>Aides nationales :</strong></p>
+            <ul>
+              <li>MaPrimeRénov' : jusqu'à 20 000€</li>
+              <li>Éco-PTZ : jusqu'à 50 000€</li>
+              <li>CEE (Certificats d'Économie d'Énergie)</li>
+              <li>TVA réduite à 5,5%</li>
+            </ul>
+            
+            <p><strong>Aides locales :</strong></p>
+            <ul>
+              <li>Bordeaux Métropole : subventions complémentaires</li>
+              <li>Conseil départemental : aides spécifiques seniors</li>
+              <li>Certaines communes : bonus rénovation</li>
+            </ul>
+            
+            <h3>Calcul de rentabilité</h3>
+            <p><strong>Exemple concret - Maison 120m² classe F :</strong></p>
+            <ul>
+              <li>Investissement rénovation : 40 000€</li>
+              <li>Aides obtenues : 18 000€</li>
+              <li>Coût réel : 22 000€</li>
+              <li>Plus-value immobilière : +35 000€</li>
+              <li>Gain net : +13 000€ + économies d'énergie</li>
+            </ul>
+            
+            <h3>Rénovation par étapes</h3>
+            <p>Une approche progressive peut être judicieuse :</p>
+            <ol>
+              <li><strong>Phase 1 :</strong> Isolation des combles et changement de chauffage</li>
+              <li><strong>Phase 2 :</strong> Isolation des murs par l'extérieur</li>
+              <li><strong>Phase 3 :</strong> Remplacement des fenêtres</li>
+            </ol>
+            
+            <h3>Spécificités du bâti girondin</h3>
+            <p><strong>Échoppes bordelaises :</strong></p>
+            <p>Attention aux contraintes architecturales. L'isolation par l'intérieur est souvent privilégiée pour préserver les façades.</p>
+            
+            <p><strong>Immeubles haussmanniens :</strong></p>
+            <p>Travaux en copropriété complexes mais très rentables. L'isolation par l'extérieur transforme ces biens.</p>
+            
+            <h3>Conseil d'expert</h3>
+            <p>La rénovation énergétique est devenue incontournable en Gironde. Au-delà de la valeur ajoutée immédiate, elle prépare votre bien aux exigences futures du marché et à l'évolution réglementaire.</p>
+            
+            <p><em>Investir dans la performance énergétique, c'est investir dans l'avenir de son patrimoine immobilier.</em></p>
+          `,
+          summary: 'Impact de la rénovation énergétique sur la valeur immobilière en Gironde. DPE, travaux prioritaires, aides et rentabilité.',
+          metaDescription: 'Rénovation énergétique Gironde : impact sur la valeur immobilière. DPE, aides disponibles et calcul de rentabilité des travaux.',
+          keywords: ['rénovation énergétique gironde', 'DPE immobilier bordeaux', 'aides rénovation gironde', 'passoire thermique vente'],
+          category: 'conseils',
+          status: 'published' as const,
+          authorName: 'Thomas Leroy - Expert Rénovation',
+          publishedAt: new Date('2024-12-22'),
+          createdAt: new Date('2024-12-22'),
           updatedAt: null
         }
-      ].slice(0, limit);
+      ];
+      
+      return mockArticles.slice(0, limit);
     }
     
     return await db.select().from(articles).where(eq(articles.status, 'published')).orderBy(desc(articles.publishedAt)).limit(limit);
