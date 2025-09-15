@@ -219,6 +219,12 @@ function validatePhoneNumber(phone: string): { isValid: boolean; formatted: stri
 // Basic rate limiting middleware
 function rateLimit(maxRequests: number, windowMs: number) {
   return (req: any, res: any, next: any) => {
+    // Skip rate limiting in development for estimations endpoint to prevent blocking during testing
+    if (process.env.NODE_ENV !== 'production' && req.path === '/api/estimations-complete') {
+      console.log('Development mode: Skipping rate limit for estimations');
+      return next();
+    }
+    
     const key = req.ip || req.connection.remoteAddress || 'unknown';
     const now = Date.now();
     const entry = rateLimitStore.get(key);
@@ -287,7 +293,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Complete estimation with Perplexity analysis (requires SMS verification + email)
   // CRITICAL: Rate limited and validated - expensive Perplexity API calls
-  app.post('/api/estimations-complete', rateLimit(2, 10 * 60 * 1000), async (req, res) => {
+  // Development mode: More lenient rate limiting for testing
+  const isProduction = process.env.NODE_ENV === 'production';
+  const rateLimitConfig = isProduction 
+    ? rateLimit(2, 10 * 60 * 1000)  // Production: 2 requests per 10 minutes
+    : rateLimit(10, 2 * 60 * 1000); // Development: 10 requests per 2 minutes
+
+  app.post('/api/estimations-complete', rateLimitConfig, async (req, res) => {
     try {
       // Zod validation with detailed error messages
       const validationResult = completeEstimationSchema.safeParse(req.body);

@@ -111,21 +111,46 @@ export default function PropertyEstimationForm() {
   // Calculate complete estimation when arriving at step 6 (after email/phone collection)
   useEffect(() => {
     if (step === 6 && sessionId && formData.email && !completeEstimation && !isCalculatingComplete) {
+      console.log('Starting complete estimation calculation - useEffect triggered', {
+        step, sessionId: sessionId ? 'present' : 'missing', 
+        email: formData.email ? 'present' : 'missing', 
+        completeEstimation: completeEstimation ? 'already done' : 'needed',
+        isCalculatingComplete
+      });
+      
       const calculateCompleteEstimation = async () => {
         setIsCalculatingComplete(true);
         try {
           const estimation = await performCompleteEstimation();
           setCompleteEstimation(estimation);
+          console.log('Complete estimation successful:', estimation);
         } catch (error) {
           console.error('Erreur estimation complète:', error);
-          // Even if estimation fails, we allow user to continue
+          
+          // Create fallback estimation with error message
+          const fallbackAnalysis = error.message?.includes('saturé') 
+            ? 'Analyse en cours de génération... Veuillez rafraîchir dans quelques minutes.'
+            : 'Analyse temporairement non disponible. Nous travaillons à résoudre ce problème.';
+            
+          setCompleteEstimation({
+            estimatedValue: 0,
+            pricePerM2: 0,
+            confidence: 0,
+            detailedAnalysis: {
+              environmentalFactors: fallbackAnalysis,
+              marketAnalysis: fallbackAnalysis,
+              priceEvolution: fallbackAnalysis,
+              recommendations: 'En raison d\'une charge élevée, les recommandations détaillées seront disponibles sous peu.',
+              localInfrastructure: fallbackAnalysis
+            }
+          });
         } finally {
           setIsCalculatingComplete(false);
         }
       };
       calculateCompleteEstimation();
     }
-  }, [step, sessionId, formData.email, completeEstimation, isCalculatingComplete]);
+  }, [step, sessionId, formData.email]);
 
   // Calculate complete estimation with Perplexity analysis
   const performCompleteEstimation = async (): Promise<CompleteEstimation> => {
@@ -170,6 +195,13 @@ export default function PropertyEstimationForm() {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
       console.error('API Error:', errorData);
+      
+      // Handle rate limiting with user-friendly message
+      if (response.status === 429) {
+        throw new Error('Service temporairement saturé. Votre estimation de base est disponible. L\'analyse détaillée sera générée dans quelques minutes.');
+      }
+      
+      // Handle other API errors
       throw new Error(errorData.error || 'Erreur lors du calcul de l\'estimation complète');
     }
 
