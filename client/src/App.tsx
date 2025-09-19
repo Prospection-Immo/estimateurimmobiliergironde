@@ -39,6 +39,7 @@ import Admin2FALogin from "@/components/Admin2FALogin";
 import EmailTestPage from "@/pages/EmailTestPage";
 import FormationsPage from "@/pages/FormationsPage";
 import CourseDetailPage from "@/pages/CourseDetailPage";
+import CheckoutPage from "@/pages/CheckoutPage";
 import bordeaux_house from "@assets/generated_images/Bordeaux_house_property_photo_41cf0370.png";
 import SEOHead, { createLocalBusinessSchema, createFAQSchema } from "@/components/SEOHead";
 
@@ -842,6 +843,7 @@ function Router() {
       <Route path="/prix-m2" component={PrixM2Page} />
       <Route path="/formations" component={FormationsPage} />
       <Route path="/formation/:slug" component={CourseDetailPage} />
+      <Route path="/checkout/:slug" component={CheckoutPage} />
       <Route path="/guides" component={GuidesPage} />
       <Route path="/guides/:slug/merci" component={GuideThanksPage} />
       <Route path="/guides/:slug/lire" component={GuideReadPage} />

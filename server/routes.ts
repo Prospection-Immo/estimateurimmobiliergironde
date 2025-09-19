@@ -16,10 +16,16 @@ import crypto from "crypto";
 import twilio from "twilio";
 import bcrypt from "bcrypt";
 import pdfService from "./services/pdfService";
+import Stripe from "stripe";
 
 // Initialize Twilio client
 const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 const TWILIO_VERIFY_SERVICE_SID = process.env.TWILIO_VERIFY_SERVICE_SID || 'VA0562b4c0e460ba0c03268eb0e413b313';
+
+// Initialize Stripe - Based on javascript_stripe integration
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: "2023-10-16",
+}) : null;
 
 // Specific validation schemas for different lead types
 const insertEstimationLeadSchema = insertLeadSchema.extend({
@@ -6797,6 +6803,53 @@ Actions à effectuer:
       res.status(500).json({ 
         error: 'Failed to create tables', 
         details: error.message 
+      });
+    }
+  });
+
+  // =========================================================================
+  // STRIPE PAYMENT ROUTES - Based on javascript_stripe integration
+  // =========================================================================
+  
+  // Create PaymentIntent for course purchases
+  app.post("/api/create-payment-intent", async (req, res) => {
+    try {
+      if (!stripe) {
+        return res.status(500).json({ 
+          error: "Configuration de paiement manquante. Contactez l'administrateur." 
+        });
+      }
+
+      const { courseSlug, amount, courseName } = req.body;
+      
+      if (!courseSlug || !amount || !courseName) {
+        return res.status(400).json({ 
+          error: "Données de cours manquantes" 
+        });
+      }
+
+      // Create PaymentIntent with course metadata
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Convert euros to cents
+        currency: "eur", // European currency for France
+        metadata: {
+          courseSlug,
+          courseName,
+          type: "course_purchase"
+        },
+        description: `Formation: ${courseName} (${amount}€)`,
+      });
+
+      console.log(`💰 PaymentIntent created for course ${courseSlug}: ${paymentIntent.id}`);
+
+      res.json({ 
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id
+      });
+    } catch (error: any) {
+      console.error('❌ Stripe PaymentIntent creation error:', error);
+      res.status(500).json({ 
+        error: "Erreur lors de la création du paiement: " + error.message 
       });
     }
   });

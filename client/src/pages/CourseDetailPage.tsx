@@ -8,10 +8,12 @@ import { Link } from "wouter";
 import SEOHead from "@/components/SEOHead";
 import NotFound from "@/pages/not-found";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 export default function CourseDetailPage() {
   const { slug } = useParams();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   
   // Find course by slug
   const course = Object.values(coursesContent).find(c => c.slug === slug);
@@ -21,13 +23,8 @@ export default function CourseDetailPage() {
   }
 
   const handlePurchase = () => {
-    // TODO: Integrate with Stripe payment
-    toast({
-      title: "Formation ajoutée au panier",
-      description: `"${course.title}" - ${course.priceEuros}€. Intégration de paiement en cours de développement.`,
-      duration: 4000,
-    });
-    console.log(`Purchase course ${course.sku} for ${course.priceEuros}€`);
+    // Navigate to checkout page
+    setLocation(`/checkout/${course.slug}`);
   };
 
   return (
