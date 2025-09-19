@@ -95,7 +95,16 @@ if (isDevelopmentMode) {
     delete: () => ({ where: () => ({ execute: () => Promise.resolve() }) })
   };
 } else {
-  client = postgres(connectionString!);
+  // Configure postgres client with proper options for Supabase
+  client = postgres(connectionString!, {
+    max: 10,                    // Pool size
+    idle_timeout: 20,          // Close idle connections after 20s
+    connect_timeout: 60,       // Wait up to 60s for initial connection
+    prepare: false,            // Disable prepared statements for compatibility
+    transform: {
+      undefined: null
+    }
+  });
   db = drizzle(client);
 }
 
