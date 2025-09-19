@@ -8,8 +8,22 @@ const isProduction = process.env.NODE_ENV === 'production';
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+
+// Conditional JSON parsing - exclude Stripe webhook to preserve raw body
+app.use((req, res, next) => {
+  if (req.path === '/api/stripe/webhook') {
+    return next();
+  }
+  express.json()(req, res, next);
+});
+
+// Conditional URL encoding - exclude Stripe webhook
+app.use((req, res, next) => {
+  if (req.path === '/api/stripe/webhook') {
+    return next();
+  }
+  express.urlencoded({ extended: false })(req, res, next);
+});
 
 // Enhanced session configuration for 2FA security
 const MemoryStoreSession = MemoryStore(session);

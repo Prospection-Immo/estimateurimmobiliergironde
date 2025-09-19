@@ -23,6 +23,12 @@ import {
   type SmsSentMessage,
   type SmsSequence,
   type SmsSequenceEnrollment,
+  // FORMATIONS PREMIUM MODULE
+  type Course,
+  type Order,
+  type OrderItem,
+  type Enrollment,
+  type CourseEvent,
   type InsertUser, 
   type InsertLead, 
   type InsertEstimation, 
@@ -45,6 +51,12 @@ import {
   type InsertSmsSentMessage,
   type InsertSmsSequence,
   type InsertSmsSequenceEnrollment,
+  // FORMATIONS PREMIUM MODULE
+  type InsertCourse,
+  type InsertOrder,
+  type InsertOrderItem,
+  type InsertEnrollment,
+  type InsertCourseEvent,
   users,
   leads,
   estimations,
@@ -66,7 +78,13 @@ import {
   smsContacts,
   smsSentMessages,
   smsSequences,
-  smsSequenceEnrollments
+  smsSequenceEnrollments,
+  // FORMATIONS PREMIUM MODULE
+  courses,
+  orders,
+  orderItems,
+  enrollments,
+  courseEvents
 } from "@shared/schema";
 import { eq, desc, sql, and } from "drizzle-orm";
 
@@ -2323,6 +2341,167 @@ export class SupabaseStorage implements IStorage {
       averageClickRate: 0, // Would need complex query to calculate from sent messages
       lastUsed: template.lastUsed?.toISOString()
     }));
+  }
+
+  // =============================================================================
+  // FORMATIONS PREMIUM MODULE - STORAGE METHODS
+  // =============================================================================
+
+  // Course management
+  async createCourse(data: InsertCourse): Promise<Course> {
+    const result = await db.insert(courses).values(data).returning();
+    return result[0];
+  }
+
+  async getCourse(sku: string): Promise<Course | null> {
+    const result = await db.select().from(courses).where(eq(courses.sku, sku));
+    return result[0] || null;
+  }
+
+  async getAllCourses(): Promise<Course[]> {
+    return await db.select().from(courses).where(eq(courses.isActive, true));
+  }
+
+  // Order management
+  async createOrder(data: InsertOrder): Promise<Order> {
+    const result = await db.insert(orders).values(data).returning();
+    return result[0];
+  }
+
+  async getOrder(id: string): Promise<Order | null> {
+    const result = await db.select().from(orders).where(eq(orders.id, id));
+    return result[0] || null;
+  }
+
+  async getOrderByStripeSessionId(stripeSessionId: string): Promise<Order | null> {
+    const result = await db.select().from(orders).where(eq(orders.stripeSessionId, stripeSessionId));
+    return result[0] || null;
+  }
+
+  // Order item management
+  async createOrderItem(data: InsertOrderItem): Promise<OrderItem> {
+    const result = await db.insert(orderItems).values(data).returning();
+    return result[0];
+  }
+
+  async getOrderItems(orderId: string): Promise<OrderItem[]> {
+    return await db.select().from(orderItems).where(eq(orderItems.orderId, orderId));
+  }
+
+  // Enrollment management
+  async createEnrollment(data: InsertEnrollment): Promise<Enrollment> {
+    const result = await db.insert(enrollments).values(data).returning();
+    return result[0];
+  }
+
+  async getEnrollment(customerEmail: string, sku: string): Promise<Enrollment | null> {
+    const result = await db.select()
+      .from(enrollments)
+      .where(and(eq(enrollments.customerEmail, customerEmail), eq(enrollments.sku, sku)));
+    return result[0] || null;
+  }
+
+  async getEnrollmentsByEmail(customerEmail: string): Promise<Enrollment[]> {
+    return await db.select().from(enrollments).where(eq(enrollments.customerEmail, customerEmail));
+  }
+
+  async updateEnrollmentProgress(customerEmail: string, sku: string, progressPercent: number): Promise<void> {
+    await db.update(enrollments)
+      .set({
+        progressPercent,
+        lastAccessedAt: new Date()
+      })
+      .where(and(eq(enrollments.customerEmail, customerEmail), eq(enrollments.sku, sku)));
+  }
+
+  // Course event tracking
+  async createCourseEvent(data: InsertCourseEvent): Promise<CourseEvent> {
+    const result = await db.insert(courseEvents).values(data).returning();
+    return result[0];
+  }
+
+  async getCourseEvents(customerEmail: string, sku?: string): Promise<CourseEvent[]> {
+    let query = db.select().from(courseEvents).where(eq(courseEvents.customerEmail, customerEmail));
+    
+    if (sku) {
+      query = query.where(and(eq(courseEvents.customerEmail, customerEmail), eq(courseEvents.sku, sku)));
+    }
+
+    return await query.orderBy(desc(courseEvents.createdAt));
+  }
+
+  // Analytics for admin
+  async getOrdersAnalytics(startDate?: Date, endDate?: Date): Promise<{
+    totalOrders: number;
+    totalRevenue: number;
+    averageOrderValue: number;
+    topCourses: Array<{ sku: string; count: number; revenue: number }>;
+  }> {
+    let query = db.select().from(orders);
+
+    if (startDate) {
+      query = query.where(sql`${orders.createdAt} >= ${startDate}`);
+    }
+    if (endDate) {
+      query = query.where(sql`${orders.createdAt} <= ${endDate}`);
+    }
+
+    const ordersData = await query;
+
+    const totalOrders = ordersData.length;
+    const totalRevenue = ordersData.reduce((sum, order) => sum + order.totalCents, 0) / 100; // Convert to euros
+    const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+    // Get top courses from order items
+    const topCoursesQuery = await db
+      .select({
+        sku: orderItems.sku,
+        count: sql<number>`count(*)`.as('count'),
+        revenue: sql<number>`sum(${orderItems.unitPriceCents}) / 100`.as('revenue')
+      })
+      .from(orderItems)
+      .innerJoin(orders, eq(orderItems.orderId, orders.id))
+      .groupBy(orderItems.sku)
+      .orderBy(desc(sql`count(*)`))
+      .limit(10);
+
+    const topCourses = topCoursesQuery.map(row => ({
+      sku: row.sku!,
+      count: Number(row.count),
+      revenue: Number(row.revenue)
+    }));
+
+    return {
+      totalOrders,
+      totalRevenue,
+      averageOrderValue,
+      topCourses
+    };
+  }
+
+  async getEnrollmentAnalytics(): Promise<{
+    totalEnrollments: number;
+    activeStudents: number;
+    averageProgress: number;
+    completionRate: number;
+  }> {
+    const enrollmentsData = await db.select().from(enrollments);
+
+    const totalEnrollments = enrollmentsData.length;
+    const activeStudents = enrollmentsData.filter(e => e.lastAccessedAt && e.lastAccessedAt > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length; // Active in last 30 days
+    const averageProgress = totalEnrollments > 0 
+      ? enrollmentsData.reduce((sum, e) => sum + e.progressPercent, 0) / totalEnrollments 
+      : 0;
+    const completionRate = totalEnrollments > 0 
+      ? (enrollmentsData.filter(e => e.progressPercent >= 100).length / totalEnrollments) * 100 
+      : 0;
+
+    return {
+      totalEnrollments,
+      activeStudents,
+      averageProgress,
+      completionRate
+    };
   }
 }
 

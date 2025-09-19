@@ -928,3 +928,127 @@ export type DashboardAnalytics = z.infer<typeof dashboardAnalyticsSchema>;
 export type GuideAnalyticsResponse = z.infer<typeof guideAnalyticsSchema>;
 export type LeadFunnelAnalytics = z.infer<typeof leadFunnelAnalyticsSchema>;
 export type EmailAnalytics = z.infer<typeof emailAnalyticsSchema>;
+
+// =============================================================================
+// FORMATIONS PREMIUM MODULE - STRIPE PAYMENTS & COURSES
+// =============================================================================
+
+// Table des cours/formations
+export const courses = pgTable("courses", {
+  sku: text("sku").primaryKey(), // ESTIMER97, FACE147, QUALI97, PO147, PACK397
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  priceCents: integer("price_cents").notNull(), // Prix en centimes
+  description: text("description"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Table des commandes Stripe
+export const orders = pgTable("orders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id"), // Peut être null pour les achats sans compte
+  stripeSessionId: text("stripe_session_id").notNull().unique(),
+  stripeCustomerId: text("stripe_customer_id"),
+  totalCents: integer("total_cents").notNull(),
+  currency: text("currency").notNull().default("eur"),
+  status: text("status").notNull().default("paid"), // "paid", "refunded", "disputed"
+  customerEmail: text("customer_email").notNull(),
+  customerName: text("customer_name"),
+  // UTM tracking
+  utmSource: text("utm_source"),
+  utmMedium: text("utm_medium"),
+  utmCampaign: text("utm_campaign"),
+  utmTerm: text("utm_term"),
+  utmContent: text("utm_content"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Table des articles de commande
+export const orderItems = pgTable("order_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderId: varchar("order_id").references(() => orders.id, { onDelete: "cascade" }),
+  sku: text("sku").references(() => courses.sku),
+  unitPriceCents: integer("unit_price_cents").notNull(),
+  quantity: integer("quantity").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Table des inscriptions/accès aux cours
+export const enrollments = pgTable("enrollments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id"), // Peut être null, on utilise l'email
+  customerEmail: text("customer_email").notNull(),
+  sku: text("sku").references(() => courses.sku),
+  orderId: varchar("order_id").references(() => orders.id),
+  accessExpiresAt: timestamp("access_expires_at"), // null = accès illimité
+  progressPercent: integer("progress_percent").notNull().default(0), // 0-100
+  lastAccessedAt: timestamp("last_accessed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Table des événements de progression vidéo
+export const courseEvents = pgTable("course_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  customerEmail: text("customer_email").notNull(),
+  sku: text("sku").references(() => courses.sku),
+  eventType: text("event_type").notNull(), // "video_start", "video_25", "video_50", "video_100", "download_model"
+  videoId: text("video_id"), // Identifiant de la vidéo
+  progressPercent: integer("progress_percent"), // Pour les événements vidéo
+  metadata: text("metadata"), // JSON avec détails supplémentaires
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// =============================================================================
+// SCHEMAS ZOD POUR VALIDATION
+// =============================================================================
+
+// Schema pour créer un cours
+export const insertCourseSchema = createInsertSchema(courses);
+export type InsertCourse = z.infer<typeof insertCourseSchema>;
+export type Course = typeof courses.$inferSelect;
+
+// Schema pour créer une commande
+export const insertOrderSchema = createInsertSchema(orders);
+export type InsertOrder = z.infer<typeof insertOrderSchema>;
+export type Order = typeof orders.$inferSelect;
+
+// Schema pour créer un article de commande
+export const insertOrderItemSchema = createInsertSchema(orderItems);
+export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
+export type OrderItem = typeof orderItems.$inferSelect;
+
+// Schema pour créer une inscription
+export const insertEnrollmentSchema = createInsertSchema(enrollments);
+export type InsertEnrollment = z.infer<typeof insertEnrollmentSchema>;
+export type Enrollment = typeof enrollments.$inferSelect;
+
+// Schema pour créer un événement
+export const insertCourseEventSchema = createInsertSchema(courseEvents);
+export type InsertCourseEvent = z.infer<typeof insertCourseEventSchema>;
+export type CourseEvent = typeof courseEvents.$inferSelect;
+
+// Schema pour checkout Stripe
+export const checkoutSchema = z.object({
+  sku: z.string().min(1, "SKU requis"),
+  successUrl: z.string().url("URL de succès invalide"),
+  cancelUrl: z.string().url("URL d'annulation invalide"),
+  customerEmail: z.string().email("Email invalide").optional(),
+  utmSource: z.string().optional(),
+  utmMedium: z.string().optional(),
+  utmCampaign: z.string().optional(),
+  utmTerm: z.string().optional(),
+  utmContent: z.string().optional(),
+});
+
+// Schema pour événement vidéo
+export const videoEventSchema = z.object({
+  sku: z.string().min(1, "SKU requis"),
+  eventType: z.enum(["video_start", "video_25", "video_50", "video_100", "download_model"]),
+  videoId: z.string().optional(),
+  progressPercent: z.number().min(0).max(100).optional(),
+  metadata: z.string().optional(),
+});

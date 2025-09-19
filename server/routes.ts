@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import express from "express";
 import { createServer, type Server } from "http";
 import { storage, db } from "./storage";
 import { insertLeadSchema, insertEstimationSchema, insertContactSchema, insertArticleSchema, insertEmailTemplateSchema, insertEmailHistorySchema, insertGuideSchema, insertGuideDownloadSchema, insertGuideAnalyticsSchema, insertScoringConfigSchema, insertSmsCampaignSchema, insertSmsTemplateSchema, insertSmsContactSchema, insertSmsSentMessageSchema, insertSmsSequenceSchema, insertSmsSequenceEnrollmentSchema, GUIDE_PERSONAS, BANT_CRITERIA, QUALIFICATION_STATUS } from "@shared/schema";
@@ -269,6 +270,302 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching Google Maps config:', error);
       res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // =============================================================================
+  // FORMATIONS PREMIUM MODULE - STRIPE PAYMENT ROUTES
+  // =============================================================================
+
+  // Stripe checkout session creation
+  app.post('/api/checkout', async (req, res) => {
+    try {
+      // Validate Stripe configuration
+      if (!process.env.STRIPE_SECRET_KEY) {
+        return res.status(500).json({ error: 'Stripe configuration manquante' });
+      }
+
+      // Import Stripe
+      const Stripe = (await import('stripe')).default;
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+        apiVersion: '2023-10-16',
+      });
+
+      const { checkoutSchema } = await import('@shared/schema');
+      
+      // Validate request body
+      const validationResult = checkoutSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        const errors = validationResult.error.errors.map(err => 
+          `${err.path.join('.')}: ${err.message}`
+        ).join(', ');
+        return res.status(400).json({ 
+          error: 'Données invalides', 
+          details: errors,
+          code: 'VALIDATION_ERROR'
+        });
+      }
+
+      const { sku, successUrl, cancelUrl, customerEmail, utmSource, utmMedium, utmCampaign, utmTerm, utmContent } = validationResult.data;
+
+      // Load courses content
+      const { coursesContent } = await import('@shared/content/courses');
+      const courseContent = coursesContent[sku];
+
+      if (!courseContent) {
+        return res.status(404).json({ error: 'Formation non trouvée', code: 'COURSE_NOT_FOUND' });
+      }
+
+      // Get Stripe price using lookup_key (SKU)
+      const prices = await stripe.prices.list({
+        lookup_keys: [sku],
+        active: true,
+        limit: 1
+      });
+
+      if (prices.data.length === 0) {
+        return res.status(404).json({ 
+          error: 'Prix Stripe non trouvé pour cette formation',
+          code: 'STRIPE_PRICE_NOT_FOUND',
+          sku
+        });
+      }
+
+      const price = prices.data[0];
+
+      // Create checkout session
+      const session = await stripe.checkout.sessions.create({
+        mode: 'payment',
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price: price.id,
+            quantity: 1,
+          }
+        ],
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        customer_email: customerEmail,
+        allow_promotion_codes: true,
+        billing_address_collection: 'auto',
+        metadata: {
+          sku,
+          utm_source: utmSource || '',
+          utm_medium: utmMedium || '',
+          utm_campaign: utmCampaign || '',
+          utm_term: utmTerm || '',
+          utm_content: utmContent || ''
+        }
+      });
+
+      console.log('Stripe checkout session created:', {
+        sessionId: session.id,
+        sku,
+        amount: price.unit_amount,
+        customerEmail
+      });
+
+      res.json({ url: session.url, sessionId: session.id });
+
+    } catch (error: any) {
+      console.error('Error creating Stripe checkout session:', error);
+      res.status(500).json({ 
+        error: 'Erreur lors de la création du paiement',
+        code: 'STRIPE_ERROR',
+        message: error.message
+      });
+    }
+  });
+
+  // Stripe webhook handler
+  app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+    try {
+      if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
+        console.error('Stripe webhook: Missing configuration');
+        return res.status(500).json({ error: 'Configuration Stripe manquante' });
+      }
+
+      const Stripe = (await import('stripe')).default;
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+        apiVersion: '2023-10-16',
+      });
+
+      const sig = req.headers['stripe-signature'];
+      let event;
+
+      try {
+        event = stripe.webhooks.constructEvent(req.body, sig!, process.env.STRIPE_WEBHOOK_SECRET);
+      } catch (err: any) {
+        console.error('Webhook signature verification failed:', err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+      }
+
+      console.log('Stripe webhook received:', event.type);
+
+      // Handle checkout completion events
+      if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') {
+        const session = event.data.object as any;
+        
+        try {
+          // Retrieve full session with line items
+          const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
+            expand: ['line_items', 'customer']
+          });
+
+          const customerEmail = fullSession.customer_email || fullSession.customer?.email;
+          const customerName = fullSession.customer_details?.name;
+          const sku = fullSession.metadata?.sku;
+
+          if (!customerEmail || !sku) {
+            console.error('Webhook: Missing required data', { customerEmail, sku });
+            return res.status(400).json({ error: 'Données manquantes' });
+          }
+
+          // Check if order already exists (idempotency)
+          const existingOrder = await storage.getOrderByStripeSessionId(fullSession.id);
+          if (existingOrder) {
+            console.log('Order already processed for session:', fullSession.id);
+            return res.json({ received: true, orderId: existingOrder.id });
+          }
+
+          // Create order record
+          const { insertOrderSchema, insertOrderItemSchema, insertEnrollmentSchema } = await import('@shared/schema');
+          
+          const orderData = {
+            stripeSessionId: fullSession.id,
+            stripeCustomerId: fullSession.customer as string,
+            totalCents: fullSession.amount_total!,
+            currency: fullSession.currency!,
+            customerEmail,
+            customerName,
+            utmSource: fullSession.metadata?.utm_source,
+            utmMedium: fullSession.metadata?.utm_medium,
+            utmCampaign: fullSession.metadata?.utm_campaign,
+            utmTerm: fullSession.metadata?.utm_term,
+            utmContent: fullSession.metadata?.utm_content,
+          };
+
+          const order = await storage.createOrder(orderData);
+
+          // Create order item
+          const orderItemData = {
+            orderId: order.id,
+            sku,
+            unitPriceCents: fullSession.amount_total!,
+            quantity: 1
+          };
+
+          await storage.createOrderItem(orderItemData);
+
+          // Create enrollment (access to course)
+          const enrollmentData = {
+            customerEmail,
+            sku,
+            orderId: order.id,
+            accessExpiresAt: null, // Unlimited access
+            progressPercent: 0
+          };
+
+          await storage.createEnrollment(enrollmentData);
+
+          // Load course content for email
+          const { coursesContent } = await import('@shared/content/courses');
+          const courseContent = coursesContent[sku];
+
+          // TODO: Send access email with course details
+          console.log('Order processed successfully:', {
+            orderId: order.id,
+            customerEmail,
+            sku,
+            courseTitle: courseContent?.title
+          });
+
+          // Check for upsell eligibility (if not buying PACK397)
+          const shouldShowUpsell = sku !== 'PACK397' && sku !== 'UPSELLPACK300';
+          
+          console.log('Webhook processing completed:', {
+            orderId: order.id,
+            shouldShowUpsell,
+            event: event.type
+          });
+
+        } catch (error: any) {
+          console.error('Error processing webhook:', error);
+          return res.status(500).json({ error: 'Erreur traitement commande' });
+        }
+      }
+
+      res.json({ received: true });
+
+    } catch (error: any) {
+      console.error('Webhook error:', error);
+      res.status(500).json({ error: 'Erreur webhook' });
+    }
+  });
+
+  // Video tracking endpoint
+  app.post('/api/events/video', async (req, res) => {
+    try {
+      const { videoEventSchema } = await import('@shared/schema');
+      
+      // Validate request body
+      const validationResult = videoEventSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        const errors = validationResult.error.errors.map(err => 
+          `${err.path.join('.')}: ${err.message}`
+        ).join(', ');
+        return res.status(400).json({ 
+          error: 'Données invalides', 
+          details: errors,
+          code: 'VALIDATION_ERROR'
+        });
+      }
+
+      const { sku, eventType, videoId, progressPercent, metadata } = validationResult.data;
+
+      // Get customer email from session/auth (simplified for now)
+      // In real implementation, you'd validate the user session
+      const customerEmail = req.body.customerEmail || 'anonymous@example.com';
+
+      // Get IP and User Agent
+      const ipAddress = req.headers['x-forwarded-for']?.toString().split(',')[0] || req.ip;
+      const userAgent = req.headers['user-agent'];
+
+      // Create course event
+      const eventData = {
+        customerEmail,
+        sku,
+        eventType,
+        videoId,
+        progressPercent,
+        metadata,
+        ipAddress,
+        userAgent
+      };
+
+      const event = await storage.createCourseEvent(eventData);
+
+      // Update enrollment progress if it's a progress event
+      if (eventType.startsWith('video_') && progressPercent) {
+        await storage.updateEnrollmentProgress(customerEmail, sku, progressPercent);
+      }
+
+      console.log('Video event tracked:', {
+        eventId: event.id,
+        customerEmail,
+        sku,
+        eventType,
+        progressPercent
+      });
+
+      res.json({ success: true, eventId: event.id });
+
+    } catch (error: any) {
+      console.error('Error tracking video event:', error);
+      res.status(500).json({ 
+        error: 'Erreur enregistrement événement',
+        message: error.message
+      });
     }
   });
 
