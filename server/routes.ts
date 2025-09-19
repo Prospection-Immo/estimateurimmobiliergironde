@@ -5976,6 +5976,224 @@ Actions à effectuer:
     }
   });
 
+  // Synchronisation complète : Peupler toutes les données de base
+  app.post('/api/admin/sync-all-data', async (req, res) => {
+    try {
+      console.log('🚀 Démarrage synchronisation complète des données...');
+      
+      // 1. PERSONA CONFIGS
+      console.log('📝 Création des personas marketing...');
+      const personas = [
+        {
+          persona: 'presse',
+          label: 'Acheteur Pressé',
+          description: 'Personne qui veut vendre rapidement',
+          psychProfile: 'Impatient, orienté résultats, recherche efficacité',
+          painPoints: ['Temps limité', 'Stress financier', 'Déménagement urgent'],
+          motivations: ['Vente rapide', 'Simplicité', 'Gain de temps'],
+          communicationStyle: 'Direct et concis',
+          preferredChannels: ['SMS', 'Téléphone', 'Email'],
+          primaryColor: '#FF5722',
+          secondaryColor: '#FF8A65',
+          icon: 'clock',
+          keywords: ['rapide', 'urgent', 'vite']
+        },
+        {
+          persona: 'maximisateur',
+          label: 'Maximisateur de Prix',
+          description: 'Propriétaire qui veut le meilleur prix',
+          psychProfile: 'Analytique, méfiant, perfectionniste',
+          painPoints: ['Peur de mal vendre', 'Comparaisons constantes', 'Indécision'],
+          motivations: ['Prix maximum', 'Sécurité', 'Validation'],
+          communicationStyle: 'Détaillé avec preuves',
+          preferredChannels: ['Email', 'Documentation', 'Rapports'],
+          primaryColor: '#4CAF50',
+          secondaryColor: '#81C784',
+          icon: 'trending-up',
+          keywords: ['prix', 'valeur', 'estimation']
+        },
+        {
+          persona: 'prudent',
+          label: 'Vendeur Prudent',
+          description: 'Personne qui prend son temps pour décider',
+          psychProfile: 'Conservateur, réfléchi, sécuritaire',
+          painPoints: ['Peur de se tromper', 'Manque d\'information', 'Pression familiale'],
+          motivations: ['Sécurité', 'Conseils experts', 'Processus clair'],
+          communicationStyle: 'Rassurant et éducatif',
+          preferredChannels: ['Email', 'Guides', 'Consultations'],
+          primaryColor: '#2196F3',
+          secondaryColor: '#64B5F6',
+          icon: 'shield',
+          keywords: ['sécurisé', 'conseils', 'guide']
+        },
+        {
+          persona: 'investisseur',
+          label: 'Investisseur Immobilier',
+          description: 'Professionnel de l\'investissement',
+          psychProfile: 'Rationnel, orienté ROI, expérimenté',
+          painPoints: ['Rentabilité insuffisante', 'Complexité fiscale', 'Temps de gestion'],
+          motivations: ['Rentabilité', 'Optimisation fiscale', 'Portfolio'],
+          communicationStyle: 'Technique et chiffré',
+          preferredChannels: ['Email', 'Rapports', 'Outils'],
+          primaryColor: '#9C27B0',
+          secondaryColor: '#BA68C8',
+          icon: 'briefcase',
+          keywords: ['investissement', 'rentabilité', 'ROI']
+        }
+      ];
+      
+      for (const persona of personas) {
+        await storage.createPersonaConfig(persona);
+      }
+      console.log('✅ 4 personas créés');
+      
+      // 2. EMAIL TEMPLATES
+      console.log('📧 Création des modèles email...');
+      const emailTemplates = [
+        {
+          name: 'welcome_estimation',
+          subject: 'Votre estimation immobilière est prête !',
+          htmlContent: '<h2>Bonjour {{firstName}},</h2><p>Votre estimation pour {{address}} est terminée.</p><p>Valeur estimée: <strong>{{estimatedValue}}€</strong></p><p>Découvrez le rapport complet en pièce jointe.</p>',
+          textContent: 'Bonjour {{firstName}}, Votre estimation pour {{address}} est terminée. Valeur estimée: {{estimatedValue}}€',
+          category: 'estimation',
+          variables: '["firstName", "address", "estimatedValue"]'
+        },
+        {
+          name: 'guide_download_confirmation',
+          subject: 'Votre guide "{{guideTitle}}" est disponible',
+          htmlContent: '<h2>Merci {{firstName}} !</h2><p>Votre guide <strong>{{guideTitle}}</strong> est en pièce jointe.</p><p>Ce guide contient des conseils exclusifs pour {{persona}}.</p>',
+          textContent: 'Merci {{firstName}} ! Votre guide {{guideTitle}} est en pièce jointe.',
+          category: 'guide',
+          variables: '["firstName", "guideTitle", "persona"]'
+        },
+        {
+          name: 'follow_up_1',
+          subject: 'Des questions sur votre estimation ?',
+          htmlContent: '<h2>Bonjour {{firstName}},</h2><p>J\'espère que votre estimation vous a été utile.</p><p>Avez-vous des questions sur la valeur de {{address}} ?</p>',
+          textContent: 'Bonjour {{firstName}}, J\'espère que votre estimation vous a été utile. Avez-vous des questions ?',
+          category: 'follow_up',
+          variables: '["firstName", "address"]'
+        }
+      ];
+      
+      for (const template of emailTemplates) {
+        await storage.createEmailTemplate(template);
+      }
+      console.log('✅ 3 modèles email créés');
+      
+      // 3. SMS TEMPLATES  
+      console.log('📱 Création des modèles SMS...');
+      const smsTemplates = [
+        {
+          name: 'estimation_ready',
+          content: 'Bonjour {{firstName}}, votre estimation pour {{city}} est prête ! Valeur: {{value}}€. Consultez le détail: {{link}}',
+          category: 'estimation',
+          variables: ['firstName', 'city', 'value', 'link'],
+          characterCount: 140,
+          createdBy: 'system'
+        },
+        {
+          name: 'guide_available',
+          content: 'Votre guide {{guideTitle}} est disponible ! Téléchargez-le ici: {{downloadLink}}',
+          category: 'guide',
+          variables: ['guideTitle', 'downloadLink'],
+          characterCount: 120,
+          createdBy: 'system'
+        },
+        {
+          name: 'follow_up_sms',
+          content: 'Bonjour {{firstName}}, des questions sur votre estimation {{city}} ? Répondez-moi directement !',
+          category: 'follow_up',
+          variables: ['firstName', 'city'],
+          characterCount: 110,
+          createdBy: 'system'
+        }
+      ];
+      
+      for (const template of smsTemplates) {
+        await storage.createSmsTemplate(template);
+      }
+      console.log('✅ 3 modèles SMS créés');
+      
+      // 4. SCORING CONFIG (Système BANT)
+      console.log('🎯 Configuration du système de scoring BANT...');
+      const scoringRules = [
+        {
+          criteriaType: 'budget',
+          weight: 25,
+          rules: '{"budget_declared": {"500k+": 25, "300-500k": 20, "200-300k": 15, "100-200k": 10, "<100k": 5}}',
+          description: 'Budget déclaré par le prospect'
+        },
+        {
+          criteriaType: 'budget',
+          weight: 25,
+          rules: '{"urgency": {"Très urgent": 25, "Urgent": 20, "Modéré": 15, "Pas urgent": 10, "Aucune": 5}}',
+          description: 'Urgence financière du prospect'
+        },
+        {
+          criteriaType: 'authority',
+          weight: 25,
+          rules: '{"decision_maker": {"Propriétaire unique": 25, "Copropriétaire décideur": 20, "Copropriétaire": 15, "Mandataire": 10, "Autre": 5}}',
+          description: 'Pouvoir de décision du prospect'
+        },
+        {
+          criteriaType: 'authority',
+          weight: 25,
+          rules: '{"family_situation": {"Célibataire": 25, "Couple uni": 20, "Couple séparé": 15, "Succession": 10, "Indivision": 5}}',
+          description: 'Situation familiale du prospect'
+        },
+        {
+          criteriaType: 'need',
+          weight: 25,
+          rules: '{"motivation": {"Déménagement professionnel": 25, "Changement familial": 20, "Investissement": 15, "Opportunité": 10, "Curiosité": 5}}',
+          description: 'Motivation de vente du prospect'
+        },
+        {
+          criteriaType: 'need',
+          weight: 25,
+          rules: '{"current_situation": {"Logement inadapté": 25, "Contraintes financières": 20, "Opportunité marché": 15, "Projet vie": 10, "Autre": 5}}',
+          description: 'Situation actuelle du prospect'
+        },
+        {
+          criteriaType: 'timeline',
+          weight: 25,
+          rules: '{"desired_delay": {"<3 mois": 25, "3-6 mois": 20, "6-12 mois": 15, "1-2 ans": 10, ">2 ans": 5}}',
+          description: 'Délai souhaité pour la vente'
+        },
+        {
+          criteriaType: 'timeline',
+          weight: 25,
+          rules: '{"availability": {"Immédiate": 25, "Cette semaine": 20, "Ce mois": 15, "Flexible": 10, "Limitée": 5}}',
+          description: 'Disponibilité pour les visites'
+        }
+      ];
+      
+      for (const rule of scoringRules) {
+        await storage.createScoringConfig(rule);
+      }
+      console.log('✅ 8 règles de scoring créées');
+      
+      res.json({
+        success: true,
+        message: '🎉 SYNCHRONISATION COMPLÈTE TERMINÉE !',
+        data: {
+          personas: personas.length,
+          emailTemplates: emailTemplates.length,
+          smsTemplates: smsTemplates.length,
+          scoringRules: scoringRules.length,
+          totalEntries: personas.length + emailTemplates.length + smsTemplates.length + scoringRules.length
+        }
+      });
+      
+    } catch (error) {
+      console.error('❌ Erreur lors de la synchronisation:', error);
+      res.status(500).json({
+        error: 'Erreur de synchronisation',
+        details: error.message
+      });
+    }
+  });
+
   // Create ALL missing tables in Supabase
   app.post('/api/admin/create-all-tables', async (req, res) => {
     try {
