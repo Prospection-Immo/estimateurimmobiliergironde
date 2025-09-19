@@ -56,8 +56,8 @@ export default function FormationsPage() {
 
   // Get available courses
   const availableCourses = Object.values(coursesContent);
-  const individualCourses = availableCourses.filter(course => course.sku !== 'PACK397');
-  const packCourse = availableCourses.find(course => course.sku === 'PACK397');
+  const individualCourses = availableCourses.filter(course => course.sku !== 'PACK89');
+  const packCourse = availableCourses.find(course => course.sku === 'PACK89');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
@@ -143,7 +143,7 @@ export default function FormationsPage() {
               </CardContent>
 
               <CardFooter className="pt-6 flex flex-col gap-3">
-                <Link href={`/formations/${packCourse.slug}`} className="w-full">
+                <Link href={`/formation/${packCourse.slug}`} className="w-full">
                   <Button size="lg" className="w-full text-lg py-4" data-testid="button-pack-cta">
                     {packCourse.cta.label}
                   </Button>
@@ -192,7 +192,7 @@ export default function FormationsPage() {
                 </CardContent>
 
                 <CardFooter>
-                  <Link href={`/formations/${course.slug}`} className="w-full">
+                  <Link href={`/formation/${course.slug}`} className="w-full">
                     <Button variant="outline" className="w-full" data-testid={`button-course-cta-${course.sku}`}>
                       Découvrir la formation
                     </Button>
