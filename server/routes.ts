@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage, db } from "./storage";
 import { insertLeadSchema, insertEstimationSchema, insertContactSchema, insertArticleSchema, insertEmailTemplateSchema, insertEmailHistorySchema, insertGuideSchema, insertGuideDownloadSchema, insertGuideAnalyticsSchema, insertScoringConfigSchema, insertSmsCampaignSchema, insertSmsTemplateSchema, insertSmsContactSchema, insertSmsSentMessageSchema, insertSmsSequenceSchema, insertSmsSequenceEnrollmentSchema, GUIDE_PERSONAS, BANT_CRITERIA, QUALIFICATION_STATUS } from "@shared/schema";
 import { sanitizeArticleContent } from "./services/htmlSanitizer";
 import { generateRealEstateArticle } from "./services/openai";
@@ -5935,6 +5935,7 @@ Actions à effectuer:
       res.status(500).json({ error: 'Failed to send SMS campaign' });
     }
   });
+
 
   const httpServer = createServer(app);
   return httpServer;

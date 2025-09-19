@@ -108,6 +108,9 @@ if (isDevelopmentMode) {
   db = drizzle(client);
 }
 
+// Export db for direct access
+export { db };
+
 export interface IStorage {
   // Users
   getUser(id: string): Promise<User | undefined>;
