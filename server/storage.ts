@@ -74,7 +74,8 @@ import { eq, desc, sql, and } from "drizzle-orm";
 const connectionString = process.env.DATABASE_URL;
 
 // Check if we're in a development environment with masked DATABASE_URL
-const isDevelopmentMode = !connectionString || connectionString.includes('3pVwZ') || process.env.NODE_ENV === 'development';
+// Only use mock mode if DATABASE_URL is not properly configured (contains placeholder)
+const isDevelopmentMode = !connectionString || connectionString.includes('3pVwZ');
 
 let client: any;
 let db: any;
