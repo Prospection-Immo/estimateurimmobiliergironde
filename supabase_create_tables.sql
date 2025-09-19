@@ -1,5 +1,5 @@
 -- SCRIPT SQL COMPLET POUR CRÉER TOUTES LES TABLES MANQUANTES
--- Copiez-collez ce script dans votre console Supabase > SQL Editor
+-- Exécuter dans Supabase > SQL Editor
 
 -- Email Templates
 CREATE TABLE IF NOT EXISTS email_templates (
@@ -287,5 +287,5 @@ CREATE TABLE IF NOT EXISTS sms_sequence_enrollments (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Affichage du résultat
-SELECT 'Toutes les tables ont été créées avec succès!' as message;
+-- Message de confirmation
+SELECT 'Toutes les tables ont été créées avec succès!' as resultat;
