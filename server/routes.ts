@@ -435,8 +435,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           hasGarden: hasGarden || false,
           hasParking: hasParking || false,
           hasBalcony: hasBalcony || false,
-          estimatedValue: completeEstimation.estimatedValue,
-          pricePerM2: completeEstimation.pricePerM2,
+          estimatedValue: completeEstimation.estimatedValue.toFixed(2), // Convert to string
+          pricePerM2: completeEstimation.pricePerM2.toFixed(2), // Convert to string
           confidence: completeEstimation.confidence,
           detailedAnalysis: JSON.stringify(completeEstimation.detailedAnalysis),
           source: 'estimation-complete'

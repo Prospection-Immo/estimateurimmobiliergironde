@@ -73,9 +73,9 @@ import { eq, desc, sql, and } from "drizzle-orm";
 // Database connection with fallback for development
 const connectionString = process.env.DATABASE_URL;
 
-// Check if we're in a development environment with masked DATABASE_URL
-// Only use mock mode if DATABASE_URL is not properly configured (contains placeholder)
-const isDevelopmentMode = !connectionString || connectionString.includes('3pVwZ');
+// Check if we're in a development environment
+// Use explicit NODE_ENV check for better reliability
+const isDevelopmentMode = process.env.NODE_ENV === 'development' && (!connectionString || connectionString.includes('3pVwZ'));
 
 let client: any;
 let db: any;
@@ -95,12 +95,20 @@ if (isDevelopmentMode) {
     delete: () => ({ where: () => ({ execute: () => Promise.resolve() }) })
   };
 } else {
+  // Use Supabase pooled connection for better stability (port 6543 instead of 5432)
+  let optimizedConnectionString = connectionString;
+  if (connectionString.includes(':5432/')) {
+    optimizedConnectionString = connectionString.replace(':5432/', ':6543/');
+    console.log('Using Supabase pooled connection for better stability');
+  }
+  
   // Configure postgres client with proper options for Supabase
-  client = postgres(connectionString!, {
+  client = postgres(optimizedConnectionString, {
     max: 10,                    // Pool size
     idle_timeout: 20,          // Close idle connections after 20s
-    connect_timeout: 60,       // Wait up to 60s for initial connection
-    prepare: false,            // Disable prepared statements for compatibility
+    connect_timeout: 90,       // Increased timeout for better reliability
+    prepare: false,            // Disable prepared statements for PgBouncer compatibility
+    ssl: 'require',            // Enforce SSL for security
     transform: {
       undefined: null
     }
