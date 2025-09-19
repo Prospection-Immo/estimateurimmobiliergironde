@@ -40,6 +40,9 @@ export default function Footer({ domain = "estimation-immobilier-gironde.fr" }: 
               <Link href="/prix-m2" className="block text-sm text-primary-foreground/80 hover:text-primary-foreground hover-elevate px-2 py-1 rounded" data-testid="link-footer-prix-m2">
                 Prix au m²
               </Link>
+              <Link href="/formations" className="block text-sm text-primary-foreground/80 hover:text-primary-foreground hover-elevate px-2 py-1 rounded" data-testid="link-footer-formations">
+                Formations Premium
+              </Link>
             </nav>
           </div>
 
