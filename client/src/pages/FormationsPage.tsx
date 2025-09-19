@@ -76,17 +76,13 @@ export default function FormationsPage() {
           </p>
           
           <div className="flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2" data-testid="stat-students">
-              <Users className="w-4 h-4" />
-              <span>+ de 1200 propriétaires formés</span>
-            </div>
             <div className="flex items-center gap-2" data-testid="stat-time">
               <Clock className="w-4 h-4" />
               <span>Accès immédiat et illimité</span>
             </div>
-            <div className="flex items-center gap-2" data-testid="stat-savings">
-              <TrendingUp className="w-4 h-4" />
-              <span>Économie moyenne : 8500€</span>
+            <div className="flex items-center gap-2" data-testid="stat-format">
+              <Users className="w-4 h-4" />
+              <span>Formations pour débutants</span>
             </div>
           </div>
         </div>
