@@ -93,12 +93,11 @@ export default function CheckoutPage() {
     if (!course) return;
 
     // Create PaymentIntent for this specific course
+    // Backend will validate price server-side for security
     apiRequest("/api/create-payment-intent", {
       method: "POST",
       body: { 
-        courseSlug: course.slug,
-        amount: course.priceEuros,
-        courseName: course.title
+        courseSlug: course.slug
       }
     })
       .then((data) => {

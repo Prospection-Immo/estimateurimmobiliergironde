@@ -6825,34 +6825,52 @@ Actions à effectuer:
         });
       }
 
+      // Import the courses content to validate pricing server-side
+      const { coursesContent } = await import('../shared/content/courses.js');
+
       // Create a fresh Stripe instance to ensure we're using the correct key
       const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
         apiVersion: "2023-10-16",
       });
 
-      const { courseSlug, amount, courseName } = req.body;
+      const { courseSlug } = req.body;
       
-      if (!courseSlug || !amount || !courseName) {
+      if (!courseSlug) {
         return res.status(400).json({ 
-          error: "Données de cours manquantes" 
+          error: "Slug de cours manquant" 
         });
       }
 
-      console.log(`💰 Creating PaymentIntent for course ${courseSlug} - ${amount}€`);
+      // SECURITY: Derive price server-side from trusted catalog - NEVER trust client
+      // Find course by slug since the key is the SKU but we receive slug
+      const course = Object.values(coursesContent).find(c => c.slug === courseSlug);
+      if (!course) {
+        console.error(`❌ Course not found for slug: ${courseSlug}`);
+        return res.status(404).json({ 
+          error: "Formation non trouvée" 
+        });
+      }
+
+      // Extract price and convert euros to cents
+      const priceInEuros = course.priceEuros;
+      const amountInCents = Math.round(priceInEuros * 100);
+      
+      console.log(`💰 Creating PaymentIntent for course ${courseSlug} - ${priceInEuros}€ (${amountInCents} cents)`);
 
       // Create PaymentIntent with course metadata
       const paymentIntent = await stripeInstance.paymentIntents.create({
-        amount: Math.round(amount * 100), // Convert euros to cents
+        amount: amountInCents,
         currency: "eur", // European currency for France
         metadata: {
           courseSlug,
-          courseName,
+          courseName: course.title,
+          courseCode: course.sku,
           type: "course_purchase"
         },
-        description: `Formation: ${courseName} (${amount}€)`,
+        description: `Formation: ${course.title} (${priceInEuros}€)`,
       });
 
-      console.log(`✅ PaymentIntent created successfully: ${paymentIntent.id}`);
+      console.log(`✅ PaymentIntent created successfully: ${paymentIntent.id} for ${priceInEuros}€`);
 
       res.json({ 
         clientSecret: paymentIntent.client_secret,
