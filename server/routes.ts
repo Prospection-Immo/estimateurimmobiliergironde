@@ -6814,11 +6814,21 @@ Actions à effectuer:
   // Create PaymentIntent for course purchases
   app.post("/api/create-payment-intent", async (req, res) => {
     try {
-      if (!stripe) {
+      console.log('🔐 Checking Stripe configuration...');
+      console.log('STRIPE_SECRET_KEY exists:', !!process.env.STRIPE_SECRET_KEY);
+      console.log('STRIPE_SECRET_KEY starts with sk_:', process.env.STRIPE_SECRET_KEY?.startsWith('sk_'));
+
+      if (!process.env.STRIPE_SECRET_KEY) {
+        console.error('❌ STRIPE_SECRET_KEY not found in environment');
         return res.status(500).json({ 
           error: "Configuration de paiement manquante. Contactez l'administrateur." 
         });
       }
+
+      // Create a fresh Stripe instance to ensure we're using the correct key
+      const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
+        apiVersion: "2023-10-16",
+      });
 
       const { courseSlug, amount, courseName } = req.body;
       
@@ -6828,8 +6838,10 @@ Actions à effectuer:
         });
       }
 
+      console.log(`💰 Creating PaymentIntent for course ${courseSlug} - ${amount}€`);
+
       // Create PaymentIntent with course metadata
-      const paymentIntent = await stripe.paymentIntents.create({
+      const paymentIntent = await stripeInstance.paymentIntents.create({
         amount: Math.round(amount * 100), // Convert euros to cents
         currency: "eur", // European currency for France
         metadata: {
@@ -6840,7 +6852,7 @@ Actions à effectuer:
         description: `Formation: ${courseName} (${amount}€)`,
       });
 
-      console.log(`💰 PaymentIntent created for course ${courseSlug}: ${paymentIntent.id}`);
+      console.log(`✅ PaymentIntent created successfully: ${paymentIntent.id}`);
 
       res.json({ 
         clientSecret: paymentIntent.client_secret,
@@ -6848,6 +6860,12 @@ Actions à effectuer:
       });
     } catch (error: any) {
       console.error('❌ Stripe PaymentIntent creation error:', error);
+      console.error('Error details:', {
+        type: error.type,
+        code: error.code,
+        message: error.message,
+        requestId: error.requestId
+      });
       res.status(500).json({ 
         error: "Erreur lors de la création du paiement: " + error.message 
       });
