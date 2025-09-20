@@ -2,7 +2,7 @@ import type { Express } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
 import { storage, db } from "./storage";
-import { insertLeadSchema, insertEstimationSchema, insertContactSchema, insertArticleSchema, insertEmailTemplateSchema, insertEmailHistorySchema, insertGuideSchema, insertGuideDownloadSchema, insertGuideAnalyticsSchema, insertScoringConfigSchema, insertSmsCampaignSchema, insertSmsTemplateSchema, insertSmsContactSchema, insertSmsSentMessageSchema, insertSmsSequenceSchema, insertSmsSequenceEnrollmentSchema, GUIDE_PERSONAS, BANT_CRITERIA, QUALIFICATION_STATUS } from "@shared/schema";
+import { insertLeadSchema, insertEstimationSchema, insertContactSchema, insertArticleSchema, insertEmailTemplateSchema, insertEmailHistorySchema, insertGuideSchema, insertGuideDownloadSchema, insertGuideAnalyticsSchema, insertScoringConfigSchema, insertSmsCampaignSchema, insertSmsTemplateSchema, insertSmsContactSchema, insertSmsSentMessageSchema, insertSmsSequenceSchema, insertSmsSequenceEnrollmentSchema, insertChatConfigurationSchema, GUIDE_PERSONAS, BANT_CRITERIA, QUALIFICATION_STATUS } from "@shared/schema";
 import { sanitizeArticleContent } from "./services/htmlSanitizer";
 import { generateRealEstateArticle } from "./services/openai";
 import OpenAI from "openai";
@@ -32,6 +32,25 @@ const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SEC
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ 
   apiKey: process.env.OPENAI_API_KEY 
 }) : null;
+
+// Admin authentication middleware
+const requireAdminAuth = (req: any, res: any, next: any) => {
+  if (!(req.session as any).isAuthenticated) {
+    return res.status(401).json({ error: 'Authentification admin requise' });
+  }
+  next();
+};
+
+// Enhanced chat configuration validation schema
+const updateChatConfigSchema = insertChatConfigurationSchema.partial().extend({
+  maxTokens: z.coerce.number().int().min(128).max(8192).optional(),
+  temperature: z.coerce.number().min(0).max(2).optional(),
+  maxHistoryMessages: z.coerce.number().int().min(0).max(20).optional(),
+  model: z.string().min(1).optional(),
+  systemPrompt: z.string().min(1).optional(),
+  welcomeMessage: z.string().min(1).optional(),
+  isActive: z.coerce.boolean().optional()
+});
 
 // Specific validation schemas for different lead types
 const insertEstimationLeadSchema = insertLeadSchema.extend({
@@ -6909,27 +6928,62 @@ Actions à effectuer:
         return res.status(400).json({ error: 'Message requis' });
       }
 
-      // Limit history to last 6 messages for cost control (as per user requirements)
-      const limitedHistory = history.slice(-6);
+      // Get chat configuration from database
+      let config = await storage.getChatConfiguration();
+      
+      // Use default configuration if none exists
+      if (!config) {
+        config = {
+          systemPrompt: "Vous êtes un assistant expert en immobilier spécialisé dans la région de Gironde/Bordeaux. Vous aidez les utilisateurs avec leurs questions sur l'estimation immobilière, le marché local, et les conseils pour vendre ou acheter. Soyez professionnel, précis et utilisez votre expertise du marché français.",
+          model: "gpt-4o-mini",
+          maxTokens: 2048,
+          temperature: "0.7",
+          maxHistoryMessages: 6,
+          isActive: true
+        };
+      }
+
+      // Check if chat is active
+      if (!config.isActive) {
+        return res.status(503).json({ error: 'Le service de chat est temporairement indisponible' });
+      }
+
+      // Validate and clamp numeric configuration values
+      const maxHistoryMessages = Math.max(0, Math.min(config.maxHistoryMessages || 6, 20));
+      const maxTokens = Math.max(128, Math.min(config.maxTokens || 2048, 8192));
+      
+      // Limit history based on configuration
+      const limitedHistory = history.slice(-maxHistoryMessages);
 
       // Set headers for SSE (Server-Sent Events) streaming
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
 
-      // the newest OpenAI model is "gpt-4o-mini" for cost efficiency as requested
-      const stream = await openai.chat.completions.create({
-        model: "gpt-4o-mini", // Using gpt-4o-mini for cost optimization as requested
+      // Prepare OpenAI request parameters
+      const openaiParams: any = {
+        model: config.model || "gpt-4o-mini",
         messages: [
           {
             role: "system",
-            content: "Vous êtes un assistant expert en immobilier spécialisé dans la région de Gironde/Bordeaux. Vous aidez les utilisateurs avec leurs questions sur l'estimation immobilière, le marché local, et les conseils pour vendre ou acheter. Soyez professionnel, précis et utilisez votre expertise du marché français."
+            content: config.systemPrompt
           },
           ...limitedHistory,
           { role: "user", content: message }
         ],
         stream: true,
-      });
+        max_tokens: maxTokens,
+      };
+      
+      // Parse temperature from string and add if valid
+      if (config.temperature) {
+        const temp = parseFloat(config.temperature);
+        if (!isNaN(temp) && temp >= 0 && temp <= 2) {
+          openaiParams.temperature = temp;
+        }
+      }
+
+      const stream = await openai.chat.completions.create(openaiParams);
 
       // Stream the response
       for await (const chunk of stream) {
@@ -6952,6 +7006,62 @@ Actions à effectuer:
       } else {
         res.end();
       }
+    }
+  });
+
+  // Chat Configuration API routes (Admin only)
+  // GET chat configuration
+  app.get('/api/chat-config', requireAdminAuth, async (req, res) => {
+    try {
+      const config = await storage.getChatConfiguration();
+      
+      if (!config) {
+        // Return default configuration if none exists
+        const defaultConfig = {
+          name: "Configuration principale",
+          systemPrompt: "Vous êtes un assistant expert en immobilier spécialisé dans la région de Gironde/Bordeaux. Vous aidez les utilisateurs avec leurs questions sur l'estimation immobilière, le marché local, et les conseils pour vendre ou acheter. Soyez professionnel, précis et utilisez votre expertise du marché français.",
+          model: "gpt-4o-mini",
+          maxTokens: 2048,
+          temperature: "0.7",
+          maxHistoryMessages: 6,
+          isActive: true,
+          welcomeMessage: "Bonjour ! Je suis votre assistant immobilier spécialisé dans la région Gironde/Bordeaux. Comment puis-je vous aider avec votre projet immobilier ?"
+        };
+        return res.json(defaultConfig);
+      }
+      
+      res.json(config);
+    } catch (error: any) {
+      console.error('Error fetching chat configuration:', error);
+      res.status(500).json({ 
+        error: 'Erreur lors de la récupération de la configuration du chat'
+      });
+    }
+  });
+
+  // PATCH chat configuration (Admin only)
+  app.patch('/api/chat-config', requireAdminAuth, async (req, res) => {
+    try {
+      // Validate the request body with enhanced schema
+      const validatedData = updateChatConfigSchema.parse(req.body);
+      
+      // Update or create the chat configuration
+      const config = await storage.updateChatConfiguration(validatedData);
+      
+      res.json(config);
+    } catch (error: any) {
+      console.error('Error updating chat configuration:', error);
+      
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ 
+          error: 'Données de configuration invalides',
+          details: error.errors 
+        });
+      }
+      
+      res.status(500).json({ 
+        error: 'Erreur lors de la mise à jour de la configuration du chat'
+      });
     }
   });
 

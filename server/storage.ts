@@ -207,6 +207,11 @@ export interface IStorage {
   createGuideDownload(download: InsertGuideDownload): Promise<GuideDownload>;
   getGuideDownloads(guideId?: string): Promise<GuideDownload[]>;
 
+  // Guide Email Sequences
+  createGuideEmailSequence(sequence: InsertGuideEmailSequence): Promise<GuideEmailSequence>;
+  getGuideEmailSequences(): Promise<GuideEmailSequence[]>;
+  updateGuideEmailSequenceStatus(id: string, status: string): Promise<void>;
+
   // Chat Configuration
   getChatConfiguration(): Promise<ChatConfiguration | undefined>;
   updateChatConfiguration(config: Partial<InsertChatConfiguration>): Promise<ChatConfiguration>;
@@ -481,6 +486,20 @@ export class SupabaseStorage implements IStorage {
     }
     return await db.select().from(guideDownloads)
       .orderBy(desc(guideDownloads.downloadedAt));
+  }
+
+  // Guide Email Sequences
+  async createGuideEmailSequence(sequence: InsertGuideEmailSequence): Promise<GuideEmailSequence> {
+    const result = await db.insert(guideEmailSequences).values(sequence).returning();
+    return result[0];
+  }
+
+  async getGuideEmailSequences(): Promise<GuideEmailSequence[]> {
+    return await db.select().from(guideEmailSequences).orderBy(desc(guideEmailSequences.createdAt));
+  }
+
+  async updateGuideEmailSequenceStatus(id: string, status: string): Promise<void> {
+    await db.update(guideEmailSequences).set({ status }).where(eq(guideEmailSequences.id, id));
   }
 
   // Chat Configuration
