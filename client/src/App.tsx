@@ -41,6 +41,7 @@ import FormationsPage from "@/pages/FormationsPage";
 import CourseDetailPage from "@/pages/CourseDetailPage";
 import CheckoutPage from "@/pages/CheckoutPage";
 import ThankYouPage from "@/pages/ThankYouPage";
+import TendancesMarche2025Page from "@/pages/TendancesMarche2025Page";
 import bordeaux_house from "@assets/generated_images/Bordeaux_house_property_photo_41cf0370.png";
 import SEOHead, { createLocalBusinessSchema, createFAQSchema } from "@/components/SEOHead";
 
@@ -790,6 +791,13 @@ function LexiquePageComponentWrapper() {
   return <LexiquePageComponent domain={domain} />;
 }
 
+// Tendances Marché 2025 Page
+function TendancesMarche2025PageComponent() {
+  const domain = getDomainFromHeaders();
+  
+  return <TendancesMarche2025Page domain={domain} />;
+}
+
 // Article Redirect Component
 function ArticleRedirect() {
   const params = useParams<{ slug: string }>();
@@ -856,6 +864,7 @@ function Router() {
       <Route path="/contact" component={ContactPage} />
       <Route path="/financement" component={FinancementPageComponent} />
       <Route path="/prix-m2" component={PrixM2Page} />
+      <Route path="/tendances-marche-2025" component={TendancesMarche2025PageComponent} />
       <Route path="/formations" component={FormationsPage} />
       <Route path="/formation/:slug" component={CourseDetailPage} />
       <Route path="/checkout/:slug" component={CheckoutPage} />
