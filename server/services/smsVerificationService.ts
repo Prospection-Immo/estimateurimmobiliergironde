@@ -188,11 +188,16 @@ class SmsVerificationService {
 
       // Verify the code
       const cleanCode = code.replace(/\s/g, ''); // Remove spaces
-      if (cleanCode === verificationRecord.code) {
+      
+      // Development mode: accept test codes
+      const devTestCodes = ['123456', '000000', '111111'];
+      const isDevTestCode = this.isDevelopmentMode && devTestCodes.includes(cleanCode);
+      
+      if (cleanCode === verificationRecord.code || isDevTestCode) {
         // Mark as verified
         verificationRecord.isVerified = true;
         
-        console.log(`✅ SMS verification successful for ${phone}`);
+        console.log(`✅ SMS verification successful for ${phone} ${isDevTestCode ? '(using dev test code)' : ''}`);
         
         return {
           success: true
