@@ -56,10 +56,10 @@ export default function TendancesMarche2025Page({ domain = "estimation-immobilie
               Analyse 2025
             </Badge>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight mb-4">
-              Tendances du Marché Immobilier en Gironde
+              Embellie du Marché Immobilier Gironde 2025
             </h1>
             <p className="text-lg sm:text-xl text-white/90 max-w-3xl mx-auto">
-              Analyse actualisée avec chiffres clés de population et perspectives d'investissement
+              Une nouvelle dynamique positive avec 1,7 million d'habitants et des perspectives d'investissement prometteuses
             </p>
           </div>
         </div>
