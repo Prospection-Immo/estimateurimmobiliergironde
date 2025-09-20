@@ -5,7 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { Zap, MapPin, Search, Mail, Eye, EyeOff, Brain, Target, Rocket, Check } from "lucide-react";
+import { Zap, MapPin, Search, Mail, Eye, EyeOff, Brain, Target, Rocket, Check, Calculator, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -206,14 +206,23 @@ function HomePage() {
         <Hero domain={domain} />
         
         {/* Section d'estimation rapide */}
-        <section className="py-8 bg-background border-b">
+        <section className="py-8 bg-background">
           <div className="max-w-6xl mx-auto px-4">
-            <form onSubmit={handleQuickEstimate}>
-              <div className="flex flex-wrap items-center justify-center gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-foreground">Estimation rapide :</span>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
+            <div className="border-l-4 border-l-primary pl-1">
+              <Card className="p-6 bg-card shadow-lg hover-elevate relative">
+                {/* Accent décoratif subtil */}
+                <div className="absolute top-0 right-0 w-12 h-12 bg-gradient-to-bl from-primary/10 to-transparent rounded-bl-2xl"></div>
+                
+                <form onSubmit={handleQuickEstimate}>
+                  <div className="flex flex-wrap items-center justify-center gap-4">
+                    <div className="flex items-center gap-2 relative">
+                      <div className="flex items-center justify-center w-8 h-8 bg-primary/10 rounded-full mr-2">
+                        <Calculator className="w-4 h-4 text-primary" aria-hidden="true" />
+                      </div>
+                      <span className="text-sm font-semibold text-foreground">Estimation rapide :</span>
+                      <Sparkles className="w-3 h-3 text-primary/60 ml-1" aria-hidden="true" />
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
                   <AddressAutocomplete
                     onAddressSelect={(address) => setSelectedAddress(address)}
                     placeholder="Adresse du bien"
@@ -256,13 +265,15 @@ function HomePage() {
                     <option value="4">4 pièces</option>
                     <option value="5+">5+ pièces</option>
                   </select>
-                  <button 
+                  <Button 
                     type="submit"
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover-elevate transition-colors" 
+                    size="lg"
+                    className="flex items-center gap-2" 
                     data-testid="button-estimate"
                   >
+                    <Calculator className="w-4 h-4" aria-hidden="true" />
                     Demander une estimation
-                  </button>
+                  </Button>
                 </div>
               </div>
               {error && (
@@ -271,6 +282,8 @@ function HomePage() {
                 </div>
               )}
             </form>
+              </Card>
+            </div>
           </div>
         </section>
 

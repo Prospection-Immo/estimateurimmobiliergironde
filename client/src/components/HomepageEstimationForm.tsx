@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import SmsVerificationHome from "@/components/SmsVerificationHome";
 import { useToast } from "@/hooks/use-toast";
+import { Calculator, Sparkles } from "lucide-react";
 
 export default function HomepageEstimationForm() {
   const [propertyType, setPropertyType] = useState("");
@@ -120,10 +121,22 @@ export default function HomepageEstimationForm() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <Card className="p-6 bg-card border-card-border">
-        <h3 className="text-xl font-semibold mb-6 text-card-foreground text-center">
-          Découvrez la valeur réelle de votre bien sur le prix du marché
-        </h3>
+      <div className="border-l-4 border-l-primary pl-1">
+        <Card className="p-6 bg-card shadow-lg hover-elevate relative">
+          {/* Accent décoratif subtil */}
+          <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-primary/10 to-transparent rounded-bl-3xl"></div>
+        
+        <div className="relative">
+          <div className="flex items-center justify-center mb-2">
+            <div className="flex items-center justify-center w-10 h-10 bg-primary/10 rounded-full mr-3">
+              <Calculator className="w-5 h-5 text-primary" aria-hidden="true" />
+            </div>
+            <Sparkles className="w-4 h-4 text-primary/60" aria-hidden="true" />
+          </div>
+          <h3 className="text-xl font-semibold mb-6 text-card-foreground text-center leading-tight">
+            Découvrez la valeur réelle de votre bien sur le prix du marché
+          </h3>
+        </div>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -241,9 +254,11 @@ export default function HomepageEstimationForm() {
           <div className="mt-6">
             <Button 
               type="submit" 
-              className="w-full py-3 text-lg" 
+              size="lg"
+              className="w-full flex items-center gap-2" 
               data-testid="button-quick-estimate"
             >
+              <Calculator className="w-5 h-5" aria-hidden="true" />
               Découvrir mes résultats maintenant
             </Button>
             <p className="text-xs text-muted-foreground text-center mt-2">
@@ -251,7 +266,8 @@ export default function HomepageEstimationForm() {
             </p>
           </div>
         </form>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }
