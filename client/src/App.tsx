@@ -42,6 +42,9 @@ import CourseDetailPage from "@/pages/CourseDetailPage";
 import CheckoutPage from "@/pages/CheckoutPage";
 import ThankYouPage from "@/pages/ThankYouPage";
 import TendancesMarche2025Page from "@/pages/TendancesMarche2025Page";
+import EstimationAppartementBordeauxPage from "@/pages/EstimationAppartementBordeauxPage";
+import EstimationMaisonGirondePage from "@/pages/EstimationMaisonGirondePage";
+import MerciEstimationMaisonGirondePage from "@/pages/MerciEstimationMaisonGirondePage";
 import bordeaux_house from "@assets/generated_images/Bordeaux_house_property_photo_41cf0370.png";
 import SEOHead, { createLocalBusinessSchema, createFAQSchema } from "@/components/SEOHead";
 
@@ -798,6 +801,27 @@ function TendancesMarche2025PageComponent() {
   return <TendancesMarche2025Page domain={domain} />;
 }
 
+// Estimation Appartement Bordeaux Page
+function EstimationAppartementBordeauxPageComponent() {
+  const domain = getDomainFromHeaders();
+  
+  return <EstimationAppartementBordeauxPage domain={domain} />;
+}
+
+// Estimation Maison Gironde Page
+function EstimationMaisonGirondePageComponent() {
+  const domain = getDomainFromHeaders();
+  
+  return <EstimationMaisonGirondePage domain={domain} />;
+}
+
+// Merci Estimation Maison Gironde Page
+function MerciEstimationMaisonGirondePageComponent() {
+  const domain = getDomainFromHeaders();
+  
+  return <MerciEstimationMaisonGirondePage domain={domain} />;
+}
+
 // Article Redirect Component
 function ArticleRedirect() {
   const params = useParams<{ slug: string }>();
@@ -860,6 +884,9 @@ function Router() {
     <Switch>
       <Route path="/" component={HomePage} />
       <Route path="/estimation" component={EstimationPage} />
+      <Route path="/estimation-appartement-bordeaux" component={EstimationAppartementBordeauxPageComponent} />
+      <Route path="/estimation-maison-gironde" component={EstimationMaisonGirondePageComponent} />
+      <Route path="/merci-estimation-maison-gironde" component={MerciEstimationMaisonGirondePageComponent} />
       <Route path="/estimation-resultats" component={ResultsPage} />
       <Route path="/contact" component={ContactPage} />
       <Route path="/financement" component={FinancementPageComponent} />
@@ -904,13 +931,14 @@ export default function App() {
   // Check if this is an admin route or results page that should not use PublicLayout
   const isAdminRoute = location.startsWith('/admin') || location === '/admin-dev' || location === '/login' || location === '/gironde-login' || location === '/gironde-admin-dashboard';
   const isResultsPage = location === '/estimation-resultats' || location.startsWith('/estimation-resultats');
+  const isLandingPage = location === '/estimation-appartement-bordeaux' || location === '/estimation-maison-gironde' || location === '/merci-estimation-maison-gironde';
   
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
-          {isAdminRoute || isResultsPage ? (
-            // Admin routes and results page render without PublicLayout
+          {isAdminRoute || isResultsPage || isLandingPage ? (
+            // Admin routes, results page and landing pages render without PublicLayout
             <>
               <Router />
               <Toaster />
