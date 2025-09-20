@@ -1052,3 +1052,28 @@ export const videoEventSchema = z.object({
   progressPercent: z.number().min(0).max(100).optional(),
   metadata: z.string().optional(),
 });
+
+// Table pour la configuration du chat OpenAI
+export const chatConfigurations = pgTable("chat_configurations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().default("Configuration principale"),
+  systemPrompt: text("system_prompt").notNull().default("Vous êtes un assistant expert en immobilier spécialisé dans la région de Gironde/Bordeaux. Vous aidez les utilisateurs avec leurs questions sur l'estimation immobilière, le marché local, et les conseils pour vendre ou acheter. Soyez professionnel, précis et utilisez votre expertise du marché français."),
+  model: text("model").notNull().default("gpt-4o-mini"),
+  maxTokens: integer("max_tokens").default(2048),
+  temperature: text("temperature").default("0.7"), // Stocké comme texte car gpt-5 ne supporte pas ce paramètre
+  maxHistoryMessages: integer("max_history_messages").notNull().default(6),
+  isActive: boolean("is_active").notNull().default(true),
+  welcomeMessage: text("welcome_message").notNull().default("Bonjour ! Je suis votre assistant immobilier spécialisé dans la région Gironde/Bordeaux. Comment puis-je vous aider avec votre projet immobilier ?"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Schema pour créer/modifier une configuration de chat
+export const insertChatConfigurationSchema = createInsertSchema(chatConfigurations).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+
+export type InsertChatConfiguration = z.infer<typeof insertChatConfigurationSchema>;
+export type ChatConfiguration = typeof chatConfigurations.$inferSelect;

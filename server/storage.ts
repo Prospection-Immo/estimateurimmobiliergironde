@@ -29,6 +29,7 @@ import {
   type OrderItem,
   type Enrollment,
   type CourseEvent,
+  type ChatConfiguration,
   type InsertUser, 
   type InsertLead, 
   type InsertEstimation, 
@@ -57,6 +58,7 @@ import {
   type InsertOrderItem,
   type InsertEnrollment,
   type InsertCourseEvent,
+  type InsertChatConfiguration,
   users,
   leads,
   estimations,
@@ -84,7 +86,8 @@ import {
   orders,
   orderItems,
   enrollments,
-  courseEvents
+  courseEvents,
+  chatConfigurations
 } from "@shared/schema";
 import { eq, desc, sql, and } from "drizzle-orm";
 
@@ -350,6 +353,15 @@ export interface IStorage {
     averageClickRate: number;
     lastUsed?: string;
   }>>;
+
+  // Chat Configuration
+  getChatConfigurations(): Promise<ChatConfiguration[]>;
+  getChatConfigurationById(id: string): Promise<ChatConfiguration | undefined>;
+  getActiveChatConfiguration(): Promise<ChatConfiguration | undefined>;
+  createChatConfiguration(config: InsertChatConfiguration): Promise<ChatConfiguration>;
+  updateChatConfiguration(id: string, updates: Partial<InsertChatConfiguration>): Promise<ChatConfiguration>;
+  deleteChatConfiguration(id: string): Promise<void>;
+  setActiveChatConfiguration(id: string): Promise<void>;
 }
 
 export class SupabaseStorage implements IStorage {
