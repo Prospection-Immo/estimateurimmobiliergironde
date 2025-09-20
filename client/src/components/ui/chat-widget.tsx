@@ -138,7 +138,7 @@ export default function ChatWidget({ className = '' }: ChatWidgetProps) {
     return (
       <Button
         onClick={toggleChat}
-        className={`fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg hover-elevate ${className}`}
+        className={`fixed bottom-16 right-4 h-14 w-14 rounded-full shadow-lg hover-elevate ${className}`}
         size="icon"
         data-testid="button-open-chat"
       >
@@ -148,7 +148,7 @@ export default function ChatWidget({ className = '' }: ChatWidgetProps) {
   }
 
   return (
-    <Card className={`fixed bottom-6 right-6 w-96 h-[32rem] flex flex-col shadow-xl overflow-hidden ${className}`}>
+    <Card className={`fixed bottom-16 right-4 w-96 h-[32rem] flex flex-col shadow-xl overflow-hidden ${className}`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 py-3 border-b flex-shrink-0">
         <CardTitle className="text-lg truncate">Assistant Immobilier</CardTitle>
         <div className="flex gap-1 flex-shrink-0">
