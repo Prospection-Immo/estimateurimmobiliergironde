@@ -90,16 +90,10 @@ import {
   chatConfigurations
 } from "@shared/schema";
 import { eq, desc, sql, and } from "drizzle-orm";
+import { supabase, testSupabaseConnection } from './lib/supabaseClient';
+import { supabaseAdmin, testSupabaseAdminConnection, isAdminAvailable } from './lib/supabaseAdmin';
 
-// Database connection - Use Supabase database
-const connectionString = process.env.DATABASE_URL;
-
-if (!connectionString) {
-  console.log('❌ No DATABASE_URL found. Please configure Supabase connection.');
-}
-
-let client: any;
-let db: any;
+// Initialize Supabase connection with fallback support
 let usingFallback = false;
 
 // Temporary fallback chat configuration for when database is not available
@@ -117,13 +111,19 @@ let fallbackChatConfig: ChatConfiguration = {
   updatedAt: new Date()
 };
 
+console.log('🔌 Initializing Supabase connections...');
+
+// Database connection - Use Supabase database (fallback to postgres if needed)
+const connectionString = process.env.DATABASE_URL;
+
+let client: any;
+let db: any;
+
 if (!connectionString) {
   console.error('❌ CRITICAL: DATABASE_URL environment variable is required but not found!');
   console.error('Please configure your Supabase DATABASE_URL in environment variables.');
   process.exit(1);
 }
-
-console.log('🔌 Connecting to Supabase database...');
 
 // Use Supabase pooled connection for better stability (port 6543 instead of 5432)
 let optimizedConnectionString = connectionString;
@@ -136,7 +136,7 @@ if (connectionString.includes('supabase.co') && connectionString.includes(':5432
 client = postgres(optimizedConnectionString, {
   max: 10,                    // Pool size
   idle_timeout: 20,          // Close idle connections after 20s
-  connect_timeout: 90,       // Increased timeout for better reliability
+  connect_timeout: 30,       // Reduced timeout to prevent startup delays
   prepare: false,            // Disable prepared statements for PgBouncer compatibility
   ssl: 'require',            // Enforce SSL for security
   transform: {
@@ -146,20 +146,38 @@ client = postgres(optimizedConnectionString, {
 
 db = drizzle(client);
 
-// Verify database connection on startup
-async function verifyDatabaseConnection() {
+// Test connections and provide proper feedback (non-blocking)
+async function initializeSupabaseConnections() {
   try {
+    // Test postgres connection first
     await client`SELECT 1 as health_check`;
-    console.log('✅ Database connection verified successfully');
+    console.log('✅ PostgreSQL connection verified successfully');
+    
+    // Test both supabase clients concurrently (non-blocking)
+    const [publicConnected, adminConnected] = await Promise.allSettled([
+      testSupabaseConnection(),
+      testSupabaseAdminConnection()
+    ]);
+
+    if (publicConnected.status === 'rejected' || !publicConnected.value) {
+      console.warn('⚠️ Supabase public client unavailable, using direct postgres');
+    } else {
+      console.log('✅ Supabase public client connected');
+    }
+
+    if (adminConnected.status === 'rejected' || !adminConnected.value) {
+      console.warn('⚠️ Supabase admin client unavailable');
+    } else {
+      console.log('✅ Supabase admin client connected');
+    }
   } catch (error) {
-    console.error('❌ CRITICAL: Failed to connect to database:', error);
-    console.error('Please check your DATABASE_URL and network connectivity.');
-    process.exit(1);
+    console.warn('⚠️ Database connection test failed, enabling fallback mode:', error);
+    usingFallback = true;
   }
 }
 
-// Call verification function
-verifyDatabaseConnection();
+// Initialize connections (non-blocking to prevent startup delays)
+initializeSupabaseConnections();
 
 // Export db for direct access
 export { db };
@@ -521,8 +539,23 @@ export class SupabaseStorage implements IStorage {
   // Chat Configuration
   async getChatConfiguration(): Promise<ChatConfiguration | undefined> {
     try {
-      const result = await db.select().from(chatConfigurations).limit(1);
-      return result[0];
+      if (usingFallback || !supabase) {
+        return fallbackChatConfig;
+      }
+      
+      const { data, error } = await supabase
+        .from('chat_configurations')
+        .select('*')
+        .limit(1)
+        .single();
+      
+      if (error) {
+        console.warn('⚠️ Database unavailable, using fallback chat configuration');
+        usingFallback = true;
+        return fallbackChatConfig;
+      }
+      
+      return data as ChatConfiguration;
     } catch (error) {
       console.warn('⚠️ Database unavailable, using fallback chat configuration');
       usingFallback = true;
@@ -532,18 +565,7 @@ export class SupabaseStorage implements IStorage {
 
   async updateChatConfiguration(config: Partial<InsertChatConfiguration>): Promise<ChatConfiguration> {
     try {
-      // Get the first configuration to update
-      const existing = await this.getChatConfiguration();
-      if (existing && !usingFallback) {
-        const result = await db.update(chatConfigurations)
-          .set({ ...config, updatedAt: new Date() })
-          .where(eq(chatConfigurations.id, existing.id))
-          .returning();
-        return result[0];
-      } else if (!usingFallback) {
-        // Create new if none exists
-        return await this.createChatConfiguration(config as InsertChatConfiguration);
-      } else {
+      if (usingFallback || !supabase) {
         // Update fallback config in memory
         console.warn('⚠️ Database unavailable, updating fallback chat configuration');
         fallbackChatConfig = {
@@ -552,6 +574,23 @@ export class SupabaseStorage implements IStorage {
           updatedAt: new Date()
         };
         return fallbackChatConfig;
+      }
+      
+      // Get the first configuration to update
+      const existing = await this.getChatConfiguration();
+      if (existing && !usingFallback && supabase) {
+        const { data, error } = await supabase
+          .from('chat_configurations')
+          .update({ ...config, updated_at: new Date().toISOString() })
+          .eq('id', existing.id)
+          .select()
+          .single();
+          
+        if (error) throw error;
+        return data as ChatConfiguration;
+      } else {
+        // Create new if none exists
+        return await this.createChatConfiguration(config as InsertChatConfiguration);
       }
     } catch (error) {
       console.warn('⚠️ Database unavailable, updating fallback chat configuration');
@@ -566,8 +605,28 @@ export class SupabaseStorage implements IStorage {
   }
 
   async createChatConfiguration(config: InsertChatConfiguration): Promise<ChatConfiguration> {
-    const result = await db.insert(chatConfigurations).values(config).returning();
-    return result[0];
+    try {
+      if (usingFallback) {
+        console.warn('⚠️ Database unavailable, cannot create chat configuration');
+        throw new Error('Database unavailable');
+      }
+      
+      const { data, error } = await supabase
+        .from('chat_configurations')
+        .insert({
+          ...config,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data as ChatConfiguration;
+    } catch (error) {
+      console.warn('⚠️ Failed to create chat configuration:', error);
+      throw error;
+    }
   }
 
   // Analytics
