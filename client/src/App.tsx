@@ -75,7 +75,8 @@ function HomePage() {
       return;
     }
 
-    if (parseInt(surface.split('-')[0]) <= 0 && surface !== "200+") {
+    // Validate surface selection - "0-50" is valid (represents small properties)
+    if (surface && !["0-50", "50-80", "80-120", "120-200", "200+"].includes(surface)) {
       setError("Veuillez sélectionner une surface valide");
       return;
     }
