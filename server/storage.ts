@@ -100,6 +100,22 @@ if (!connectionString) {
 
 let client: any;
 let db: any;
+let usingFallback = false;
+
+// Temporary fallback chat configuration for when database is not available
+let fallbackChatConfig: ChatConfiguration = {
+  id: "fallback-config",
+  name: "Configuration principale",
+  systemPrompt: "Vous êtes un assistant expert en immobilier spécialisé dans la région de Gironde/Bordeaux. Vous aidez les utilisateurs avec leurs questions sur l'estimation immobilière, le marché local, et les conseils pour vendre ou acheter. Soyez professionnel, précis et utilisez votre expertise du marché français.",
+  model: "gpt-4o-mini",
+  maxTokens: 2048,
+  temperature: "0.7",
+  maxHistoryMessages: 6,
+  isActive: true,
+  welcomeMessage: "Bonjour ! Je suis votre assistant immobilier spécialisé dans la région Gironde/Bordeaux. Comment puis-je vous aider avec votre projet immobilier ?",
+  createdAt: new Date(),
+  updatedAt: new Date()
+};
 
 if (!connectionString) {
   console.error('❌ CRITICAL: DATABASE_URL environment variable is required but not found!');
@@ -504,22 +520,48 @@ export class SupabaseStorage implements IStorage {
 
   // Chat Configuration
   async getChatConfiguration(): Promise<ChatConfiguration | undefined> {
-    const result = await db.select().from(chatConfigurations).limit(1);
-    return result[0];
+    try {
+      const result = await db.select().from(chatConfigurations).limit(1);
+      return result[0];
+    } catch (error) {
+      console.warn('⚠️ Database unavailable, using fallback chat configuration');
+      usingFallback = true;
+      return fallbackChatConfig;
+    }
   }
 
   async updateChatConfiguration(config: Partial<InsertChatConfiguration>): Promise<ChatConfiguration> {
-    // Get the first configuration to update
-    const existing = await this.getChatConfiguration();
-    if (existing) {
-      const result = await db.update(chatConfigurations)
-        .set({ ...config, updatedAt: new Date() })
-        .where(eq(chatConfigurations.id, existing.id))
-        .returning();
-      return result[0];
-    } else {
-      // Create new if none exists
-      return await this.createChatConfiguration(config as InsertChatConfiguration);
+    try {
+      // Get the first configuration to update
+      const existing = await this.getChatConfiguration();
+      if (existing && !usingFallback) {
+        const result = await db.update(chatConfigurations)
+          .set({ ...config, updatedAt: new Date() })
+          .where(eq(chatConfigurations.id, existing.id))
+          .returning();
+        return result[0];
+      } else if (!usingFallback) {
+        // Create new if none exists
+        return await this.createChatConfiguration(config as InsertChatConfiguration);
+      } else {
+        // Update fallback config in memory
+        console.warn('⚠️ Database unavailable, updating fallback chat configuration');
+        fallbackChatConfig = {
+          ...fallbackChatConfig,
+          ...config,
+          updatedAt: new Date()
+        };
+        return fallbackChatConfig;
+      }
+    } catch (error) {
+      console.warn('⚠️ Database unavailable, updating fallback chat configuration');
+      usingFallback = true;
+      fallbackChatConfig = {
+        ...fallbackChatConfig,
+        ...config,
+        updatedAt: new Date()
+      };
+      return fallbackChatConfig;
     }
   }
 
