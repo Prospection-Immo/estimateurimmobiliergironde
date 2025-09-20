@@ -152,7 +152,8 @@ export function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarPro
         { id: "api-settings", label: "Clés API", icon: Key },
         { id: "notifications", label: "Notifications", icon: Bell },
         { id: "system-logs", label: "Logs système", icon: Server },
-        { id: "backup-data", label: "Sauvegarde", icon: Database },
+        { id: "database-sync", label: "Synchronisation DB", icon: Database },
+        { id: "backup-data", label: "Sauvegarde", icon: Server },
       ]
     }
   ];

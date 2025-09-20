@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Switch, Route, useRoute, useParams, Redirect, useLocation } from "wouter";
+import { Switch, Route, useRoute, useParams, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -37,6 +37,7 @@ import GuideReadPage from "@/pages/GuideReadPage";
 import Admin2FALogin from "@/components/Admin2FALogin";
 import EmailTestPage from "@/pages/EmailTestPage";
 import AdminChatConfigPage from "@/pages/AdminChatConfigPage";
+import AdminDatabaseSyncPage from "@/pages/AdminDatabaseSyncPage";
 import FormationsPage from "@/pages/FormationsPage";
 import CourseDetailPage from "@/pages/CourseDetailPage";
 import CheckoutPage from "@/pages/CheckoutPage";
@@ -911,8 +912,16 @@ function Router() {
       <Route path="/articles/:slug" component={ArticleRedirect} />
       <Route path="/guide/:slug" component={GuideRedirect} />
       <Route path="/email-test" component={EmailTestPage} />
+      <Route path="/login" component={() => {
+        const [, navigate] = useLocation();
+        useEffect(() => {
+          navigate('/admin/login', { replace: true });
+        }, [navigate]);
+        return null;
+      }} />
       <Route path="/admin/login" component={AdminLoginPage} />
       <Route path="/admin/chat-config" component={AdminChatConfigPage} />
+      <Route path="/admin/database-sync" component={AdminDatabaseSyncPage} />
       <Route path="/admin" component={AdminDashboardPage} />
       {/* Legal pages */}
       <Route path="/mentions-legales" component={MentionsLegalesPageComponent} />

@@ -693,6 +693,55 @@ export class SupabaseStorage implements IStorage {
       completionRate
     };
   }
+
+  // Database Testing and Status Methods
+  async testConnection(): Promise<boolean> {
+    try {
+      if (usingFallback) {
+        return false; // Fallback mode means DB is not available
+      }
+      await db.execute(sql`SELECT 1`);
+      return true;
+    } catch (error) {
+      console.error('Database connection test failed:', error);
+      throw error;
+    }
+  }
+
+  async getStorageStatus() {
+    const status = {
+      usingFallback,
+      timestamp: new Date().toISOString(),
+      postgresAvailable: false,
+      supabasePublicAvailable: false,
+      supabaseAdminAvailable: false
+    };
+
+    // Test postgres connection
+    try {
+      await this.testConnection();
+      status.postgresAvailable = !usingFallback;
+    } catch (error) {
+      status.postgresAvailable = false;
+    }
+
+    // Test Supabase connections
+    try {
+      const { testSupabaseConnection } = await import('./lib/supabaseClient');
+      status.supabasePublicAvailable = await testSupabaseConnection();
+    } catch (error) {
+      status.supabasePublicAvailable = false;
+    }
+
+    try {
+      const { testSupabaseAdminConnection } = await import('./lib/supabaseAdmin');
+      status.supabaseAdminAvailable = await testSupabaseAdminConnection();
+    } catch (error) {
+      status.supabaseAdminAvailable = false;
+    }
+
+    return status;
+  }
 }
 
 export const storage = new SupabaseStorage();

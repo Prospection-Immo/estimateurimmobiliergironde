@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1227,6 +1228,7 @@ function GuidePreview({ guide }: GuidePreviewProps) {
 export default function AdminDashboard({ domain = "estimation-immobilier-gironde.fr" }: AdminDashboardProps) {
   // Active section state for sidebar navigation
   const [activeSection, setActiveSection] = useState("overview");
+  const [, navigate] = useLocation();
   
   // Existing state
   const [searchTerm, setSearchTerm] = useState("");
@@ -1321,6 +1323,12 @@ export default function AdminDashboard({ domain = "estimation-immobilier-gironde
 
   // Section change handler for sidebar navigation
   const onSectionChange = (section: string) => {
+    // Handle redirections to external admin pages
+    if (section === 'database-sync') {
+      navigate('/admin/database-sync');
+      return;
+    }
+    
     setActiveSection(section);
   };
 

@@ -7065,6 +7065,102 @@ Actions à effectuer:
     }
   });
 
+  // Database Synchronization API (Admin only)
+  app.post('/api/admin/db-sync', requireAdminAuth, async (req, res) => {
+    try {
+      const syncResults = {
+        timestamp: new Date().toISOString(),
+        operations: [] as any[],
+        success: true,
+        errors: [] as string[]
+      };
+
+      // Test database connection first
+      try {
+        const connectionOk = await storage.testConnection();
+        if (connectionOk) {
+          syncResults.operations.push({
+            type: 'connection_test',
+            status: 'success',
+            message: 'Connexion à la base de données testée avec succès'
+          });
+        } else {
+          syncResults.operations.push({
+            type: 'connection_test',
+            status: 'error',
+            message: 'Base de données non disponible (mode fallback actif)'
+          });
+          syncResults.errors.push('Database connection failed - using fallback mode');
+        }
+      } catch (error: any) {
+        syncResults.operations.push({
+          type: 'connection_test',
+          status: 'error',
+          message: `Erreur de connexion: ${error.message}`
+        });
+        syncResults.errors.push(error.message);
+      }
+
+      // Test Supabase connections
+      try {
+        const { testSupabaseConnection } = await import('./lib/supabaseClient');
+        const { testSupabaseAdminConnection } = await import('./lib/supabaseAdmin');
+
+        const supabaseTest = await testSupabaseConnection();
+        const supabaseAdminTest = await testSupabaseAdminConnection();
+
+        syncResults.operations.push({
+          type: 'supabase_anonymous_test',
+          status: supabaseTest ? 'success' : 'warning',
+          message: supabaseTest ? 'Client Supabase anonyme connecté' : 'Client Supabase anonyme non disponible'
+        });
+
+        syncResults.operations.push({
+          type: 'supabase_admin_test',
+          status: supabaseAdminTest ? 'success' : 'warning',
+          message: supabaseAdminTest ? 'Client Supabase admin connecté' : 'Client Supabase admin non disponible'
+        });
+      } catch (error: any) {
+        syncResults.operations.push({
+          type: 'supabase_test',
+          status: 'error',
+          message: `Erreur test Supabase: ${error.message}`
+        });
+        syncResults.errors.push(error.message);
+      }
+
+      // Check storage fallback status
+      try {
+        const storageStatus = await storage.getStorageStatus();
+        syncResults.operations.push({
+          type: 'storage_status',
+          status: 'info',
+          message: `Mode de stockage: ${storageStatus.usingFallback ? 'Fallback (mémoire)' : 'Base de données'}`,
+          details: storageStatus
+        });
+      } catch (error: any) {
+        syncResults.operations.push({
+          type: 'storage_status',
+          status: 'error',
+          message: `Erreur statut stockage: ${error.message}`
+        });
+      }
+
+      // Set overall success status
+      syncResults.success = syncResults.errors.length === 0;
+
+      res.json(syncResults);
+    } catch (error: any) {
+      console.error('Error during database synchronization:', error);
+      res.status(500).json({ 
+        error: 'Erreur lors de la synchronisation de la base de données',
+        message: error.message,
+        success: false,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
