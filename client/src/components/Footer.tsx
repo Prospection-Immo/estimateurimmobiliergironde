@@ -53,6 +53,9 @@ export default function Footer({ domain = "estimation-immobilier-gironde.fr" }: 
               <Link href="/actualites" className="block text-sm text-primary-foreground/80 hover:text-primary-foreground hover-elevate px-2 py-1 rounded" data-testid="link-footer-news">
                 Actualités
               </Link>
+              <Link href="/tendances-marche-2025" className="block text-sm text-primary-foreground/80 hover:text-primary-foreground hover-elevate px-2 py-1 rounded" data-testid="link-footer-tendances">
+                Tendances Marché 2025
+              </Link>
               <Link href="/guides" className="block text-sm text-primary-foreground/80 hover:text-primary-foreground hover-elevate px-2 py-1 rounded" data-testid="link-footer-guide">
                 Guides vendeurs
               </Link>
