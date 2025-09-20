@@ -189,17 +189,17 @@ export default function Admin2FALogin({ domain }: Admin2FALoginProps) {
       <form className="space-y-4" onSubmit={handleEmailLogin}>
         <div className="space-y-1">
           <label htmlFor="email" className="text-sm text-muted-foreground">
-            Adresse e-mail *
+            Nom d'utilisateur *
           </label>
           <input
             id="email"
-            type="email"
+            type="text"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-background"
             required
             data-testid="input-admin-email"
-            placeholder="admin@test.fr"
+            placeholder="admin"
           />
         </div>
         
