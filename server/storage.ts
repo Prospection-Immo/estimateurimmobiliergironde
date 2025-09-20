@@ -91,19 +91,19 @@ import {
 } from "@shared/schema";
 import { eq, desc, sql, and } from "drizzle-orm";
 
-// Database connection with fallback for development
+// Database connection - Use Supabase database
 const connectionString = process.env.DATABASE_URL;
 
-// Check if we're in a development environment
-// Use explicit NODE_ENV check for better reliability
-const isDevelopmentMode = process.env.NODE_ENV === 'development' && (!connectionString || connectionString.includes('3pVwZ'));
+if (!connectionString) {
+  console.log('❌ No DATABASE_URL found. Please configure Supabase connection.');
+}
 
 let client: any;
 let db: any;
 
-if (isDevelopmentMode) {
-  console.log('🔧 Running in development mode without database connection');
-  // Create a mock database client for development
+if (!connectionString) {
+  console.log('❌ No database connection available - using mock database');
+  // Create a mock database client for development only if no connection is available
   client = {
     query: () => Promise.resolve({ rows: [] }),
     end: () => Promise.resolve()
@@ -116,11 +116,13 @@ if (isDevelopmentMode) {
     delete: () => ({ where: () => ({ execute: () => Promise.resolve() }) })
   };
 } else {
+  console.log('✅ Connecting to Supabase database:', connectionString.substring(0, 50) + '...');
+  
   // Use Supabase pooled connection for better stability (port 6543 instead of 5432)
   let optimizedConnectionString = connectionString;
   if (connectionString.includes(':5432/')) {
     optimizedConnectionString = connectionString.replace(':5432/', ':6543/');
-    console.log('Using Supabase pooled connection for better stability');
+    console.log('🔧 Using Supabase pooled connection for better stability');
   }
   
   // Configure postgres client with proper options for Supabase
