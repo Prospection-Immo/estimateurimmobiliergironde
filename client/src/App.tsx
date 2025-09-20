@@ -20,7 +20,6 @@ import PropertyEstimationForm from "@/components/PropertyEstimationForm";
 import EstimationResults from "@/components/EstimationResults";
 import ContactForm from "@/components/ContactForm";
 import AdminDashboard from "@/components/AdminDashboard";
-import AdminDashboardDev from "@/components/AdminDashboardDev";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -711,13 +710,6 @@ function AdminDashboardPage() {
   return <AdminDashboard domain={domain} />;
 }
 
-// Admin Dashboard Page for Development (no auth)
-function AdminDashboardPageDev() {
-  const domain = getDomainFromHeaders();
-  
-  // Development version - bypass authentication
-  return <AdminDashboardDev domain={domain} />;
-}
 
 // Guides Page (using the new component)
 function GuidesPage() {
@@ -919,8 +911,6 @@ function Router() {
       <Route path="/articles/:slug" component={ArticleRedirect} />
       <Route path="/guide/:slug" component={GuideRedirect} />
       <Route path="/email-test" component={EmailTestPage} />
-      <Route path="/admin-dev" component={AdminDashboardPageDev} />
-      <Route path="/login" component={AdminLoginPage} />
       <Route path="/admin/login" component={AdminLoginPage} />
       <Route path="/admin/chat-config" component={AdminChatConfigPage} />
       <Route path="/admin" component={AdminDashboardPage} />
@@ -942,7 +932,7 @@ export default function App() {
   const [location] = useLocation();
   
   // Check if this is an admin route or results page that should not use PublicLayout
-  const isAdminRoute = location.startsWith('/admin') || location === '/admin-dev' || location === '/login' || location === '/gironde-login' || location === '/gironde-admin-dashboard';
+  const isAdminRoute = location.startsWith('/admin') || location === '/gironde-login' || location === '/gironde-admin-dashboard';
   const isResultsPage = location === '/estimation-resultats' || location.startsWith('/estimation-resultats');
   const isLandingPage = location === '/estimation-appartement-bordeaux' || location === '/estimation-maison-gironde' || location === '/merci-estimation-maison-gironde' || location === '/merci-estimation-appartement-bordeaux';
   
