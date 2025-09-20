@@ -5,6 +5,7 @@ import { storage, db } from "./storage";
 import { insertLeadSchema, insertEstimationSchema, insertContactSchema, insertArticleSchema, insertEmailTemplateSchema, insertEmailHistorySchema, insertGuideSchema, insertGuideDownloadSchema, insertGuideAnalyticsSchema, insertScoringConfigSchema, insertSmsCampaignSchema, insertSmsTemplateSchema, insertSmsContactSchema, insertSmsSentMessageSchema, insertSmsSequenceSchema, insertSmsSequenceEnrollmentSchema, GUIDE_PERSONAS, BANT_CRITERIA, QUALIFICATION_STATUS } from "@shared/schema";
 import { sanitizeArticleContent } from "./services/htmlSanitizer";
 import { generateRealEstateArticle } from "./services/openai";
+import OpenAI from "openai";
 import emailService from "./services/emailService";
 import emailSequenceService from "./services/emailSequenceService";
 import emailTemplateGenerator from "./services/emailTemplateGenerator";
@@ -25,6 +26,11 @@ const TWILIO_VERIFY_SERVICE_SID = process.env.TWILIO_VERIFY_SERVICE_SID || 'VA05
 // Initialize Stripe - Based on javascript_stripe integration
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2023-10-16",
+}) : null;
+
+// Initialize OpenAI - Based on javascript_openai integration
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({ 
+  apiKey: process.env.OPENAI_API_KEY 
 }) : null;
 
 // Specific validation schemas for different lead types
@@ -6887,6 +6893,65 @@ Actions à effectuer:
       res.status(500).json({ 
         error: "Erreur lors de la création du paiement: " + error.message 
       });
+    }
+  });
+
+  // Chat API with OpenAI streaming - Based on javascript_openai integration
+  app.post('/api/chat', async (req, res) => {
+    try {
+      if (!openai) {
+        return res.status(500).json({ error: 'Service OpenAI non disponible' });
+      }
+
+      const { message, history = [] } = req.body;
+
+      if (!message || typeof message !== 'string') {
+        return res.status(400).json({ error: 'Message requis' });
+      }
+
+      // Limit history to last 6 messages for cost control (as per user requirements)
+      const limitedHistory = history.slice(-6);
+
+      // Set headers for SSE (Server-Sent Events) streaming
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+
+      // the newest OpenAI model is "gpt-4o-mini" for cost efficiency as requested
+      const stream = await openai.chat.completions.create({
+        model: "gpt-4o-mini", // Using gpt-4o-mini for cost optimization as requested
+        messages: [
+          {
+            role: "system",
+            content: "Vous êtes un assistant expert en immobilier spécialisé dans la région de Gironde/Bordeaux. Vous aidez les utilisateurs avec leurs questions sur l'estimation immobilière, le marché local, et les conseils pour vendre ou acheter. Soyez professionnel, précis et utilisez votre expertise du marché français."
+          },
+          ...limitedHistory,
+          { role: "user", content: message }
+        ],
+        stream: true,
+      });
+
+      // Stream the response
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content;
+        if (content) {
+          res.write(content);
+        }
+      }
+
+      res.end();
+
+    } catch (error: any) {
+      console.error('Error in chat API:', error);
+      
+      if (!res.headersSent) {
+        res.status(500).json({ 
+          error: 'Erreur lors de la génération de la réponse',
+          message: error.message 
+        });
+      } else {
+        res.end();
+      }
     }
   });
 

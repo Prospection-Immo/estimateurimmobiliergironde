@@ -43,6 +43,7 @@ import CheckoutPage from "@/pages/CheckoutPage";
 import ThankYouPage from "@/pages/ThankYouPage";
 import TendancesMarche2025Page from "@/pages/TendancesMarche2025Page";
 import EstimationAppartementBordeauxPage from "@/pages/EstimationAppartementBordeauxPage";
+import ChatWidget from "@/components/ui/chat-widget";
 import EstimationMaisonGirondePage from "@/pages/EstimationMaisonGirondePage";
 import MerciEstimationMaisonGirondePage from "@/pages/MerciEstimationMaisonGirondePage";
 import MerciEstimationAppartementBordeauxPage from "@/pages/MerciEstimationAppartementBordeauxPage";
@@ -881,6 +882,7 @@ function PublicLayout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <Footer />
+      <ChatWidget />
     </div>
   );
 }
