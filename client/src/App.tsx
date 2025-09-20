@@ -37,6 +37,7 @@ import GuideThanksPage from "@/pages/GuideThanksPage";
 import GuideReadPage from "@/pages/GuideReadPage";
 import Admin2FALogin from "@/components/Admin2FALogin";
 import EmailTestPage from "@/pages/EmailTestPage";
+import AdminChatConfigPage from "@/pages/AdminChatConfigPage";
 import FormationsPage from "@/pages/FormationsPage";
 import CourseDetailPage from "@/pages/CourseDetailPage";
 import CheckoutPage from "@/pages/CheckoutPage";
@@ -921,6 +922,7 @@ function Router() {
       <Route path="/admin-dev" component={AdminDashboardPageDev} />
       <Route path="/login" component={AdminLoginPage} />
       <Route path="/admin/login" component={AdminLoginPage} />
+      <Route path="/admin/chat-config" component={AdminChatConfigPage} />
       <Route path="/admin" component={AdminDashboardPage} />
       {/* Legal pages */}
       <Route path="/mentions-legales" component={MentionsLegalesPageComponent} />
