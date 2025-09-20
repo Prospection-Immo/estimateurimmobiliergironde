@@ -17,7 +17,7 @@ import {
   Target
 } from "lucide-react";
 import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 import bordeaux_house from "@assets/generated_images/Bordeaux_house_property_photo_41cf0370.png";
 
 interface EstimationMaisonGirondePageProps {
@@ -28,7 +28,7 @@ export default function EstimationMaisonGirondePage({
   domain = "estimation-immobilier-gironde.fr" 
 }: EstimationMaisonGirondePageProps) {
   const websiteUrl = `https://${domain}`;
-  const { toast } = useToast();
+  const [, navigate] = useLocation();
   const [formData, setFormData] = useState({
     nom: "",
     telephone: "",
@@ -38,11 +38,8 @@ export default function EstimationMaisonGirondePage({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Demande de rappel envoyée",
-      description: "Un expert vous contactera sous 1h pour votre estimation gratuite.",
-    });
-    setFormData({ nom: "", telephone: "", commune: "", surface: "" });
+    // Rediriger vers la page de remerciement
+    navigate("/merci-estimation-maison-gironde");
   };
 
   return (

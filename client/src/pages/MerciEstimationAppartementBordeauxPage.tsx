@@ -14,34 +14,34 @@ import {
 import { Link } from "wouter";
 import bordeaux_house from "@assets/generated_images/Bordeaux_house_property_photo_41cf0370.png";
 
-interface MerciEstimationMaisonGirondePageProps {
+interface MerciEstimationAppartementBordeauxPageProps {
   domain?: string;
 }
 
-export default function MerciEstimationMaisonGirondePage({ 
+export default function MerciEstimationAppartementBordeauxPage({ 
   domain = "estimation-immobilier-gironde.fr" 
-}: MerciEstimationMaisonGirondePageProps) {
+}: MerciEstimationAppartementBordeauxPageProps) {
   const websiteUrl = `https://${domain}`;
 
   return (
     <>
       <SEOHead
-        title="Merci – Estimation Maison Gironde | Expert Local"
-        description="Merci pour votre demande d'estimation de maison en Gironde. Un conseiller expert local vous rappelle rapidement pour confirmer la valeur de votre bien."
+        title="Merci – Estimation Appartement Bordeaux | Expert Local"
+        description="Merci pour votre demande d'estimation d'appartement à Bordeaux. Un conseiller expert local vous rappelle rapidement pour confirmer la valeur de votre bien."
         keywords={[
-          'merci estimation maison gironde',
-          'confirmation estimation gironde',
-          'expert immobilier gironde rappel',
-          'estimation maison bordeaux',
-          'DVF gironde maison',
-          'conseils vente maison gironde'
+          'merci estimation appartement bordeaux',
+          'confirmation estimation bordeaux',
+          'expert immobilier bordeaux rappel',
+          'estimation appartement chartrons',
+          'DVF bordeaux appartement',
+          'conseils vente appartement bordeaux'
         ]}
-        canonical={`${websiteUrl}/merci-estimation-maison-gironde`}
+        canonical={`${websiteUrl}/merci-estimation-appartement-bordeaux`}
         openGraph={{
-          title: "Merci – Estimation Maison Gironde | Expert Local",
-          description: "Merci pour votre demande d'estimation de maison en Gironde. Un conseiller expert local vous rappelle rapidement pour confirmer la valeur de votre bien.",
+          title: "Merci – Estimation Appartement Bordeaux | Expert Local",
+          description: "Merci pour votre demande d'estimation d'appartement à Bordeaux. Un conseiller expert local vous rappelle rapidement pour confirmer la valeur de votre bien.",
           image: bordeaux_house,
-          url: `${websiteUrl}/merci-estimation-maison-gironde`,
+          url: `${websiteUrl}/merci-estimation-appartement-bordeaux`,
           type: "website"
         }}
         robots="noindex, nofollow"
@@ -52,7 +52,7 @@ export default function MerciEstimationMaisonGirondePage({
         <div className="absolute inset-0 z-0">
           <img
             src={bordeaux_house}
-            alt="Estimation maison Gironde confirmée"
+            alt="Estimation appartement Bordeaux confirmée"
             className="w-full h-full object-cover opacity-10"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-green-900/80 to-green-800/70"></div>
@@ -64,15 +64,15 @@ export default function MerciEstimationMaisonGirondePage({
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
             </div>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight mb-6">
-              Merci pour votre demande d'estimation de maison en Gironde
+              Merci pour votre demande d'estimation d'appartement à Bordeaux
             </h1>
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 max-w-3xl mx-auto">
               <p className="text-lg sm:text-xl text-white/95 mb-4">
                 <strong>Votre demande a bien été enregistrée ✅</strong>
               </p>
               <p className="text-lg text-white/90">
-                Un expert local en Gironde va vous rappeler dans les prochaines minutes pour confirmer les informations 
-                et vous fournir une estimation fiable.
+                Un expert local bordelais va vous rappeler dans les prochaines minutes pour confirmer les informations 
+                et vous fournir une estimation fiable de votre appartement.
               </p>
             </div>
           </div>
@@ -107,8 +107,8 @@ export default function MerciEstimationMaisonGirondePage({
                     <Home className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">Vous présentez brièvement votre maison</h3>
-                    <p className="text-muted-foreground">surface, commune, état, terrain</p>
+                    <h3 className="font-semibold">Vous présentez brièvement votre appartement</h3>
+                    <p className="text-muted-foreground">surface, quartier, étage, état, luminosité</p>
                   </div>
                 </div>
                 
@@ -118,7 +118,7 @@ export default function MerciEstimationMaisonGirondePage({
                   </div>
                   <div>
                     <h3 className="font-semibold">L'expert croise vos données</h3>
-                    <p className="text-muted-foreground">avec les ventes réelles (DVF) et les comparables de votre secteur</p>
+                    <p className="text-muted-foreground">avec les ventes réelles (DVF) et les comparables de votre quartier</p>
                   </div>
                 </div>
                 
@@ -155,31 +155,31 @@ export default function MerciEstimationMaisonGirondePage({
             <CardContent>
               <h3 className="font-semibold mb-4 flex items-center gap-2">
                 <span className="text-2xl">👉</span>
-                Nos conseils pour mieux vendre votre maison en Gironde :
+                Nos conseils pour mieux vendre votre appartement à Bordeaux :
               </h3>
               
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
-                    <span>Fixer un prix réaliste mais compétitif</span>
+                    <span>Fixer un prix réaliste selon votre quartier (Chartrons, Caudéran, etc.)</span>
                   </div>
                   
                   <div className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
-                    <span>Valoriser vos atouts (jardin, dépendances, rénovation récente)</span>
+                    <span>Valoriser vos atouts (balcon, parking, rénovation récente)</span>
                   </div>
                 </div>
                 
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
-                    <span>Anticiper les points faibles (travaux, DPE)</span>
+                    <span>Optimiser la luminosité et l'agencement pour les visites</span>
                   </div>
                   
                   <div className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
-                    <span>Bien choisir le moment de mise en vente selon votre secteur (Bordeaux, Bassin, Médoc, Entre-Deux-Mers…)</span>
+                    <span>Bien choisir le moment de mise en vente selon votre secteur bordelais</span>
                   </div>
                 </div>
               </div>
@@ -187,7 +187,7 @@ export default function MerciEstimationMaisonGirondePage({
               <div className="mt-6 p-4 bg-muted/50 rounded-lg">
                 <p className="font-medium mb-2">Lien utile (interne SEO) :</p>
                 <Link href="/prix-m2" className="text-primary hover:underline font-medium" data-testid="link-prix-m2">
-                  ➡️ Consultez le prix moyen au m² en Gironde
+                  ➡️ Consultez le prix moyen au m² à Bordeaux par quartier
                 </Link>
               </div>
             </CardContent>
@@ -241,7 +241,7 @@ export default function MerciEstimationMaisonGirondePage({
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <CheckCircle className="w-5 h-5 text-green-600" />
-                    <span className="font-medium">Adaptée à votre maison et à votre commune</span>
+                    <span className="font-medium">Adaptée à votre appartement et votre quartier bordelais</span>
                   </div>
                   
                   <div className="flex items-center gap-3">
@@ -260,7 +260,7 @@ export default function MerciEstimationMaisonGirondePage({
             <CardContent className="text-center py-8">
               <h2 className="text-xl font-semibold mb-4">Message de réassurance final</h2>
               <p className="text-lg italic text-muted-foreground">
-                "Votre maison mérite une estimation juste. Notre mission : vous aider à vendre au vrai prix du marché en Gironde, sans perte de valeur."
+                "Votre appartement mérite une estimation juste. Notre mission : vous aider à vendre au vrai prix du marché bordelais, sans perte de valeur."
               </p>
             </CardContent>
           </Card>
