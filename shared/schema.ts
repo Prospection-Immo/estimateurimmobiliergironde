@@ -523,6 +523,37 @@ export type InsertLeadScoring = z.infer<typeof insertLeadScoringSchema>;
 export type InsertScoringConfig = z.infer<typeof insertScoringConfigSchema>;
 export type InsertLeadScoreHistory = z.infer<typeof insertLeadScoreHistorySchema>;
 
+// OpenAI Prompts Management System
+export const openaiPrompts = pgTable("openai_prompts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  functionality: text("functionality").notNull().unique(), // "article_generation", "market_insights", "guide_creation", etc.
+  name: text("name").notNull(), // Nom descriptif de la fonctionnalité
+  description: text("description"), // Description de la fonctionnalité
+  role: text("role").notNull(), // Le rôle que doit jouer l'IA
+  competences: text("competences").array().notNull(), // Array des compétences requises
+  tache: text("tache").notNull(), // La tâche principale à accomplir
+  caracteristiques: text("caracteristiques").array().notNull(), // Array des caractéristiques de sortie
+  processus: text("processus").notNull(), // Le processus détaillé à suivre
+  prompt_template: text("prompt_template").notNull(), // Template de prompt avec variables {{variable}}
+  model: text("model").notNull().default("gpt-4o"), // Modèle OpenAI à utiliser
+  temperature: decimal("temperature", { precision: 2, scale: 1 }).notNull().default("0.7"), // Température (0.0 - 2.0)
+  max_tokens: integer("max_tokens").default(4000), // Limite de tokens
+  response_format: text("response_format").notNull().default("json_object"), // "json_object" | "text"
+  variables: text("variables").array(), // Array des variables disponibles dans le template
+  is_active: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertOpenaiPromptSchema = createInsertSchema(openaiPrompts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type OpenaiPrompt = typeof openaiPrompts.$inferSelect;
+export type InsertOpenaiPrompt = z.infer<typeof insertOpenaiPromptSchema>;
+
 // BANT Methodology Constants
 export const BANT_CRITERIA = {
   budget: 'Budget',
