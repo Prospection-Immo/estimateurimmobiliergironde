@@ -1,5 +1,7 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+import { supabaseAdmin } from "./lib/supabaseAdmin";
+import { toSupabaseArticle, fromSupabaseArticle, fromSupabaseArticles } from "./lib/articleMapper";
 import { 
   type User, 
   type Lead, 
@@ -323,64 +325,182 @@ export class SupabaseStorage implements IStorage {
 
   // Articles
   async createArticle(insertArticle: InsertArticle): Promise<Article> {
-    const result = await db.insert(articles).values(insertArticle).returning();
-    return result[0];
+    try {
+      console.log('🔍 createArticle called with:', insertArticle.title);
+      
+      const supabaseData = toSupabaseArticle(insertArticle);
+      const { data, error } = await supabaseAdmin
+        .from('articles')
+        .insert([supabaseData])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Supabase error in createArticle:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+      
+      console.log('✅ Article created successfully:', data.id);
+      return fromSupabaseArticle(data);
+    } catch (error) {
+      console.error('💥 Error in createArticle:', error);
+      throw error;
+    }
   }
 
   async getArticles(limit = 50): Promise<Article[]> {
-    return await db.select().from(articles).orderBy(desc(articles.createdAt)).limit(limit);
+    try {
+      console.log('🔍 getArticles called with limit:', limit);
+      
+      const { data, error } = await supabaseAdmin
+        .from('articles')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      
+      if (error) {
+        console.error('❌ Supabase error in getArticles:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+      
+      console.log('✅ Articles fetched successfully:', data?.length || 0);
+      return data || [];
+    } catch (error) {
+      console.error('💥 Error in getArticles:', error);
+      throw error;
+    }
   }
 
   async getAllArticles(limit = 50, status?: string, category?: string, searchQuery?: string): Promise<Article[]> {
-    // Apply filters
-    const conditions = [];
-    if (status && status !== 'all') {
-      conditions.push(eq(articles.status, status));
-    }
-    if (category && category !== 'all') {
-      conditions.push(eq(articles.category, category));
-    }
-    if (searchQuery) {
-      const searchTerm = `%${searchQuery.toLowerCase()}%`;
-      conditions.push(
-        sql`(LOWER(${articles.title}) LIKE ${searchTerm} OR LOWER(${articles.content}) LIKE ${searchTerm} OR LOWER(${articles.summary}) LIKE ${searchTerm})`
-      );
-    }
-
-    if (conditions.length > 0) {
-      return await db.select().from(articles)
-        .where(and(...conditions))
-        .orderBy(desc(articles.createdAt))
+    try {
+      console.log('🔍 getAllArticles called with:', { limit, status, category, searchQuery });
+      
+      let query = supabaseAdmin.from('articles').select('*');
+      
+      // Apply filters
+      if (status && status !== 'all') {
+        query = query.eq('status', status);
+      }
+      if (category && category !== 'all') {
+        query = query.eq('category', category);
+      }
+      if (searchQuery) {
+        const searchTerm = searchQuery.toLowerCase();
+        query = query.or(`title.ilike.%${searchTerm}%,content.ilike.%${searchTerm}%`);
+      }
+      
+      console.log('📡 Executing Supabase query...');
+      const { data, error } = await query
+        .order('created_at', { ascending: false })
         .limit(limit);
+      
+      if (error) {
+        console.error('❌ Supabase error in getAllArticles:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+      
+      console.log('✅ Articles fetched successfully:', data?.length || 0);
+      return data || [];
+    } catch (error) {
+      console.error('💥 Error in getAllArticles:', error);
+      throw error;
     }
-
-    return await db.select().from(articles)
-      .orderBy(desc(articles.createdAt))
-      .limit(limit);
   }
 
   async getArticleBySlug(slug: string): Promise<Article | undefined> {
-    const result = await db.select().from(articles).where(eq(articles.slug, slug)).limit(1);
-    return result[0];
+    try {
+      // Use Supabase API for better reliability
+      const supabase = await import('./lib/supabaseAdmin').then(m => m.supabaseAdmin);
+      
+      const { data, error } = await supabase
+        .from('articles')
+        .select('*')
+        .eq('slug', slug)
+        .limit(1);
+      
+      if (error) {
+        console.error('Supabase error in getArticleBySlug:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+      
+      return data?.[0];
+    } catch (error) {
+      console.error('Error in getArticleBySlug:', error);
+      throw error;
+    }
   }
 
   async getArticlesByCategory(category: string, limit = 20): Promise<Article[]> {
-    return await db.select().from(articles)
-      .where(and(
-        eq(articles.category, category),
-        eq(articles.status, 'published')
-      ))
-      .orderBy(desc(articles.publishedAt))
-      .limit(limit);
+    try {
+      console.log('🔍 getArticlesByCategory called with:', category);
+      
+      const { data, error } = await supabaseAdmin
+        .from('articles')
+        .select('*')
+        .eq('category', category)
+        .eq('status', 'published')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      
+      if (error) {
+        console.error('❌ Supabase error in getArticlesByCategory:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+      
+      console.log('✅ Articles by category fetched:', data?.length || 0);
+      return data || [];
+    } catch (error) {
+      console.error('💥 Error in getArticlesByCategory:', error);
+      throw error;
+    }
   }
 
   async updateArticle(id: string, updates: Partial<InsertArticle>): Promise<Article> {
-    const result = await db.update(articles).set(updates).where(eq(articles.id, id)).returning();
-    return result[0];
+    try {
+      console.log('🔍 updateArticle called for ID:', id);
+      
+      const { data, error } = await supabaseAdmin
+        .from('articles')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Supabase error in updateArticle:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+      
+      console.log('✅ Article updated successfully:', data.id);
+      return data;
+    } catch (error) {
+      console.error('💥 Error in updateArticle:', error);
+      throw error;
+    }
   }
 
   async deleteArticle(id: string): Promise<void> {
-    await db.delete(articles).where(eq(articles.id, id));
+    try {
+      console.log('🔍 deleteArticle called for ID:', id);
+      
+      const { error } = await supabaseAdmin
+        .from('articles')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        console.error('❌ Supabase error in deleteArticle:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+      
+      console.log('✅ Article deleted successfully:', id);
+    } catch (error) {
+      console.error('💥 Error in deleteArticle:', error);
+      throw error;
+    }
   }
 
   // Email Templates
