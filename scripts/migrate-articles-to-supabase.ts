@@ -40,7 +40,7 @@ interface MigrationResult {
 
 // Configuration du script
 const CONFIG = {
-  SOURCE_FILE: './created-articles.json',
+  SOURCE_FILE: '../created-articles.json',
   BATCH_SIZE: 50,
   DRY_RUN: process.argv.includes('--dry-run'),
   FORCE: process.argv.includes('--force'),
