@@ -1496,47 +1496,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // DEV ONLY: Direct admin login (bypass 2FA) - Remove in production!
-  if (process.env.NODE_ENV === 'development') {
-    app.post("/api/auth/dev-login", async (req, res) => {
-      try {
-        const { email, password } = req.body;
-        
-        // Input validation
-        if (!email || !password) {
-          return res.status(400).json({ error: "Email et mot de passe requis" });
-        }
-        
-        // Check credentials against database
-        const user = await storage.getUserByUsername(email);
-        
-        if (user && await bcrypt.compare(password, user.password)) {
-          // Direct login without 2FA for development
-          (req.session as any).isAuthenticated = true;
-          (req.session as any).userId = user.id;
-          (req.session as any).userEmail = user.username;
-          
-          console.log('🚀 DEV LOGIN: User authenticated directly (2FA bypassed)');
-          res.json({ 
-            success: true, 
-            message: "Connexion directe en mode développement"
-          });
-        } else {
-          res.status(401).json({ error: "Email ou mot de passe incorrect" });
-        }
-      } catch (error) {
-        console.error('Dev login error:', error);
-        res.status(500).json({ error: "Erreur d'authentification" });
-      }
-    });
-    
-    // DEV ONLY: Clear rate limiting
-    app.post("/api/auth/dev-reset-limits", (req, res) => {
-      rateLimitStore.clear();
-      console.log('🧹 DEV: Rate limiting cleared');
-      res.json({ success: true, message: "Rate limiting réinitialisé" });
-    });
-  }
 
   // Step 2: Send SMS verification code
   app.post("/api/auth/send-sms", rateLimit(3, 5 * 60 * 1000), async (req, res) => {
@@ -3452,16 +3411,6 @@ Réponds en JSON avec cette structure exacte :
       res.json({ authenticated: true });
     });
 
-    // Development login bypass route
-    app.post('/api/auth/dev-login', (req, res) => {
-      console.log('🚀 DEV: Direct login request received');
-      // Set authenticated session
-      (req.session as any).isAuthenticated = true;
-      res.json({ 
-        success: true, 
-        message: 'Development login successful' 
-      });
-    });
 
     // Admin dashboard data routes (no auth required)
     app.get('/api/dev/leads', async (req, res) => {

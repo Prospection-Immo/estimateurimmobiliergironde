@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import MemoryStore from "memorystore";
+import crypto from "crypto";
 import { registerRoutes } from "./routes";
 
 // Configure session security
@@ -35,7 +36,7 @@ app.use(session({
       console.log('Session expired and cleaned up:', key);
     }
   }),
-  secret: process.env.SESSION_SECRET || 'admin-dev-secret-key-change-in-production',
+  secret: process.env.SESSION_SECRET || 'secure-random-session-secret-' + crypto.randomUUID(),
   resave: false,
   saveUninitialized: false,
   cookie: {
