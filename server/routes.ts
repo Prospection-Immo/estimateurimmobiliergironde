@@ -18,6 +18,7 @@ import twilio from "twilio";
 import bcrypt from "bcrypt";
 import pdfService from "./services/pdfService";
 import Stripe from "stripe";
+import { requireAuth } from "./middleware/auth";
 
 // Initialize Twilio client
 const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
@@ -33,13 +34,6 @@ const openai = process.env.OPENAI_API_KEY ? new OpenAI({
   apiKey: process.env.OPENAI_API_KEY 
 }) : null;
 
-// Admin authentication middleware
-const requireAdminAuth = (req: any, res: any, next: any) => {
-  if (!(req.session as any).isAuthenticated) {
-    return res.status(401).json({ error: 'Authentification admin requise' });
-  }
-  next();
-};
 
 // Enhanced chat configuration validation schema
 const updateChatConfigSchema = insertChatConfigurationSchema.partial().extend({
@@ -1450,194 +1444,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Authentication routes - Step 1: Email/Password verification
-  app.post("/api/auth/login-step1", rateLimit(5, 15 * 60 * 1000), async (req, res) => {
-    try {
-      const { email, password } = req.body;
-      
-      // Input validation
-      if (!email || !password) {
-        return res.status(400).json({ error: "Email et mot de passe requis" });
-      }
-      
-      // Check credentials against database
-      const user = await storage.getUserByUsername(email);
-      
-      if (user && await bcrypt.compare(password, user.password)) {
-        // Create auth session for 2FA
-        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-        
-        const authSession = await storage.createAuthSession({
-          email,
-          isEmailVerified: true,
-          expiresAt
-        });
-        
-        // Store session ID in HTTP session (more secure than sending in response)
-        (req.session as any).authSessionId = authSession.id;
-        
-        res.json({ 
-          success: true, 
-          requiresSms: true,
-          message: "Étape 1 réussie. Vérification SMS requise."
-        });
-      } else {
-        res.status(401).json({ error: "Email ou mot de passe incorrect" });
-      }
-    } catch (error) {
-      console.error('Login step 1 error:', error);
-      res.status(500).json({ error: "Erreur d'authentification" });
-    }
-  });
-
-  app.post("/api/auth/logout", (req, res) => {
-    req.session.destroy(() => {
-      res.json({ success: true });
-    });
-  });
 
 
-  // Step 2: Send SMS verification code
-  app.post("/api/auth/send-sms", rateLimit(3, 5 * 60 * 1000), async (req, res) => {
-    try {
-      const { phoneNumber } = req.body;
-      const authSessionId = (req.session as any).authSessionId;
-      
-      if (!authSessionId) {
-        return res.status(400).json({ error: "Aucune session d'authentification active" });
-      }
-      
-      const authSession = await storage.getAuthSession(authSessionId);
-      if (!authSession || authSession.expiresAt < new Date()) {
-        return res.status(400).json({ error: "Session d'authentification expirée" });
-      }
-      
-      // Validate phone number
-      const phoneValidation = validatePhoneNumber(phoneNumber);
-      if (!phoneValidation.isValid) {
-        return res.status(400).json({ error: phoneValidation.error });
-      }
-      
-      try {
-        // Send SMS using Twilio SDK
-        const verification = await twilioClient.verify.v2
-          .services(TWILIO_VERIFY_SERVICE_SID)
-          .verifications
-          .create({
-            to: phoneValidation.formatted,
-            channel: 'sms'
-          });
-        
-        // Update auth session with phone number and verification SID
-        await storage.updateAuthSession(authSessionId, {
-          phoneNumber: phoneValidation.formatted,
-          verificationSid: verification.sid
-        });
-        
-        res.json({ 
-          success: true, 
-          message: "Code de vérification envoyé par SMS",
-          phoneDisplay: phoneValidation.formatted.replace(/\d(?=\d{4})/g, '*')
-        });
-      } catch (twilioError: any) {
-        console.error('Twilio verification error:', twilioError);
-        const errorMessage = twilioError.message?.includes('not a valid phone number') 
-          ? "Numéro de téléphone invalide"
-          : "Erreur lors de l'envoi du SMS";
-        res.status(400).json({ error: errorMessage });
-      }
-    } catch (error) {
-      console.error('Send SMS error:', error);
-      res.status(500).json({ error: "Erreur serveur" });
-    }
-  });
+
   
-  // Step 3: Verify SMS code
-  app.post("/api/auth/verify-sms", rateLimit(10, 5 * 60 * 1000), async (req, res) => {
-    try {
-      const { code } = req.body;
-      const authSessionId = (req.session as any).authSessionId;
-      
-      if (!authSessionId) {
-        return res.status(400).json({ error: "Aucune session d'authentification active" });
-      }
-      
-      // Input validation
-      if (!code || !/^\d{6}$/.test(code)) {
-        return res.status(400).json({ error: "Code de vérification invalide (6 chiffres requis)" });
-      }
-      
-      const authSession = await storage.getAuthSession(authSessionId);
-      if (!authSession || authSession.expiresAt < new Date()) {
-        return res.status(400).json({ error: "Session d'authentification expirée" });
-      }
-      
-      if (!authSession.verificationSid || !authSession.phoneNumber) {
-        return res.status(400).json({ error: "Vérification SMS non initiée" });
-      }
-      
-      try {
-        // Verify code using Twilio SDK
-        const verificationCheck = await twilioClient.verify.v2
-          .services(TWILIO_VERIFY_SERVICE_SID)
-          .verificationChecks
-          .create({
-            to: authSession.phoneNumber,
-            code: code
-          });
-        
-        if (verificationCheck.status === 'approved') {
-          // Mark SMS as verified and complete authentication
-          await storage.updateAuthSession(authSessionId, {
-            isSmsVerified: true
-          });
-          
-          // Set final authentication in session with security flags
-          (req.session as any).isAuthenticated = true;
-          (req.session as any).authenticatedAt = new Date().toISOString();
-          
-          // Clean up auth session
-          delete (req.session as any).authSessionId;
-          
-          res.json({ 
-            success: true, 
-            message: "Authentification réussie",
-            redirectUrl: "/admin"
-          });
-        } else {
-          res.status(400).json({ error: "Code de vérification incorrect" });
-        }
-      } catch (twilioError: any) {
-        console.error('Twilio verification check error:', twilioError);
-        const errorMessage = twilioError.message?.includes('max check attempts reached')
-          ? "Trop de tentatives. Demandez un nouveau code."
-          : "Code de vérification incorrect";
-        res.status(400).json({ error: errorMessage });
-      }
-    } catch (error) {
-      console.error('Verify SMS error:', error);
-      res.status(500).json({ error: "Erreur serveur" });
-    }
-  });
   
-  // Legacy login route for backward compatibility
-  app.post("/api/auth/login", async (req, res) => {
-    try {
-      const { username, password } = req.body;
-      
-      // Check credentials against database (legacy endpoint)
-      const legacyUser = await storage.getUserByUsername(username);
-      
-      if (legacyUser && await bcrypt.compare(password, legacyUser.password)) {
-        (req.session as any).isAuthenticated = true;
-        res.json({ success: true });
-      } else {
-        res.status(401).json({ error: "Invalid credentials" });
-      }
-    } catch (error) {
-      res.status(500).json({ error: "Authentication error" });
-    }
-  });
 
   // Homepage SMS Verification endpoints
   // Step 1: Start homepage verification session
@@ -1991,13 +1802,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   }
 
-  // Middleware to check authentication
-  const requireAuth = (req: any, res: any, next: any) => {
-    if (!(req.session as any).isAuthenticated) {
-      return res.status(401).json({ error: "Authentication required" });
-    }
-    next();
-  };
 
 
   // Get leads (admin)
@@ -6254,7 +6058,7 @@ Actions à effectuer:
   });
 
   // Synchronisation complète : Peupler toutes les données de base
-  app.post('/api/admin/sync-all-data', async (req, res) => {
+  app.post('/api/admin/sync-all-data', requireAuth, async (req, res) => {
     try {
       console.log('🚀 Démarrage synchronisation complète des données...');
       
@@ -6472,7 +6276,7 @@ Actions à effectuer:
   });
 
   // Create ALL missing tables in Supabase
-  app.post('/api/admin/create-all-tables', async (req, res) => {
+  app.post('/api/admin/create-all-tables', requireAuth, async (req, res) => {
     try {
       console.log('Creating ALL missing tables in Supabase...');
       
@@ -6960,7 +6764,7 @@ Actions à effectuer:
 
   // Chat Configuration API routes (Admin only)
   // GET chat configuration
-  app.get('/api/chat-config', requireAdminAuth, async (req, res) => {
+  app.get('/api/chat-config', requireAuth, async (req, res) => {
     try {
       const config = await storage.getChatConfiguration();
       
@@ -6989,7 +6793,7 @@ Actions à effectuer:
   });
 
   // PATCH chat configuration (Admin only)
-  app.patch('/api/chat-config', requireAdminAuth, async (req, res) => {
+  app.patch('/api/chat-config', requireAuth, async (req, res) => {
     try {
       // Validate the request body with enhanced schema
       const validatedData = updateChatConfigSchema.parse(req.body);
@@ -7015,7 +6819,7 @@ Actions à effectuer:
   });
 
   // Database Synchronization API (Admin only)
-  app.post('/api/admin/db-sync', requireAdminAuth, async (req, res) => {
+  app.post('/api/admin/db-sync', requireAuth, async (req, res) => {
     try {
       const syncResults = {
         timestamp: new Date().toISOString(),

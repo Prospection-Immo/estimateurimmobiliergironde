@@ -48,6 +48,7 @@ import ChatWidget from "@/components/ui/chat-widget";
 import EstimationMaisonGirondePage from "@/pages/EstimationMaisonGirondePage";
 import MerciEstimationMaisonGirondePage from "@/pages/MerciEstimationMaisonGirondePage";
 import MerciEstimationAppartementBordeauxPage from "@/pages/MerciEstimationAppartementBordeauxPage";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import bordeaux_house from "@assets/generated_images/Bordeaux_house_property_photo_41cf0370.png";
 import SEOHead, { createLocalBusinessSchema, createFAQSchema } from "@/components/SEOHead";
 
@@ -920,6 +921,7 @@ function Router() {
         return null;
       }} />
       <Route path="/admin/login" component={AdminLoginPage} />
+      <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/admin/chat-config" component={AdminChatConfigPage} />
       <Route path="/admin/database-sync" component={AdminDatabaseSyncPage} />
       <Route path="/admin" component={AdminDashboardPage} />
