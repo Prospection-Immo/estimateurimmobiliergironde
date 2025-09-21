@@ -2,6 +2,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { supabaseAdmin } from "./lib/supabaseAdmin";
 import { toSupabaseArticle, fromSupabaseArticle, fromSupabaseArticles } from "./lib/articleMapper";
+import { toSupabaseGuide, fromSupabaseGuide, fromSupabaseGuides } from "./lib/guideMapper";
 import { 
   type User, 
   type Lead, 
@@ -590,40 +591,158 @@ export class SupabaseStorage implements IStorage {
 
   // Guides
   async createGuide(guide: InsertGuide): Promise<Guide> {
-    const result = await db.insert(guides).values(guide).returning();
-    return result[0];
+    try {
+      console.log('🔍 createGuide called with:', guide.title);
+      
+      const supabaseData = toSupabaseGuide(guide);
+      const { data, error } = await supabaseAdmin
+        .from('guides')
+        .insert([supabaseData])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Supabase error in createGuide:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+      
+      console.log('✅ Guide created successfully:', data.id);
+      return fromSupabaseGuide(data);
+    } catch (error) {
+      console.error('💥 Error in createGuide:', error);
+      throw error;
+    }
   }
 
   async getGuides(persona?: string): Promise<Guide[]> {
-    let query = db.select().from(guides);
-    
-    if (persona) {
-      query = query.where(eq(guides.persona, persona));
+    try {
+      console.log('🔍 getGuides called with persona:', persona);
+      
+      let query = supabaseAdmin
+        .from('guides')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (persona) {
+        query = query.eq('persona', persona);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('❌ Supabase error in getGuides:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+      
+      console.log('✅ Guides fetched successfully:', data?.length || 0);
+      return fromSupabaseGuides(data || []);
+    } catch (error) {
+      console.error('💥 Error in getGuides:', error);
+      throw error;
     }
-    
-    return await query.orderBy(guides.sortOrder);
   }
 
   async getGuideById(id: string): Promise<Guide | undefined> {
-    const result = await db.select().from(guides).where(eq(guides.id, id)).limit(1);
-    return result[0];
+    try {
+      console.log('🔍 getGuideById called with ID:', id);
+      
+      const { data, error } = await supabaseAdmin
+        .from('guides')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) {
+        if (error.code === 'PGRST116') {
+          console.log('⚠️ Guide not found for ID:', id);
+          return undefined;
+        }
+        console.error('❌ Supabase error in getGuideById:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+      
+      console.log('✅ Guide fetched by ID successfully:', data.id);
+      return fromSupabaseGuide(data);
+    } catch (error) {
+      console.error('💥 Error in getGuideById:', error);
+      throw error;
+    }
   }
 
   async getGuideBySlug(slug: string): Promise<Guide | undefined> {
-    const result = await db.select().from(guides).where(eq(guides.slug, slug)).limit(1);
-    return result[0];
+    try {
+      console.log('🔍 getGuideBySlug called with slug:', slug);
+      
+      const { data, error } = await supabaseAdmin
+        .from('guides')
+        .select('*')
+        .eq('slug', slug)
+        .single();
+      
+      if (error) {
+        if (error.code === 'PGRST116') {
+          console.log('⚠️ Guide not found for slug:', slug);
+          return undefined;
+        }
+        console.error('❌ Supabase error in getGuideBySlug:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+      
+      console.log('✅ Guide fetched by slug successfully:', data.id);
+      return fromSupabaseGuide(data);
+    } catch (error) {
+      console.error('💥 Error in getGuideBySlug:', error);
+      throw error;
+    }
   }
 
   async updateGuide(id: string, updates: Partial<InsertGuide>): Promise<Guide> {
-    const result = await db.update(guides).set({ 
-      ...updates, 
-      updatedAt: new Date() 
-    }).where(eq(guides.id, id)).returning();
-    return result[0];
+    try {
+      console.log('🔍 updateGuide called for ID:', id);
+      
+      const supabaseData = toSupabaseGuide(updates);
+      const { data, error } = await supabaseAdmin
+        .from('guides')
+        .update({
+          ...supabaseData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Supabase error in updateGuide:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+      
+      console.log('✅ Guide updated successfully:', data.id);
+      return fromSupabaseGuide(data);
+    } catch (error) {
+      console.error('💥 Error in updateGuide:', error);
+      throw error;
+    }
   }
 
   async deleteGuide(id: string): Promise<void> {
-    await db.delete(guides).where(eq(guides.id, id));
+    try {
+      console.log('🔍 deleteGuide called for ID:', id);
+      
+      const { error } = await supabaseAdmin
+        .from('guides')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        console.error('❌ Supabase error in deleteGuide:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+      
+      console.log('✅ Guide deleted successfully:', id);
+    } catch (error) {
+      console.error('💥 Error in deleteGuide:', error);
+      throw error;
+    }
   }
 
   // Guide Downloads
